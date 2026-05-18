@@ -5,27 +5,28 @@ interface Props {
   height?: string;
 }
 
-const { 
-  owner = "4f74cd39", 
+const {
+  owner = "31267337",
   category,
   height = "800px"
 } = Astro.props;
 
-// URL encode the category for the iframe src
-const encodedCategory = encodeURIComponent(category);
-const iframeSrc = `https://app.squarespacescheduling.com/schedule.php?owner=${owner}&appointmentType=category:${encodedCategory}`;
+const encodedCategory = encodeURIComponent(`category:${category}`);
+const iframeSrc = `https://app.acuityscheduling.com/schedule.php?owner=${owner}&appointmentType=${encodedCategory}`;
 ---
 
 <div class="acuity-booking">
-  <iframe 
+  <iframe
     src={iframeSrc}
-    title={`Book ${category}`}
-    width="100%" 
+    title="Book a session"
+    width="100%"
     height={height}
     frameborder="0"
     loading="lazy"
+    allow="payment"
   ></iframe>
 </div>
+<script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
 
 <style>
   .acuity-booking {
