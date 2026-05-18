@@ -6,6 +6,7 @@ import AcuityBooking from '../../components/AcuityBooking.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
+import { zoneFor } from '../../lib/zones';
 
 export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
@@ -23,26 +24,45 @@ if (!facility) {
 
 const { discriminant, value } = facility.facilityType;
 
-// All types have intro; only generic has body; only bookable has amenities/bookingCategory; only link has externalUrl
 const introNodes = await (value as any).intro();
 const bodyNodes = discriminant === 'generic' ? await (value as any).body() : null;
 const amenities: string[] = discriminant === 'bookable' ? (value as any).amenities : [];
 const bookingCategory: string = discriminant === 'bookable' ? (value as any).bookingCategory : '';
 const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
+
+const zone = zoneFor(slug);
 ---
 
-<Layout title={facility.name} description={facility.shortDescription ?? undefined}>
-  <article class="facility-page">
-    <h1>{facility.name}</h1>
+<Layout
+  title={facility.name}
+  description={facility.shortDescription ?? undefined}
+  bodyClass={`zone-${zone}`}
+>
+  <section class="mw-zone-hero">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">
+        {discriminant === 'bookable' ? 'Bookable space' : discriminant === 'link' ? 'On site' : 'Facility'}
+      </span>
+      <h1>{facility.name}</h1>
+      {facility.shortDescription && <p>{facility.shortDescription}</p>}
+      {discriminant === 'link' && externalUrl && (
+        <a href={externalUrl} class="mw-btn mw-btn-ink" target="_blank" rel="noopener">Visit website</a>
+      )}
+      {discriminant === 'bookable' && (
+        <a href="#book" class="mw-btn mw-btn-ink">Check availability</a>
+      )}
+    </div>
+  </section>
 
-    <div class="facility-info">
-      <div class="description">
+  <section class="mw-sect" style="background: var(--bg-elevated, var(--paper));">
+    <div class="mw-wrap" style={facility.image ? "display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--space-7); align-items: start;" : ""}>
+      <div class="mw-article" style="margin: 0; padding: 0; max-width: 60ch;">
         <DocumentRenderer document={introNodes} />
 
         {discriminant === 'bookable' && amenities.length > 0 && (
           <>
-            <h2>Amenities</h2>
-            <ul>
+            <h2 style="margin-top: var(--space-6);">Amenities</h2>
+            <ul class="mw-amenities">
               {amenities.map((amenity) => (
                 <li>{amenity}</li>
               ))}
@@ -52,135 +72,54 @@ const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl
       </div>
 
       {facility.image && (
-        <div class="gallery">
-          <img src={facility.image} alt={facility.name} />
+        <div>
+          <img src={facility.image} alt={facility.name} style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 4/3; object-fit: cover;" />
         </div>
       )}
     </div>
+  </section>
 
-    {discriminant === 'bookable' && (
-      <section class="booking-section">
-        <h2>Book This Room</h2>
-        <AcuityBooking category={bookingCategory} />
-      </section>
-    )}
+  {discriminant === 'bookable' && (
+    <section class="mw-sect" id="book">
+      <div class="mw-wrap">
+        <div class="mw-booking">
+          <span class="mw-eyebrow">Booking</span>
+          <h2>Reserve this space</h2>
+          <AcuityBooking category={bookingCategory} />
+        </div>
+      </div>
+    </section>
+  )}
 
-    {discriminant === 'link' && externalUrl && (
-      <section class="external-link-section">
-        <a href={externalUrl} class="btn-external" target="_blank" rel="noopener">
-          Visit External Site →
-        </a>
-      </section>
-    )}
+  {discriminant === 'link' && externalUrl && (
+    <section class="mw-sect">
+      <div class="mw-wrap">
+        <div class="mw-banner">
+          <div>
+            <span class="mw-eyebrow">Visit</span>
+            <h3>Run by the team at {new URL(externalUrl).hostname.replace(/^www\./, '')}</h3>
+            <p>This space is operated independently. Head to their website for opening hours, prices and booking.</p>
+            <a href={externalUrl} class="mw-btn mw-btn-primary" target="_blank" rel="noopener">Visit website</a>
+          </div>
+          <div class="visual" style={`background-image: url('${facility.image ?? '/assets/photos/hero.webp'}');`}></div>
+        </div>
+      </div>
+    </section>
+  )}
 
-    {discriminant === 'generic' && bodyNodes && (
-      <section class="body-content">
-        <DocumentRenderer document={bodyNodes} />
-      </section>
-    )}
+  {discriminant === 'generic' && bodyNodes && (
+    <section class="mw-sect">
+      <div class="mw-wrap">
+        <div class="mw-article" style="margin: 0;">
+          <DocumentRenderer document={bodyNodes} />
+        </div>
+      </div>
+    </section>
+  )}
 
-    <a href="/facilities" class="back-link">← Back to all facilities</a>
-  </article>
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      <a href="/facilities" class="mw-back">Back to all facilities</a>
+    </div>
+  </section>
 </Layout>
-
-<style>
-  .facility-page {
-    max-width: 1000px;
-  }
-
-  h1 {
-    color: var(--color-primary);
-    margin-bottom: 2rem;
-  }
-
-  .facility-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-bottom: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .facility-info {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .description :global(h2) {
-    color: var(--color-primary);
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    font-size: 1.2rem;
-  }
-
-  .description :global(ul) {
-    margin-left: 1.5rem;
-  }
-
-  .description :global(li) {
-    margin-bottom: 0.5rem;
-  }
-
-  .description :global(p) {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-  }
-
-  .gallery img {
-    width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .booking-section {
-    background: #f9f9f9;
-    padding: 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-  }
-
-  .booking-section h2 {
-    color: var(--color-primary);
-    margin-bottom: 1rem;
-  }
-
-  .external-link-section {
-    margin-bottom: 2rem;
-  }
-
-  .btn-external {
-    display: inline-block;
-    background: var(--color-primary);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: opacity 0.2s;
-  }
-
-  .btn-external:hover {
-    opacity: 0.9;
-    text-decoration: none;
-  }
-
-  .body-content {
-    margin-bottom: 2rem;
-  }
-
-  .body-content :global(h2) {
-    color: var(--color-primary);
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .body-content :global(p) {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-  }
-
-  .back-link {
-    display: inline-block;
-    margin-top: 1rem;
-  }
-</style>
