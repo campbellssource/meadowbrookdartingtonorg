@@ -73,7 +73,8 @@ export default config({
               ),
               bookingCategory: fields.text({
                 label: 'Acuity booking category',
-                description: 'Must match the category name exactly in Acuity Scheduling',
+                description: 'Must match the category name exactly in Acuity Scheduling (e.g. "Lounge - Small room").',
+                validation: { isRequired: true },
               }),
             }),
             link: fields.object({
