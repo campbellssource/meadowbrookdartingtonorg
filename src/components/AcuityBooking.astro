@@ -1,0 +1,50 @@
+---
+interface Props {
+  owner?: string;
+  category: string;
+  height?: string;
+}
+
+const { 
+  owner = "4f74cd39", 
+  category,
+  height = "800px"
+} = Astro.props;
+
+// URL encode the category for the iframe src
+const encodedCategory = encodeURIComponent(category);
+const iframeSrc = `https://app.squarespacescheduling.com/schedule.php?owner=${owner}&appointmentType=category:${encodedCategory}`;
+---
+
+<div class="acuity-booking">
+  <iframe 
+    src={iframeSrc}
+    title={`Book ${category}`}
+    width="100%" 
+    height={height}
+    frameborder="0"
+    loading="lazy"
+  ></iframe>
+</div>
+
+<style>
+  .acuity-booking {
+    width: 100%;
+    max-width: 100%;
+    margin: 2rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .acuity-booking iframe {
+    display: block;
+    border: none;
+  }
+
+  @media (max-width: 768px) {
+    .acuity-booking iframe {
+      min-height: 600px;
+    }
+  }
+</style>

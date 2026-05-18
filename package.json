@@ -1,0 +1,22 @@
+{
+  "name": "meadowbrookdartingtonorg",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "crawl": "node scripts/crawl-site.mjs",
+    "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose"
+  },
+  "dependencies": {
+    "@astrojs/markdoc": "^1.0.5",
+    "@astrojs/react": "^5.0.5",
+    "@keystatic/astro": "^5.0.6",
+    "@keystatic/core": "^0.5.50",
+    "astro": "^6.3.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  }
+}

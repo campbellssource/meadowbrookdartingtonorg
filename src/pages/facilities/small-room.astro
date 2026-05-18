@@ -1,0 +1,104 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AcuityBooking from '../../components/AcuityBooking.astro';
+---
+
+<Layout title="Lounge - Small Room" description="Book the small room at Meadowbrook for smaller gatherings and meetings">
+  <article class="facility-page">
+    <h1>Lounge - Small Room</h1>
+    
+    <div class="facility-info">
+      <div class="description">
+        <p>
+          Our cozy lounge is perfect for smaller gatherings, intimate meetings, or quiet study sessions.
+        </p>
+        
+        <h2>Amenities</h2>
+        <ul>
+          <li>Comfortable seating</li>
+          <li>Natural lighting</li>
+          <li>Heating</li>
+          <li>Kitchen access</li>
+          <li>Toilet facilities</li>
+          <li>Parking available</li>
+        </ul>
+
+        <h2>Pricing</h2>
+        <p>Please see the booking system below for current pricing and availability.</p>
+      </div>
+      
+      <div class="gallery">
+        <img src="/images/small-room.jpg" alt="The small room at Meadowbrook" />
+      </div>
+    </div>
+
+    <section class="booking-section">
+      <h2>Book This Room</h2>
+      <AcuityBooking category="Lounge - Small room" />
+    </section>
+
+    <a href="/facilities" class="back-link">← Back to all facilities</a>
+  </article>
+</Layout>
+
+<style>
+  .facility-page {
+    max-width: 1000px;
+  }
+
+  h1 {
+    color: var(--color-primary);
+    margin-bottom: 2rem;
+  }
+
+  .facility-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .facility-info {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .description h2 {
+    color: var(--color-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+  }
+
+  .description ul {
+    margin-left: 1.5rem;
+  }
+
+  .description li {
+    margin-bottom: 0.5rem;
+  }
+
+  .gallery img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .booking-section {
+    background: #f9f9f9;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .booking-section h2 {
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-top: 1rem;
+  }
+</style>

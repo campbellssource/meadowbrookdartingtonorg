@@ -1,0 +1,214 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const facilities = [
+  { name: 'Swimming Pool', slug: 'pool', image: '/images/pool.jpg', description: 'Community swimming facilities' },
+  { name: 'Bike Track', slug: 'bike-track', image: '/images/bike-track.jpg', description: 'BMX and cycling track' },
+  { name: 'Snooker Room', slug: 'snooker-room', image: '/images/snooker.jpg', description: 'Snooker tables available for booking', bookable: true },
+  { name: 'Studio - Large Room', slug: 'large-room', image: '/images/large-room.jpg', description: 'Ideal for classes, meetings and events', bookable: true },
+  { name: 'Lounge - Small Room', slug: 'small-room', image: '/images/small-room.jpg', description: 'Perfect for smaller gatherings', bookable: true },
+  { name: 'Playground', slug: 'playground', image: '/images/playground.jpg', description: 'Outdoor play area for children' },
+  { name: 'Playing Fields', slug: 'playing-fields', image: '/images/fields.jpg', description: 'Football pitches and open space' },
+  { name: 'Woodland and Brook', slug: 'woodland-and-brook', image: '/images/woodland.jpg', description: 'Nature walks and wildlife' },
+];
+---
+
+<Layout title="Home">
+  <section class="hero">
+    <h1>Welcome to Meadowbrook</h1>
+    <p class="lead">
+      Meadowbrook is managed by The Dartington Recreation Association, a charity run by
+      volunteers who manage the Meadowbrook building and surrounding facilities on behalf
+      of the Dartington community.
+    </p>
+    <a href="/about" class="btn">Learn More</a>
+  </section>
+
+  <section class="facilities">
+    <h2>Our Facilities</h2>
+    <div class="facility-grid">
+      {facilities.map((facility) => (
+        <a href={`/facilities/${facility.slug}`} class="facility-card">
+          <div class="facility-image" style={`background-image: url(${facility.image})`}>
+            {facility.bookable && <span class="badge">Bookable</span>}
+          </div>
+          <h3>{facility.name}</h3>
+          <p>{facility.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="about-preview">
+    <h2>About Meadowbrook</h2>
+    <p>
+      These 10 acres of land were generously bequeathed to the village by the Elmhirsts
+      and Dartington Hall Trust in 1962, and are now managed by Dartington Recreation
+      Association (DRA), a charity run by local volunteers, on a lease that next comes
+      up for renewal in 2118!
+    </p>
+    <a href="/about" class="btn-secondary">About the DRA</a>
+  </section>
+
+  <section class="partners">
+    <h2>In Partnership With</h2>
+    <div class="partner-logos">
+      <a href="https://www.dartington.org/"><img src="/images/partners/dartington.png" alt="Dartington Hall Trust" /></a>
+      <a href="https://bidwellbrook.org/"><img src="/images/partners/bidwell-brook.png" alt="Bidwell Brook School" /></a>
+      <a href="https://www.sportengland.org/"><img src="/images/partners/sport-england.png" alt="Sport England" /></a>
+      <a href="https://lifeworks-uk.org/"><img src="/images/partners/lifeworks.png" alt="Lifeworks" /></a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, #f0f7f0 0%, #e8f4e8 100%);
+    border-radius: 12px;
+    margin-bottom: 3rem;
+  }
+
+  .hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-primary);
+  }
+
+  .lead {
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+    color: #555;
+  }
+
+  .btn {
+    display: inline-block;
+    background: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    display: inline-block;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  section {
+    margin-bottom: 4rem;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-primary);
+  }
+
+  .facility-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .facility-card {
+    display: block;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .facility-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
+  }
+
+  .facility-image {
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    background-color: #e0e0e0;
+    position: relative;
+  }
+
+  .badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--color-primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .facility-card h3 {
+    padding: 1rem 1rem 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .facility-card p {
+    padding: 0 1rem 1rem;
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  .about-preview {
+    background: #f9f9f9;
+    padding: 2rem;
+    border-radius: 12px;
+  }
+
+  .about-preview p {
+    max-width: 700px;
+    margin-bottom: 1.5rem;
+  }
+
+  .partner-logos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .partner-logos img {
+    height: 60px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .partner-logos a:hover img {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 {
+      font-size: 1.75rem;
+    }
+
+    .lead {
+      font-size: 1rem;
+    }
+  }
+</style>
