@@ -1,18 +1,16 @@
 ---
 interface Props {
-  owner?: string;
   category: string;
   height?: string;
 }
 
 const {
-  owner = "31267337",
   category,
   height = "800px"
 } = Astro.props;
 
 const encodedCategory = encodeURIComponent(`category:${category}`);
-const iframeSrc = `https://app.acuityscheduling.com/schedule.php?owner=${owner}&appointmentType=${encodedCategory}`;
+const iframeSrc = `https://meadowbrookdartington.as.me/?appointmentType=${encodedCategory}`;
 ---
 
 <div class="acuity-booking">
