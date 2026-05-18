@@ -26,3 +26,6 @@ steps:
 
 images:
   - europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY
