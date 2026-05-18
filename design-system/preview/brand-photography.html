@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Photography</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 18px 20px; }
+  .strip { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; }
+  .strip > div { aspect-ratio: 1.2 / 1; overflow: hidden; border-radius: var(--r-md); background: var(--paper-deep); }
+  .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .caption { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding: 0 4px; }
+  .caption .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); font-weight: 500; }
+  .caption .desc { font-size: 13px; color: var(--ink-soft); }
+</style>
+<div class="card">
+  <div class="strip">
+    <div><img src="../assets/photos/hero.webp" alt=""></div>
+    <div><img src="../assets/photos/extravaganza-parachute.webp" alt=""></div>
+    <div><img src="../assets/photos/brook.png" alt=""></div>
+  </div>
+  <div class="caption">
+    <span class="lab">Photography — candid, golden hour, lifted shadows</span>
+    <span class="desc">People doing things, never posed. Real light, real edges.</span>
+  </div>
+</div>

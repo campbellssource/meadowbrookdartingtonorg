@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone tags — in use</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 22px 28px; background: var(--paper); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .head h3 { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
+  .head .sub { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* In-use mock: event row with a tiny zone tag (the actual job they do) */
+  .events { background: var(--bone); border-radius: var(--r-md); padding: 4px 14px; margin-bottom: 14px; }
+  .ev { display: grid; grid-template-columns: 60px 1fr auto; gap: 18px; align-items: center; padding: 10px 0; }
+  .ev + .ev { box-shadow: 0 -1px 0 0 rgba(40,35,32,0.05); }
+  .ev .day { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
+  .ev .mon { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); margin-top: 2px; font-weight: 600; }
+  .ev h4 { font-family: "Plus Jakarta Sans"; font-size: 15px; font-weight: 600; margin: 0; color: var(--ink); }
+  .ev p { font-size: 12px; color: var(--ink-soft); margin: 2px 0 0; }
+
+  /* The chip itself */
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; font-family: "Plus Jakarta Sans"; line-height: 1; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+  /* Filter row example */
+  .filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .filter .lab { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); margin-right: 6px; font-weight: 600; }
+  .filter .chip { cursor: pointer; }
+  .filter .chip.is-active { background: var(--ink) !important; color: #fff !important; }
+  .filter .chip.is-active .dot { background: rgba(255,255,255,0.6) !important; }
+
+  .case { font-size: 12px; color: var(--ink-soft); line-height: 1.55; max-width: 60ch; margin-top: 12px; }
+  .case b { color: var(--ink); font-weight: 600; }
+</style>
+<div class="card">
+  <div class="head">
+    <h3>Zone tags &amp; filters — small, contextual</h3>
+    <span class="sub">Tagging + filtering · not navigation</span>
+  </div>
+
+  <!-- IN USE: event list with zone tags -->
+  <div class="events">
+    <div class="ev">
+      <div><div class="day">24</div><div class="mon">Jun</div></div>
+      <div><h4>Summer extravaganza</h4><p>Live music, food, dunk-the-trustee booth · 12pm</p></div>
+      <span class="chip" style="background:#FFF6CC; color:#7A5A00"><span class="dot" style="background:#F9D21E"></span>Extravaganza</span>
+    </div>
+    <div class="ev">
+      <div><div class="day">02</div><div class="mon">Jul</div></div>
+      <div><h4>Open-pool campaign meeting</h4><p>Community room · 7pm · all welcome</p></div>
+      <span class="chip" style="background:#D6F1F8; color:#1098B7"><span class="dot" style="background:#20B9DB"></span>Pool</span>
+    </div>
+    <div class="ev">
+      <div><div class="day">14</div><div class="mon">Jul</div></div>
+      <div><h4>BMX jam night</h4><p>Track open till sunset · bring lights</p></div>
+      <span class="chip" style="background:#FFE3D9; color:#A73916"><span class="dot" style="background:#F04E23"></span>Bike Track</span>
+    </div>
+  </div>
+
+  <!-- IN USE: filter -->
+  <div class="filter">
+    <span class="lab">Filter</span>
+    <span class="chip is-active" style="background:#FBF0DF; color:#28201A; box-shadow: inset 0 0 0 1px rgba(40,35,32,0.1);">All</span>
+    <span class="chip" style="background:#FFF6CC; color:#7A5A00"><span class="dot" style="background:#F9D21E"></span>Extravaganza</span>
+    <span class="chip" style="background:#D6F1F8; color:#1098B7"><span class="dot" style="background:#20B9DB"></span>Pool</span>
+    <span class="chip" style="background:#FFE3D9; color:#A73916"><span class="dot" style="background:#F04E23"></span>Bike</span>
+    <span class="chip" style="background:#FFE8C2; color:#8A3F00"><span class="dot" style="background:#FFA500"></span>Playground</span>
+    <span class="chip" style="background:#D6EAD6; color:#166916"><span class="dot" style="background:#228B22"></span>Fields</span>
+  </div>
+
+  <div class="case">
+    <b>Status — held back.</b> The website won't have a busy enough roster to justify a filter row at launch, so chips aren't part of the initial site. Keeping the pattern in the system for future use: round-up emails, social posts, the "what's coming up" page once we have enough events to need scanning. The small inline tag (top three rows) is the more useful piece — drop one into an event row if a list ever mixes zones.
+  </div>
+</div>

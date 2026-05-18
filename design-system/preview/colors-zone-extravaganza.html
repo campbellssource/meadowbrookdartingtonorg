@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Extravaganza</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.05fr 1fr; min-height: 220px; }
+  .left { background: #F9D21E; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+  .left .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #A73916; font-weight: 600; }
+  .left h1 { font-family: "Abril Fatface", serif; font-size: 56px; line-height: 0.95; margin: 0; color: #28201A; }
+  .left .swatches { display: flex; gap: 8px; margin-top: 14px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); color: #fff; }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="eyebrow">Saturday · Free entry</div>
+    <h1>Summer<br>extravaganza</h1>
+    <div class="swatches">
+      <span class="sw" style="background:#A73916">#A73916</span>
+      <span class="sw" style="background:#74A953">#74A953</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — events</div>
+    <div class="name">Extravaganza</div>
+    <div class="desc">Village fête energy. Heading font: <b>Abril Fatface</b>. Lead with sun yellow, green, ember red accent.</div>
+    <div class="row">
+      <span class="chip" style="background:#F9D21E; color:#28201A">#F9D21E</span>
+      <span class="chip" style="background:#74A953">#74A953</span>
+      <span class="chip" style="background:#A73916">#A73916</span>
+      <span class="chip" style="background:#fff; color:#28201A; box-shadow: inset 0 0 0 1px #ddd">#FFFFFF</span>
+    </div>
+  </div>
+</div>

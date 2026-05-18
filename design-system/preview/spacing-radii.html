@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Radii</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; }
+  .head { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; }
+  .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .swatch { width: 70px; height: 50px; background: var(--paper-deep); box-shadow: inset 0 0 0 1px rgba(40,35,32,0.08); }
+  .lab { font-size: 11px; color: var(--ink); font-weight: 600; }
+  .px { font-family: ui-monospace, monospace; font-size: 10px; color: var(--ink-mute); }
+  .note { margin-top: 14px; font-size: 11px; color: var(--ink-mute); }
+</style>
+<div class="card">
+  <div class="head">Corner radii — tightened from v1</div>
+  <div class="row">
+    <div class="step"><div class="swatch" style="border-radius:2px"></div><span class="lab">xs</span><span class="px">2px</span></div>
+    <div class="step"><div class="swatch" style="border-radius:4px"></div><span class="lab">sm</span><span class="px">4px</span></div>
+    <div class="step"><div class="swatch" style="border-radius:8px"></div><span class="lab">md</span><span class="px">8px</span></div>
+    <div class="step"><div class="swatch" style="border-radius:14px"></div><span class="lab">lg</span><span class="px">14px</span></div>
+    <div class="step"><div class="swatch" style="border-radius:22px"></div><span class="lab">xl</span><span class="px">22px</span></div>
+    <div class="step"><div class="swatch" style="border-radius:999px"></div><span class="lab">pill</span><span class="px">999px</span></div>
+  </div>
+  <div class="note">Buttons → <code>sm</code> (4px) or <code>md</code> (8px). Cards → <code>md</code> or <code>lg</code>. Pills reserved for chips/tags.</div>
+</div>

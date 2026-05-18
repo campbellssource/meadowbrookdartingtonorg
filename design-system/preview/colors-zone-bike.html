@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Bike Track</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.05fr 1fr; min-height: 240px; }
+  .left { background: #F04E23; padding: 22px 26px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+  /* Chain-link motif top + bottom, echoing the brand badge */
+  .left .chain { position: absolute; left: 0; right: 0; height: 12px; display: flex; gap: 8px; align-items: center; padding: 0 8px; }
+  .left .chain.top { top: 12px; }
+  .left .chain.bot { bottom: 12px; }
+  .left .chain .link { width: 12px; height: 12px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 2.5px #fff; flex: none; }
+  .left .chain .pin { width: 6px; height: 6px; border-radius: 50%; background: #fff; flex: none; }
+  .left .body { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .left .footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .left h1 { font-family: "Bebas Neue", sans-serif; font-size: 64px; line-height: 0.88; margin: 0; color: #000; letter-spacing: 0.02em; }
+  .left .send { font-family: "Bebas Neue", sans-serif; font-size: 22px; line-height: 1; color: #fff; letter-spacing: 0.04em; margin-top: 4px; }
+  .left .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; font-weight: 700; }
+  .left .swatches { display: flex; gap: 8px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); background: #000; color: #F04E23; }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="chain top">
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span>
+    </div>
+    <div class="body">
+      <div class="eyebrow">Open · all weather</div>
+      <h1>Dartington<br>Bike Track</h1>
+      <div class="send">Send it sideways.</div>
+    </div>
+    <div class="footer">
+      <div class="swatches">
+        <span class="sw">#F04E23</span>
+        <span class="sw">#000</span>
+        <span class="sw" style="background:#fff; color:#F04E23">#FFF</span>
+      </div>
+    </div>
+    <div class="chain bot">
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span><span class="pin"></span>
+      <span class="link"></span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — bike</div>
+    <div class="name">Bike Track</div>
+    <div class="desc">Bold orange block. Bebas Neue ranged-left. Black headlines, white callouts and chain-link motif echo the existing track badge.</div>
+    <div class="row">
+      <span class="chip" style="background:#F04E23">#F04E23</span>
+      <span class="chip" style="background:#000">#000000</span>
+      <span class="chip" style="background:#fff; color:#000; box-shadow: inset 0 0 0 1px #ddd">#FFFFFF</span>
+    </div>
+  </div>
+</div>

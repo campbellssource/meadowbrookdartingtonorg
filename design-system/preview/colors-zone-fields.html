@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Playing Fields</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.05fr 1fr; min-height: 220px; }
+  .left { background: #228B22 url("../assets/illustrations/playing-fields-motif.png") right -10px bottom -10px/200px no-repeat; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+  .left h1 { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 56px; line-height: 0.95; margin: 0; color: #fff; text-transform: uppercase; letter-spacing: 0.01em; }
+  .left .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.85); font-weight: 600; }
+  .left .swatches { display: flex; gap: 8px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); background: rgba(0,0,0,0.3); color: #fff; }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="eyebrow">Sunday league · 11am</div>
+    <h1>On the<br>pitch</h1>
+    <div class="swatches">
+      <span class="sw">#228B22</span>
+      <span class="sw">White lines</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — playing fields</div>
+    <div class="name">Playing Fields</div>
+    <div class="desc">Green pitch, white line markings and goalpost motif. Oswald Bold, sport-poster energy.</div>
+    <div class="row">
+      <span class="chip" style="background:#228B22">#228B22</span>
+      <span class="chip" style="background:#fff; color:#28201A; box-shadow: inset 0 0 0 1px #ddd">#FFFFFF</span>
+    </div>
+  </div>
+</div>

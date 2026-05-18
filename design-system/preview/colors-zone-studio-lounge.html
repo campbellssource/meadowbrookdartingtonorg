@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Studio & Lounge</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1fr 1fr; min-height: 220px; }
+  .col { padding: 22px 26px; display: flex; flex-direction: column; justify-content: space-between; }
+  .studio { background: #F5DEB3; color: #4A2A0A; }
+  .studio h1 { font-family: "Josefin Sans", sans-serif; font-weight: 300; font-size: 44px; letter-spacing: 0.04em; margin: 0; }
+  .lounge { background: #401D00; color: #EEC776; }
+  .lounge h1 { font-family: "Righteous", sans-serif; font-size: 48px; line-height: 1; margin: 0; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.85; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 5px 9px; border-radius: var(--r-pill); }
+  .studio .sw { background: rgba(74, 42, 10, 0.12); color: #4A2A0A; }
+  .lounge .sw { background: rgba(238, 199, 118, 0.15); color: #EEC776; }
+  .desc { font-size: 12px; line-height: 1.4; opacity: 0.85; max-width: 240px; }
+</style>
+<div class="card">
+  <div class="col studio">
+    <div class="eyebrow">Yoga · martial arts</div>
+    <h1>Studio</h1>
+    <div class="desc">Parquet floor, wheat walls. Josefin Sans light, airy.</div>
+    <div class="swatches">
+      <span class="sw">#F5DEB3</span>
+      <span class="sw">#8B4513</span>
+      <span class="sw">#D2691E</span>
+    </div>
+  </div>
+  <div class="col lounge">
+    <div class="eyebrow">Bar · evenings</div>
+    <h1>Lounge</h1>
+    <div class="desc">Deep wood + cream. Righteous condensed display.</div>
+    <div class="swatches">
+      <span class="sw">#401D00</span>
+      <span class="sw">#EEC776</span>
+    </div>
+  </div>
+</div>

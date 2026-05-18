@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone card</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 22px; background: var(--paper); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .zc { border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; }
+  .zc .img { aspect-ratio: 16/9; background-size: cover; background-position: center; }
+  .zc .body { padding: 18px 20px 20px; background: var(--bone); flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .zc .eyebrow { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); font-weight: 600; }
+  .zc h3 { font-family: "Plus Jakarta Sans"; font-size: 20px; font-weight: 600; margin: 0; color: var(--ink); }
+  .zc p { font-size: 13px; color: var(--ink-soft); margin: 0; line-height: 1.5; }
+  .zc .meta { margin-top: 8px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--green-dark); font-weight: 600; }
+</style>
+<div class="card">
+  <div class="zc">
+    <div class="img" style="background-image: url('../assets/photos/bike-track.webp')"></div>
+    <div class="body">
+      <div class="eyebrow">Open · all weather</div>
+      <h3>Bike Track</h3>
+      <p>Pump track and dirt jumps in the woods over the brook.</p>
+      <div class="meta">Find out more →</div>
+    </div>
+  </div>
+  <div class="zc">
+    <div class="img" style="background-image: url('../assets/textures/pool-tile.png')"></div>
+    <div class="body">
+      <div class="eyebrow">Closed · restoration</div>
+      <h3>Dartington Pool</h3>
+      <p>50m outdoor pool. Built by the community in the 60s.</p>
+      <div class="meta">Help bring it back →</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Night & ink</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; background: #FBF0DF; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .head h3 { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
+  .head .sub { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .sw { border-radius: var(--r-md); padding: 14px; height: 110px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }
+  .sw .name { font-size: 12px; font-weight: 600; }
+  .sw .hex { font-family: ui-monospace, monospace; font-size: 11px; opacity: 0.7; }
+</style>
+<div class="card">
+  <div class="head">
+    <h3>Night & ink — building wood, evening, body text</h3>
+    <span class="sub">Never pure black</span>
+  </div>
+  <div class="row">
+    <div class="sw" style="background:#3C3C3A; color:#fff"><span class="name">Night</span><span class="hex">#3C3C3A</span></div>
+    <div class="sw" style="background:#A73916; color:#fff"><span class="name">Ember</span><span class="hex">#A73916</span></div>
+    <div class="sw" style="background:#28201A; color:#fff"><span class="name">Ink</span><span class="hex">#28201A</span></div>
+    <div class="sw" style="background:#5B4E42; color:#fff"><span class="name">Ink soft</span><span class="hex">#5B4E42</span></div>
+    <div class="sw" style="background:#8B7C6E; color:#fff"><span class="name">Ink mute</span><span class="hex">#8B7C6E</span></div>
+  </div>
+</div>

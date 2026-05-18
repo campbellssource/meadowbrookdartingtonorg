@@ -1,0 +1,18 @@
+/* Shared base for all design-system preview cards. */
+@import url("../colors_and_type.css");
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.card {
+  padding: 28px 32px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+}
+.card-tight { padding: 20px 24px; }
+.card-flush { padding: 0; }

@@ -1,0 +1,21 @@
+name:
+  name: "Snooker Room"
+  slug: "snooker-room"
+shortDescription: "Snooker tables available for booking"
+facilityType:
+  discriminant: bookable
+  value:
+    bookingCategory: "Snooker"
+    intro:
+      - type: paragraph
+        children:
+          - text: "Our snooker room offers a great space for a game with friends or for local club sessions."
+      - type: paragraph
+        children:
+          - text: "Please see the booking system below for current pricing and availability."
+    amenities:
+      - "Full-size snooker table"
+      - "Cues and equipment provided"
+      - "Good lighting"
+      - "Heating"
+      - "Toilet facilities"

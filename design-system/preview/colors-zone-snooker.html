@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Snooker Room</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.15fr 1fr; min-height: 280px; }
+  .left { background: #004D26; padding: 48px 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; position: relative; overflow: hidden; text-align: center; }
+  /* Snooker ball — corner accent, kept small so the type can breathe */
+  .left .ball { position: absolute; right: 18px; bottom: 18px; width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #F9D21E 0%, #C19A0F 70%, #6E5800 100%); box-shadow: 0 3px 8px rgba(0,0,0,0.4); }
+  .left h1 { font-family: "Billiard", serif; font-size: 64px; line-height: 1; margin: 0; color: #fff; font-weight: 400; }
+  .left .eyebrow { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 500; }
+  .left .swatches { display: flex; gap: 8px; margin-top: 4px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); background: rgba(0,0,0,0.45); color: rgba(255,255,255,0.85); }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+  .right .flag { font-size: 11px; color: var(--green-dark); margin-top: 4px; font-weight: 500; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="eyebrow">Open · 5pm – late</div>
+    <h1>Snooker</h1>
+    <div class="swatches">
+      <span class="sw">#004D26 baize</span>
+      <span class="sw">#181C1B</span>
+    </div>
+    <div class="ball"></div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — snooker</div>
+    <div class="name">Snooker Room</div>
+    <div class="desc">Dark green baize. Billiard wants <b>a lot of space</b> around it — centred on the page with deep top/bottom padding, never crowded against other type. Snooker ball colours appear as small accents only.</div>
+    <div class="row">
+      <span class="chip" style="background:#004D26">#004D26</span>
+      <span class="chip" style="background:#181C1B">#181C1B</span>
+      <span class="chip" style="background:#fff; color:#28201A; box-shadow: inset 0 0 0 1px #ddd">#FFFFFF</span>
+    </div>
+    <div class="flag">✓ Heading font: Billiard (brand file) — needs breathing room</div>
+  </div>
+</div>

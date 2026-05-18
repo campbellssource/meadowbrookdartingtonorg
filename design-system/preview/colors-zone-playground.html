@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Playground</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.05fr 1fr; min-height: 220px; }
+  .left { background: #FFA500; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+  .left::after { content:""; position:absolute; right:-50px; top:-50px; width: 180px; height: 180px; border-radius: 50%; background: #FF4500; opacity: 0.85; }
+  .left > * { position: relative; z-index: 1; }
+  .left h1 { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 54px; line-height: 0.95; margin: 0; color: #28201A; letter-spacing: -0.02em; }
+  .left .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #28201A; font-weight: 700; }
+  .left .swatches { display: flex; gap: 8px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); background: rgba(0,0,0,0.85); color: #FFA500; }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="eyebrow">Open · always</div>
+    <h1>Swing, slide,<br>climb high</h1>
+    <div class="swatches">
+      <span class="sw">#FFA500</span>
+      <span class="sw">#FF4500</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — playground</div>
+    <div class="name">Playground</div>
+    <div class="desc">Orange + red with hand-logo blue and yellow used in moderation. Nunito Black headlines. The only zone where a little spring/bounce in motion is OK.</div>
+    <div class="row">
+      <span class="chip" style="background:#FFA500; color:#28201A">#FFA500</span>
+      <span class="chip" style="background:#FF4500">#FF4500</span>
+      <span class="chip" style="background:#1DB5EF">#1DB5EF</span>
+      <span class="chip" style="background:#F9D21E; color:#28201A">#F9D21E</span>
+    </div>
+  </div>
+</div>

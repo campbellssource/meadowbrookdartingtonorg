@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zone — Dartington Pool</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; display: grid; grid-template-columns: 1.15fr 1fr; min-height: 240px; }
+  .left { background: #20B9DB url("../assets/textures/pool-tile.png") center/cover; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+  .left::before { content:""; position:absolute; inset:0; background: rgba(32, 185, 219, 0.32); }
+  .left > * { position: relative; z-index: 1; }
+  .left h1 {
+    font-family: "Rexton", sans-serif;
+    font-weight: 300;
+    font-size: 50px;
+    line-height: 0.95;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+    color: #000;
+  }
+  .left .toprow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .left .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #000; font-weight: 500; }
+  .left .ring { width: 56px; height: 56px; flex: none; }
+  .left .ring img { width: 100%; height: 100%; display: block; filter: invert(0%); }
+  .left .swatches { display: flex; gap: 8px; }
+  .left .sw { font-family: ui-monospace, monospace; font-size: 10px; padding: 6px 10px; border-radius: var(--r-pill); background: rgba(0,0,0,0.85); color: #fff; letter-spacing: 0.05em; }
+  .right { padding: 22px 24px; background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+  .right .lab { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
+  .right .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .right .desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .right .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .right .chip { font-family: ui-monospace, monospace; font-size: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; }
+  .right .flag { font-size: 11px; color: var(--green-dark); margin-top: 4px; font-weight: 500; }
+</style>
+<div class="card">
+  <div class="left">
+    <div class="toprow">
+      <div class="eyebrow">Restoration · 2026</div>
+      <div class="ring"><img src="../assets/illustrations/pool-icon.png" alt=""></div>
+    </div>
+    <h1>Bring back<br>the pool</h1>
+    <div class="swatches">
+      <span class="sw">#20B9DB</span>
+      <span class="sw">Mosaic tile bg</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="lab">Zone — pool</div>
+    <div class="name">Dartington Pool</div>
+    <div class="desc">Mosaic tile photography as background. Rexton <b>Light</b>, all caps, wide tracking. Black on tile blue. Life-ring mark sits alongside the headline.</div>
+    <div class="row">
+      <span class="chip" style="background:#20B9DB">#20B9DB</span>
+      <span class="chip" style="background:#45BFDF">#45BFDF</span>
+      <span class="chip" style="background:#6DC8E4">#6DC8E4</span>
+      <span class="chip" style="background:#A0D8EA; color:#28201A">#A0D8EA</span>
+      <span class="chip" style="background:#9CD6E9; color:#28201A">#9CD6E9</span>
+    </div>
+    <div class="flag">✓ Heading font: Rexton Light (brand file) · letter-spacing 0.18em</div>
+  </div>
+</div>

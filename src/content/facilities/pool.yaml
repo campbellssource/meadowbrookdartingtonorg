@@ -1,0 +1,67 @@
+name:
+  name: "Swimming Pool"
+  slug: "pool"
+shortDescription: "Community swimming facilities"
+facilityType:
+  discriminant: generic
+  value:
+    intro:
+      - type: paragraph
+        children:
+          - text: "Dartington Swimming Pool sadly closed in 2022 due to structural failure. However, we have a wonderful network of volunteers dedicated to re-envisaging a much improved pool that better serves our community of users."
+    body:
+      - type: heading
+        level: 2
+        children:
+          - text: "Latest update — 1 March 2025"
+      - type: paragraph
+        children:
+          - text: "Full planning permission has been granted for our community pool!"
+      - type: heading
+        level: 2
+        children:
+          - text: "Plans for the future pool"
+      - type: paragraph
+        children:
+          - text: "Consultation in 2019, 2020 and 2021 combined with our experience running the pool has shaped the designs for the future pool. It includes:"
+      - type: unordered-list
+        children:
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Warm water heated by an energy system using solar PV and specialist air source heat pumps, allowing a constant water temperature of 27 degrees, potentially extending the season from April into October"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "To be longer, for people who like to do lengths"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "To be shallower at the shallow end, making it more usable for toddlers"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "To have a stepped entrance and accessible access"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "To have improved changing facilities and pavilion"
+      - type: paragraph
+        children:
+          - text: "Early estimations predict the pool will cost around £1m. Thanks to Section 106 (money from local housing developments) and our fundraising we have already made some good progress but there is a long way to go and we need all the help we can find!"
+      - type: paragraph
+        children:
+          - text: "Download the "
+          - type: link
+            href: "/s/Prospectus-Final-al2x.pdf"
+            children:
+              - text: "new pool prospectus"
+          - text: "."
+      - type: paragraph
+        children:
+          - text: "Special thanks to Gibbons Trust, The Normans Family Charity Trust, South West Water, and Thrive."

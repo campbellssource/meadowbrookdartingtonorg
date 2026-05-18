@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Event row</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; background: var(--paper); }
+  .head { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+  .ev { display: grid; grid-template-columns: 80px 1fr auto; gap: 22px; align-items: center; padding: 14px 0; }
+  .ev + .ev { background-image: linear-gradient(to right, rgba(40,35,32,0.06), rgba(40,35,32,0.06)); background-size: 100% 0; } /* no dividers */
+  .date { font-family: "Plus Jakarta Sans"; }
+  .date .day { font-size: 30px; font-weight: 700; line-height: 1; color: var(--ink); letter-spacing: -0.02em; }
+  .date .mon { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); margin-top: 4px; font-weight: 600; }
+  .body h3 { font-family: "Plus Jakarta Sans"; font-size: 18px; font-weight: 600; margin: 0 0 4px; color: var(--ink); }
+  .body p { font-size: 13px; color: var(--ink-soft); margin: 0; }
+  .tag { font-size: 11px; padding: 6px 10px; border-radius: 999px; font-weight: 500; }
+  .tag.events { background: #FFF6CC; color: #7A5A00; }
+  .tag.pool { background: #D6F1F8; color: #1098B7; }
+  .tag.bike { background: #FFE3D9; color: #A73916; }
+</style>
+<div class="card">
+  <div class="head">What's on — event list</div>
+  <div class="ev">
+    <div class="date"><div class="day">24</div><div class="mon">Jun</div></div>
+    <div class="body"><h3>Summer extravaganza</h3><p>Live music, food, dunk-the-trustee booth · 12pm</p></div>
+    <span class="tag events">Extravaganza</span>
+  </div>
+  <div class="ev">
+    <div class="date"><div class="day">02</div><div class="mon">Jul</div></div>
+    <div class="body"><h3>Open-pool campaign meeting</h3><p>Community room · 7pm · all welcome</p></div>
+    <span class="tag pool">Pool</span>
+  </div>
+  <div class="ev">
+    <div class="date"><div class="day">14</div><div class="mon">Jul</div></div>
+    <div class="body"><h3>BMX jam night</h3><p>Track open till sunset · bring lights</p></div>
+    <span class="tag bike">Bike Track</span>
+  </div>
+</div>

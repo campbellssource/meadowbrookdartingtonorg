@@ -1,0 +1,22 @@
+name:
+  name: "Studio - Large Room"
+  slug: "large-room"
+shortDescription: "Ideal for classes, meetings and events"
+facilityType:
+  discriminant: bookable
+  value:
+    bookingCategory: "Studio - Large room"
+    intro:
+      - type: paragraph
+        children:
+          - text: "Our large studio room is ideal for classes, meetings, workshops, and community events. The space features good natural light and flexible furniture arrangements."
+      - type: paragraph
+        children:
+          - text: "Please see the booking system below for current pricing and availability."
+    amenities:
+      - "Spacious open floor plan"
+      - "Natural lighting"
+      - "Heating"
+      - "Kitchen access"
+      - "Toilet facilities"
+      - "Parking available"

@@ -1,0 +1,150 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buttons</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; background: var(--paper); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+  .head h3 { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
+  .head .sub { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .grp { margin-bottom: 18px; }
+  .grp .lab { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  .grp .lab::after { content: ""; flex: 1; height: 1px; background: rgba(40,35,32,0.08); }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .stack-lab { font-size: 10px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; min-width: 64px; }
+
+  /* ---- 3D BUTTON SYSTEM ----
+     Each button is a slightly-recessed slab with a darker "shelf"
+     underneath. Press = translate Y, drop the shelf. */
+  .btn {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 22px;
+    border-radius: 6px;
+    border: 0;
+    cursor: pointer;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    transition: transform 90ms ease-out, box-shadow 90ms ease-out, background 160ms;
+    transform: translateY(0);
+  }
+  .btn:active, .btn.is-pressed { transform: translateY(3px); }
+
+  /* Variant — Ink (recommended primary on paper) */
+  .btn-ink {
+    background: #28201A;
+    color: #fff;
+    box-shadow:
+      0 3px 0 0 #110A05,                              /* shelf */
+      inset 0 1px 0 0 rgba(255,255,255,0.18);         /* top sheen */
+  }
+  .btn-ink:hover { background: #1A130E; }
+  .btn-ink:active, .btn-ink.is-pressed { box-shadow: 0 0 0 0 #110A05, inset 0 1px 0 0 rgba(255,255,255,0.12); }
+
+  /* Variant — Ember (festive primary) */
+  .btn-ember {
+    background: #A73916;
+    color: #fff;
+    box-shadow:
+      0 3px 0 0 #6E2106,
+      inset 0 1px 0 0 rgba(255,255,255,0.2);
+  }
+  .btn-ember:hover { background: #C04823; }
+  .btn-ember:active, .btn-ember.is-pressed { box-shadow: 0 0 0 0 #6E2106, inset 0 1px 0 0 rgba(255,255,255,0.12); }
+
+  /* Variant — Sun (cheerful primary, ink text) */
+  .btn-sun {
+    background: #F9D21E;
+    color: #28201A;
+    box-shadow:
+      0 3px 0 0 #B89200,
+      inset 0 1px 0 0 rgba(255,255,255,0.5);
+  }
+  .btn-sun:hover { background: #FFDE3E; }
+  .btn-sun:active, .btn-sun.is-pressed { box-shadow: 0 0 0 0 #B89200, inset 0 1px 0 0 rgba(255,255,255,0.4); }
+
+  /* Variant — Green (the original) */
+  .btn-green {
+    background: #74A953;
+    color: #fff;
+    box-shadow:
+      0 3px 0 0 #3D6A22,
+      inset 0 1px 0 0 rgba(255,255,255,0.25);
+  }
+  .btn-green:hover { background: #82B85F; }
+  .btn-green:active, .btn-green.is-pressed { box-shadow: 0 0 0 0 #3D6A22, inset 0 1px 0 0 rgba(255,255,255,0.15); }
+
+  /* Hollow — secondary action */
+  .btn-hollow {
+    background: transparent;
+    color: #28201A;
+    box-shadow:
+      inset 0 0 0 2px #28201A,        /* the outline */
+      0 3px 0 -1px #28201A;            /* a slim shelf to keep the 3D feel */
+    padding: 10px 20px;                /* compensate for the inset stroke */
+  }
+  .btn-hollow:hover { background: rgba(40,35,32,0.06); }
+  .btn-hollow:active, .btn-hollow.is-pressed { box-shadow: inset 0 0 0 2px #28201A, 0 0 0 -1px #28201A; }
+
+  /* Sizes */
+  .btn-sm { padding: 9px 16px; font-size: 13px; border-radius: 4px; }
+  .btn-sm.btn-hollow { padding: 7px 14px; }
+  .btn-lg { padding: 15px 26px; font-size: 16px; border-radius: 8px; }
+  .btn-lg.btn-hollow { padding: 13px 24px; }
+
+  /* Icon */
+  .btn svg { display: block; }
+
+  .note { margin-top: 4px; font-size: 11px; color: var(--ink-mute); line-height: 1.5; }
+  .note b { color: var(--ink); font-weight: 600; }
+</style>
+<div class="card">
+  <div class="head">
+    <h3>Buttons — chunky 3D slab with a shelf underneath</h3>
+    <span class="sub">4–8px radius — tightened</span>
+  </div>
+
+  <div class="grp">
+    <div class="lab">Primary — pick one</div>
+    <div class="row">
+      <span class="stack-lab">Ink</span>
+      <button class="btn btn-ink">Find out more</button>
+      <button class="btn btn-ink is-pressed">Pressed</button>
+      <span class="note"><b>Recommended.</b> Calm, works on every zone bg.</span>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <span class="stack-lab">Ember</span>
+      <button class="btn btn-ember">Donate today</button>
+      <button class="btn btn-ember is-pressed">Pressed</button>
+      <span class="note">Festive, rooted in the wood-red of the building.</span>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <span class="stack-lab">Sun</span>
+      <button class="btn btn-sun">Find your zone</button>
+      <button class="btn btn-sun is-pressed">Pressed</button>
+      <span class="note">Cheerful, great on dark photo overlays.</span>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <span class="stack-lab">Green</span>
+      <button class="btn btn-green">Book a table</button>
+      <button class="btn btn-green is-pressed">Pressed</button>
+      <span class="note">The original. Slightly leafy/sporty feel.</span>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lab">Secondary — hollow</div>
+    <div class="row">
+      <button class="btn btn-hollow btn-sm">Skip</button>
+      <button class="btn btn-hollow">Read the brief</button>
+      <button class="btn btn-hollow btn-lg">Plan a visit</button>
+      <button class="btn btn-hollow is-pressed">Pressed</button>
+    </div>
+    <div class="note" style="margin-top: 8px;">2px ink stroke + slim shelf. Same press behaviour as filled.</div>
+  </div>
+</div>

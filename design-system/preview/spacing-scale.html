@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Spacing scale</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; }
+  .head { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; }
+  .scale { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .step { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .bar { background: var(--green-light); border-radius: 3px; height: 12px; }
+  .lab { font-size: 11px; color: var(--ink); font-weight: 600; }
+  .px { font-family: ui-monospace, monospace; font-size: 10px; color: var(--ink-mute); }
+</style>
+<div class="card">
+  <div class="head">Spacing scale — 4px base</div>
+  <div class="scale">
+    <div class="step"><div class="bar" style="width:4px"></div><span class="lab">1</span><span class="px">4px</span></div>
+    <div class="step"><div class="bar" style="width:8px"></div><span class="lab">2</span><span class="px">8px</span></div>
+    <div class="step"><div class="bar" style="width:12px"></div><span class="lab">3</span><span class="px">12px</span></div>
+    <div class="step"><div class="bar" style="width:16px"></div><span class="lab">4</span><span class="px">16px</span></div>
+    <div class="step"><div class="bar" style="width:24px"></div><span class="lab">5</span><span class="px">24px</span></div>
+    <div class="step"><div class="bar" style="width:32px"></div><span class="lab">6</span><span class="px">32px</span></div>
+    <div class="step"><div class="bar" style="width:48px"></div><span class="lab">7</span><span class="px">48px</span></div>
+    <div class="step"><div class="bar" style="width:64px"></div><span class="lab">8</span><span class="px">64px</span></div>
+    <div class="step"><div class="bar" style="width:96px"></div><span class="lab">9</span><span class="px">96px</span></div>
+    <div class="step"><div class="bar" style="width:128px"></div><span class="lab">10</span><span class="px">128px</span></div>
+  </div>
+</div>

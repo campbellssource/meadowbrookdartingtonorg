@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Voice & tone</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 28px 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
+  .quote { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
+  .quote em { font-style: normal; color: var(--green-dark); }
+  .examples { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .ex { display: flex; gap: 10px; align-items: baseline; line-height: 1.45; }
+  .ex .mark { font-weight: 700; flex: none; width: 14px; }
+  .ex.yes .mark { color: var(--green-dark); }
+  .ex.no .mark { color: var(--ember); }
+  .ex.no .txt { color: var(--ink-mute); }
+  .ex .txt { color: var(--ink); }
+  .head { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 10px; }
+</style>
+<div class="card">
+  <div>
+    <div class="head">Voice</div>
+    <div class="quote">Come as <em>you</em> are.<br>Stay too late.</div>
+  </div>
+  <div>
+    <div class="head">Sentence case, short, grounded</div>
+    <div class="examples">
+      <div class="ex yes"><span class="mark">✓</span><span class="txt">Book a table</span></div>
+      <div class="ex yes"><span class="mark">✓</span><span class="txt">The pool is closed for now. Help us bring it back.</span></div>
+      <div class="ex no"><span class="mark">✕</span><span class="txt">Experience World-Class Recreation</span></div>
+      <div class="ex no"><span class="mark">✕</span><span class="txt">🏊 Splash Zone Active 🏊</span></div>
+    </div>
+  </div>
+</div>

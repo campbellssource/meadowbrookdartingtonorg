@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Greens & brights</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .head h3 { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
+  .head .sub { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .sw { border-radius: var(--r-md); padding: 14px; height: 110px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }
+  .sw .name { font-size: 12px; font-weight: 600; }
+  .sw .hex { font-family: ui-monospace, monospace; font-size: 11px; opacity: 0.75; }
+</style>
+<div class="card">
+  <div class="head">
+    <h3>Greens & brights — from the logo, the mounds, the sky</h3>
+    <span class="sub">For accents and zones</span>
+  </div>
+  <div class="row">
+    <div class="sw" style="background:#74A953; color:#fff"><span class="name">Green</span><span class="hex">#74A953</span></div>
+    <div class="sw" style="background:#A7C756; color:#28201A"><span class="name">Green light</span><span class="hex">#A7C756</span></div>
+    <div class="sw" style="background:#4D7A33; color:#fff"><span class="name">Green dark</span><span class="hex">#4D7A33</span></div>
+    <div class="sw" style="background:#F9D21E; color:#28201A"><span class="name">Sun</span><span class="hex">#F9D21E</span></div>
+    <div class="sw" style="background:#1DB5EF; color:#fff"><span class="name">Sky</span><span class="hex">#1DB5EF</span></div>
+  </div>
+</div>

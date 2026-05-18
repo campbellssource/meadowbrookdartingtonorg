@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Nav bar</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 0; }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; background: var(--paper); gap: 24px; }
+  .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+  .brand img { height: 36px; width: auto; }
+  .brand .mark { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 18px; color: var(--ink); letter-spacing: -0.01em; line-height: 1; }
+  .brand small { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); font-weight: 600; margin-top: 2px; }
+
+  .links { display: flex; gap: 4px; }
+  .links a { font-family: "Plus Jakarta Sans"; font-size: 14px; font-weight: 500; color: var(--ink); text-decoration: none; padding: 8px 12px; border-radius: 4px; position: relative; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: background 140ms; }
+  .links a:hover { background: rgba(40,35,32,0.05); }
+  .links a.active { color: var(--green-dark); }
+  .links a.active::after { content:""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 2px; background: currentColor; }
+  .caret { width: 10px; height: 10px; }
+
+  /* Dropdown menu — minimal, square-ish corners */
+  .dropdown { position: relative; }
+  .menu {
+    position: absolute; top: calc(100% + 4px); left: 0;
+    background: var(--bone);
+    border-radius: 8px;
+    padding: 6px;
+    min-width: 200px;
+    box-shadow: 0 20px 40px rgba(40,35,32,0.10);
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .menu a { padding: 9px 12px !important; border-radius: 4px; font-size: 13px; }
+  .menu a::after { display: none !important; }
+  .menu a:hover { background: var(--paper-deep) !important; }
+  .menu a .meta { margin-left: auto; font-size: 10px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; }
+  .dropdown.show > .menu { display: flex; } /* in real app */
+
+  .head { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em; text-transform: uppercase; padding: 14px 28px 16px; background: var(--bone); }
+</style>
+<div class="card">
+  <div class="nav">
+    <div class="brand">
+      <img src="../assets/logos/hand.png" alt="">
+      <div>
+        <div class="mark">Meadowbrook</div>
+        <small>The DRA · Dartington</small>
+      </div>
+    </div>
+    <nav class="links">
+      <a href="#" class="active">Home</a>
+      <div class="dropdown show">
+        <a href="#">Facilities
+          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </a>
+        <div class="menu">
+          <a href="#">Outdoor pool</a>
+          <a href="#">Playground</a>
+          <a href="#">Playing fields</a>
+          <a href="#">Bike track</a>
+          <a href="#">Studio</a>
+          <a href="#">Lounge &amp; bar</a>
+          <a href="#">Snooker room</a>
+          <a href="#">Sauna</a>
+        </div>
+      </div>
+      <a href="#">Clubs
+        <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </a>
+      <a href="#">About</a>
+      <a href="#">Support</a>
+      <a href="#">Contact</a>
+    </nav>
+  </div>
+  <div class="head">Top nav — minimal · Home, Facilities ▾, Clubs ▾, About, Support, Contact · 4px radius throughout</div>
+</div>
