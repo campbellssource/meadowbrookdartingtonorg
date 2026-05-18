@@ -1,4 +1,6 @@
 name: Swimming Pool
+order: 4
+image: pool.png
 shortDescription: Community swimming facilities
 facilityType:
   discriminant: generic

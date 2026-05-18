@@ -22,7 +22,8 @@ const isActive = (href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);
 
 const reader = createReader(process.cwd(), keystaticConfig);
-const navFacilities = await reader.collections.facilities.all();
+const navFacilities = (await reader.collections.facilities.all())
+  .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
 ---
 
 <!doctype html>
@@ -52,12 +53,23 @@ const navFacilities = await reader.collections.facilities.all();
               <a href="/facilities" class={`mw-nav-link ${isActive("/facilities") ? "active" : ""}`}>Facilities</a>
               <div class="mw-mega" role="menu" aria-label="Facilities">
                 <div class="mw-wrap mw-mega-inner">
-                  {navFacilities.map(({ slug, entry }) => (
-                    <a href={`/facilities/${slug}`} class={`mw-mega-tile ${zoneFor(slug)}`} role="menuitem">
-                      <span class="eyebrow">{entry.facilityType.discriminant === 'bookable' ? 'Bookable' : entry.facilityType.discriminant === 'link' ? 'On site' : 'Explore'}</span>
-                      <span class="name">{entry.name}</span>
-                    </a>
-                  ))}
+                  {navFacilities.map(({ slug, entry }) => {
+                    const isLink = entry.facilityType.discriminant === 'link';
+                    const isBookable = entry.facilityType.discriminant === 'bookable';
+                    const href = isLink ? (entry.facilityType.value as any).externalUrl : `/facilities/${slug}`;
+                    const label = isBookable ? 'Bookable' : isLink ? 'On site' : 'Explore';
+                    return (
+                      <a
+                        href={href}
+                        class={`mw-mega-tile ${zoneFor(slug)}`}
+                        role="menuitem"
+                        {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      >
+                        <span class="eyebrow">{label}</span>
+                        <span class="name">{entry.name}</span>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </li>

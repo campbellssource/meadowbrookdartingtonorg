@@ -206,6 +206,11 @@ img { max-width: 100%; display: block; }
   --bg: #0490A4; --bg-elevated: #06A6BD; --bg-deep: #036B7B;
   --fg: var(--bone); --accent: var(--bone);
 }
+.zone-muga {
+  --bg: #222426; --bg-elevated: #2C2E30; --bg-deep: #1A1C1E;
+  --fg: var(--bone); --fg-soft: rgba(255,255,255,0.7);
+  --accent: var(--bone); --accent-2: #F9D21E;
+}
 .zone-fields {
   --bg: #228B22; --bg-elevated: #2BA32B; --bg-deep: #166916;
   --fg: var(--bone); --accent: var(--bone);
@@ -288,6 +293,8 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-mega-tile.lounge { background: #401D00; color: #EEC776; }
 .mw-mega-tile.bar { background: #2B1A0A; color: #F4C26B; }
 .mw-mega-tile.sauna { background: #6E2A1A; color: #FBF0DF; }
+.mw-mega-tile.scuba { background: #0490A4; color: #fff; }
+.mw-mega-tile.muga { background: #222426; color: #fff; }
 .mw-mega-tile.core { background: rgba(255,255,255,0.08); color: #fff; }
 @media (max-width: 720px) {
   .mw-mega { display: none; }
@@ -376,6 +383,18 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-zone-tile.core::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(40,35,32,0) 30%, rgba(40,35,32,0.6) 100%); }
 .mw-zone-tile.core > * { position: relative; z-index: 1; }
 .mw-zone-tile.core h3 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 30px; }
+
+.mw-zone-tile.scuba { background: #0490A4; color: #fff; }
+.mw-zone-tile.scuba h3 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 32px; }
+
+.mw-zone-tile.muga {
+  background-color: #222426;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='375' viewBox='0 0 300 375'%3E%3Cellipse cx='150' cy='260' rx='158' ry='180' fill='none' stroke='white' stroke-width='2.5' opacity='0.38'/%3E%3Cellipse cx='150' cy='260' rx='112' ry='134' fill='none' stroke='white' stroke-width='2.5' opacity='0.38'/%3E%3Cellipse cx='150' cy='260' rx='135' ry='157' fill='none' stroke='white' stroke-width='1.5' stroke-dasharray='10 7' opacity='0.2'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center bottom;
+  color: #fff;
+}
+.mw-zone-tile.muga h3 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em; }
 
 /* ---------- Hero ---------- */
 .mw-hero { position: relative; min-height: 540px; overflow: hidden; color: #fff; }

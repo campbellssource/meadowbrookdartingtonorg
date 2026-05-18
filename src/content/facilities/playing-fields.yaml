@@ -1,4 +1,6 @@
 name: Playing Fields
+order: 11
+image: playing-fields.png
 shortDescription: Football pitches and open space
 facilityType:
   discriminant: generic

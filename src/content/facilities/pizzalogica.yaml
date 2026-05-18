@@ -1,4 +1,5 @@
 name: Pizzalogica
+order: 2
 shortDescription: Wood-fired pizza at Meadowbrook
 facilityType:
   discriminant: link

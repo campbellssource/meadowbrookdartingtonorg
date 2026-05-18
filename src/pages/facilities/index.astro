@@ -6,6 +6,7 @@ import { zoneFor } from '../../lib/zones';
 
 const reader = createReader(process.cwd(), keystaticConfig);
 const allFacilities = await reader.collections.facilities.all();
+const sorted = [...allFacilities].sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
 ---
 
 <Layout title="Facilities" description="Explore the facilities at Meadowbrook Dartington">
@@ -22,12 +23,22 @@ const allFacilities = await reader.collections.facilities.all();
       </div>
 
       <div class="mw-grid-4">
-        {allFacilities.map(({ slug, entry }) => (
-          <a href={`/facilities/${slug}`} class={`mw-zone-tile ${zoneFor(slug)}`}>
-            <span class="eyebrow">{entry.facilityType.discriminant === 'bookable' ? 'Bookable' : entry.facilityType.discriminant === 'link' ? 'On site' : 'Explore'}</span>
-            <h3>{entry.name}</h3>
-          </a>
-        ))}
+        {sorted.map(({ slug, entry }) => {
+          const isLink = entry.facilityType.discriminant === 'link';
+          const isBookable = entry.facilityType.discriminant === 'bookable';
+          const href = isLink ? (entry.facilityType.value as any).externalUrl : `/facilities/${slug}`;
+          const label = isBookable ? 'Bookable' : isLink ? 'On site' : 'Explore';
+          return (
+            <a
+              href={href}
+              class={`mw-zone-tile ${zoneFor(slug)}`}
+              {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            >
+              <span class="eyebrow">{label}</span>
+              <h3>{entry.name}</h3>
+            </a>
+          );
+        })}
       </div>
     </div>
   </section>

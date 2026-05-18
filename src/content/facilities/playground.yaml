@@ -1,4 +1,5 @@
 name: Playground
+order: 6
 shortDescription: Outdoor play area for children
 facilityType:
   discriminant: generic

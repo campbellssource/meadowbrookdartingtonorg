@@ -1,0 +1,7 @@
+name: Things Happen Here
+order: 1
+shortDescription: Bar and live music at Meadowbrook
+facilityType:
+  discriminant: link
+  value:
+    externalUrl: https://thingshappenhere.co.uk

@@ -1,4 +1,5 @@
 name: Lounge - Small Room
+order: 9
 shortDescription: Perfect for smaller gatherings
 facilityType:
   discriminant: bookable
