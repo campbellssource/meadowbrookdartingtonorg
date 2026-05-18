@@ -1,82 +1,28 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
 
-const facilities = [
-  { 
-    name: 'Swimming Pool', 
-    slug: 'pool', 
-    image: '/images/pool.jpg', 
-    description: 'Our community pool is currently being restored. Follow our progress!',
-    bookable: false
-  },
-  { 
-    name: 'Bike Track', 
-    slug: 'bike-track', 
-    image: '/images/bike-track.jpg', 
-    description: 'BMX and cycling track open to the community.',
-    bookable: false
-  },
-  { 
-    name: 'Snooker Room', 
-    slug: 'snooker-room', 
-    image: '/images/snooker.jpg', 
-    description: 'Full-size snooker table available for booking.',
-    bookable: true
-  },
-  { 
-    name: 'Studio - Large Room', 
-    slug: 'large-room', 
-    image: '/images/large-room.jpg', 
-    description: 'Ideal for classes, workshops, meetings and community events.',
-    bookable: true
-  },
-  { 
-    name: 'Lounge - Small Room', 
-    slug: 'small-room', 
-    image: '/images/small-room.jpg', 
-    description: 'Perfect for smaller gatherings and meetings.',
-    bookable: true
-  },
-  { 
-    name: 'Playground', 
-    slug: 'playground', 
-    image: '/images/playground.jpg', 
-    description: 'Outdoor play area for children of all ages.',
-    bookable: false
-  },
-  { 
-    name: 'Playing Fields', 
-    slug: 'playing-fields', 
-    image: '/images/fields.jpg', 
-    description: 'Football pitches and open green spaces.',
-    bookable: false
-  },
-  { 
-    name: 'Woodland and Brook', 
-    slug: 'woodland-and-brook', 
-    image: '/images/woodland.jpg', 
-    description: 'Nature walks and wildlife areas.',
-    bookable: false
-  },
-];
+const reader = createReader(process.cwd(), keystaticConfig);
+const allFacilities = await reader.collections.facilities.all();
 ---
 
 <Layout title="Facilities" description="Explore the facilities at Meadowbrook Dartington">
   <h1>Our Facilities</h1>
   <p class="intro">
-    Meadowbrook offers a variety of facilities for the Dartington community. 
+    Meadowbrook offers a variety of facilities for the Dartington community.
     Some facilities can be booked online - look for the "Bookable" badge.
   </p>
 
   <div class="facility-grid">
-    {facilities.map((facility) => (
-      <a href={`/facilities/${facility.slug}`} class="facility-card">
-        <div class="facility-image" style={`background-image: url(${facility.image})`}>
-          {facility.bookable && <span class="badge">Bookable</span>}
+    {allFacilities.map(({ slug, entry }) => (
+      <a href={`/facilities/${slug}`} class="facility-card">
+        <div class="facility-image" style={`background-image: url(${entry.image ?? ''})`}>
+          {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
         </div>
         <div class="facility-content">
-          <h2>{facility.name}</h2>
-          <p>{facility.description}</p>
+          <h2>{entry.name}</h2>
+          <p>{entry.shortDescription}</p>
         </div>
       </a>
     ))}

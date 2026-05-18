@@ -1,0 +1,21 @@
+name: "Bike Track"
+shortDescription: "BMX and cycling track"
+facilityType:
+  discriminant: generic
+  value:
+    intro:
+      - type: paragraph
+        children:
+          - text: "The bike track was seriously damaged by bad weather over the winter and remains closed. We are currently organising repairs."
+    body:
+      - type: paragraph
+        children:
+          - text: "You'll find the Bike Track on the other side of the bridge from the main Meadowbrook building."
+      - type: paragraph
+        children:
+          - text: "Follow us on "
+          - type: link
+            href: "https://www.facebook.com/thebiketrack"
+            children:
+              - text: "Facebook"
+          - text: " for news and events."

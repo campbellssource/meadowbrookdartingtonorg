@@ -1,6 +1,4 @@
-name:
-  name: "Swimming Pool"
-  slug: "pool"
+name: "Swimming Pool"
 shortDescription: "Community swimming facilities"
 facilityType:
   discriminant: generic

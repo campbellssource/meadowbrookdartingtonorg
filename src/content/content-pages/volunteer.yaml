@@ -1,0 +1,29 @@
+title: "Volunteer"
+seoDescription: "Volunteer for the Dartington Recreation Association. Help run events, staff the pool, and support the community facilities at Meadowbrook."
+intro:
+  - type: paragraph
+    children:
+      - text: "The DRA is run by people who volunteer their free time. It's a rewarding way to get to know people in the area and help to create something wonderful."
+body:
+  - type: paragraph
+    children:
+      - text: "Volunteers help us run events like the annual extravaganza, staff the pool (when it's open again) and assist with ad hoc requirements."
+  - type: paragraph
+    children:
+      - text: "If you are interested in becoming a volunteer please sign up. You'll receive regular updates about what has been happening and invites to take part."
+  - type: paragraph
+    children:
+      - text: "You can also read our "
+      - type: link
+        href: "https://docs.google.com/document/d/1cEo2f4ofAHhfHUlE2IJzvft1AKN4UB6tgk6IdmNaDJY/edit?usp=sharing"
+        children:
+          - text: "volunteer policy"
+      - text: " for more detail."
+  - type: paragraph
+    children:
+      - text: "Or email "
+      - type: link
+        href: "mailto:volunteer@meadowbrookdartington.org"
+        children:
+          - text: "volunteer@meadowbrookdartington.org"
+      - text: " if you have questions before completing the form."

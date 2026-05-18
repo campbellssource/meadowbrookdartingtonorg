@@ -1,6 +1,4 @@
-name:
-  name: "Studio - Large Room"
-  slug: "large-room"
+name: "Studio - Large Room"
 shortDescription: "Ideal for classes, meetings and events"
 facilityType:
   discriminant: bookable

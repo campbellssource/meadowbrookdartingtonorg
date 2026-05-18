@@ -1,39 +1,34 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
 
-const facilities = [
-  { name: 'Swimming Pool', slug: 'pool', image: '/images/pool.jpg', description: 'Community swimming facilities' },
-  { name: 'Bike Track', slug: 'bike-track', image: '/images/bike-track.jpg', description: 'BMX and cycling track' },
-  { name: 'Snooker Room', slug: 'snooker-room', image: '/images/snooker.jpg', description: 'Snooker tables available for booking', bookable: true },
-  { name: 'Studio - Large Room', slug: 'large-room', image: '/images/large-room.jpg', description: 'Ideal for classes, meetings and events', bookable: true },
-  { name: 'Lounge - Small Room', slug: 'small-room', image: '/images/small-room.jpg', description: 'Perfect for smaller gatherings', bookable: true },
-  { name: 'Playground', slug: 'playground', image: '/images/playground.jpg', description: 'Outdoor play area for children' },
-  { name: 'Playing Fields', slug: 'playing-fields', image: '/images/fields.jpg', description: 'Football pitches and open space' },
-  { name: 'Woodland and Brook', slug: 'woodland-and-brook', image: '/images/woodland.jpg', description: 'Nature walks and wildlife' },
-];
+const reader = createReader(process.cwd(), keystaticConfig);
+
+const homepage = await reader.singletons.homepage.read();
+const allFacilities = await reader.collections.facilities.all();
+
+const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview() : null;
 ---
 
 <Layout title="Home">
   <section class="hero">
-    <h1>Welcome to Meadowbrook</h1>
-    <p class="lead">
-      Meadowbrook is managed by The Dartington Recreation Association, a charity run by
-      volunteers who manage the Meadowbrook building and surrounding facilities on behalf
-      of the Dartington community.
-    </p>
+    <h1>{homepage?.heroHeading ?? 'Welcome to Meadowbrook'}</h1>
+    <p class="lead">{homepage?.heroSubtitle}</p>
     <a href="/about" class="btn">Learn More</a>
   </section>
 
   <section class="facilities">
     <h2>Our Facilities</h2>
     <div class="facility-grid">
-      {facilities.map((facility) => (
-        <a href={`/facilities/${facility.slug}`} class="facility-card">
-          <div class="facility-image" style={`background-image: url(${facility.image})`}>
-            {facility.bookable && <span class="badge">Bookable</span>}
+      {allFacilities.map(({ slug, entry }) => (
+        <a href={`/facilities/${slug}`} class="facility-card">
+          <div class="facility-image" style={`background-image: url(${entry.image ?? ''})`}>
+            {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
           </div>
-          <h3>{facility.name}</h3>
-          <p>{facility.description}</p>
+          <h3>{entry.name}</h3>
+          <p>{entry.shortDescription}</p>
         </a>
       ))}
     </div>
@@ -41,17 +36,13 @@ const facilities = [
 
   <section class="about-preview">
     <h2>About Meadowbrook</h2>
-    <p>
-      These 10 acres of land were generously bequeathed to the village by the Elmhirsts
-      and Dartington Hall Trust in 1962, and are now managed by Dartington Recreation
-      Association (DRA), a charity run by local volunteers, on a lease that next comes
-      up for renewal in 2118!
-    </p>
+    {aboutPreviewNodes && <DocumentRenderer document={aboutPreviewNodes} />}
     <a href="/about" class="btn-secondary">About the DRA</a>
   </section>
 
   <section class="partners">
     <h2>In Partnership With</h2>
+    {homepage?.partnersIntro && <p class="partners-intro">{homepage.partnersIntro}</p>}
     <div class="partner-logos">
       <a href="https://www.dartington.org/"><img src="/images/partners/dartington.png" alt="Dartington Hall Trust" /></a>
       <a href="https://bidwellbrook.org/"><img src="/images/partners/bidwell-brook.png" alt="Bidwell Brook School" /></a>
@@ -59,6 +50,20 @@ const facilities = [
       <a href="https://lifeworks-uk.org/"><img src="/images/partners/lifeworks.png" alt="Lifeworks" /></a>
     </div>
   </section>
+
+  {homepage?.banners && homepage.banners.length > 0 && (
+    <section class="banners">
+      {homepage.banners.map((banner) => (
+        <div class="banner">
+          <h3>{banner.title}</h3>
+          <p>{banner.body}</p>
+          {banner.link && (
+            <a href={banner.link} class="btn">{banner.linkLabel || 'Learn more'}</a>
+          )}
+        </div>
+      ))}
+    </section>
+  )}
 </Layout>
 
 <style>
@@ -184,6 +189,11 @@ const facilities = [
     margin-bottom: 1.5rem;
   }
 
+  .partners-intro {
+    margin-bottom: 1.5rem;
+    color: #555;
+  }
+
   .partner-logos {
     display: flex;
     flex-wrap: wrap;
@@ -200,6 +210,27 @@ const facilities = [
 
   .partner-logos a:hover img {
     opacity: 1;
+  }
+
+  .banners {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .banner {
+    background: #f0f7f0;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    border-left: 4px solid var(--color-primary);
+  }
+
+  .banner h3 {
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .banner p {
+    margin-bottom: 1rem;
   }
 
   @media (max-width: 768px) {

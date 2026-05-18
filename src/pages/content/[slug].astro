@@ -1,0 +1,99 @@
+---
+export const prerender = true;
+
+import Layout from '../../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+export async function getStaticPaths() {
+  const reader = createReader(process.cwd(), keystaticConfig);
+  const allPages = await reader.collections.pages.all();
+  return allPages.map(({ slug }) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.pages.read(slug);
+
+if (!entry) {
+  return Astro.redirect('/404');
+}
+
+const introNodes = await entry.intro();
+const bodyNodes = await entry.body();
+---
+
+<Layout title={entry.title} description={entry.seoDescription ?? undefined}>
+  <article class="content-page">
+    <h1>{entry.title}</h1>
+
+    {introNodes && introNodes.length > 0 && (
+      <section class="intro">
+        <DocumentRenderer document={introNodes} />
+      </section>
+    )}
+
+    {bodyNodes && bodyNodes.length > 0 && (
+      <section class="body-content">
+        <DocumentRenderer document={bodyNodes} />
+      </section>
+    )}
+  </article>
+</Layout>
+
+<style>
+  .content-page {
+    max-width: 800px;
+  }
+
+  h1 {
+    color: var(--color-primary);
+    margin-bottom: 2rem;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  .intro :global(p) {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    color: #444;
+  }
+
+  .body-content :global(h2) {
+    color: var(--color-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+  }
+
+  .body-content :global(h3) {
+    color: var(--color-primary);
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .body-content :global(p) {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+
+  .body-content :global(ul),
+  .body-content :global(ol) {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .body-content :global(li) {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .body-content :global(a) {
+    color: var(--color-primary);
+  }
+</style>

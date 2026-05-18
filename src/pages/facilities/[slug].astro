@@ -1,0 +1,186 @@
+---
+export const prerender = true;
+
+import Layout from '../../layouts/Layout.astro';
+import AcuityBooking from '../../components/AcuityBooking.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+export async function getStaticPaths() {
+  const reader = createReader(process.cwd(), keystaticConfig);
+  const allFacilities = await reader.collections.facilities.all();
+  return allFacilities.map(({ slug }) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const reader = createReader(process.cwd(), keystaticConfig);
+const facility = await reader.collections.facilities.read(slug);
+
+if (!facility) {
+  return Astro.redirect('/404');
+}
+
+const { discriminant, value } = facility.facilityType;
+
+// All types have intro; only generic has body; only bookable has amenities/bookingCategory; only link has externalUrl
+const introNodes = await (value as any).intro();
+const bodyNodes = discriminant === 'generic' ? await (value as any).body() : null;
+const amenities: string[] = discriminant === 'bookable' ? (value as any).amenities : [];
+const bookingCategory: string = discriminant === 'bookable' ? (value as any).bookingCategory : '';
+const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
+---
+
+<Layout title={facility.name} description={facility.shortDescription ?? undefined}>
+  <article class="facility-page">
+    <h1>{facility.name}</h1>
+
+    <div class="facility-info">
+      <div class="description">
+        <DocumentRenderer document={introNodes} />
+
+        {discriminant === 'bookable' && amenities.length > 0 && (
+          <>
+            <h2>Amenities</h2>
+            <ul>
+              {amenities.map((amenity) => (
+                <li>{amenity}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      {facility.image && (
+        <div class="gallery">
+          <img src={facility.image} alt={facility.name} />
+        </div>
+      )}
+    </div>
+
+    {discriminant === 'bookable' && (
+      <section class="booking-section">
+        <h2>Book This Room</h2>
+        <AcuityBooking category={bookingCategory} />
+      </section>
+    )}
+
+    {discriminant === 'link' && externalUrl && (
+      <section class="external-link-section">
+        <a href={externalUrl} class="btn-external" target="_blank" rel="noopener">
+          Visit External Site →
+        </a>
+      </section>
+    )}
+
+    {discriminant === 'generic' && bodyNodes && (
+      <section class="body-content">
+        <DocumentRenderer document={bodyNodes} />
+      </section>
+    )}
+
+    <a href="/facilities" class="back-link">← Back to all facilities</a>
+  </article>
+</Layout>
+
+<style>
+  .facility-page {
+    max-width: 1000px;
+  }
+
+  h1 {
+    color: var(--color-primary);
+    margin-bottom: 2rem;
+  }
+
+  .facility-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .facility-info {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .description :global(h2) {
+    color: var(--color-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+  }
+
+  .description :global(ul) {
+    margin-left: 1.5rem;
+  }
+
+  .description :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .description :global(p) {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  .gallery img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .booking-section {
+    background: #f9f9f9;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .booking-section h2 {
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+  }
+
+  .external-link-section {
+    margin-bottom: 2rem;
+  }
+
+  .btn-external {
+    display: inline-block;
+    background: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .btn-external:hover {
+    opacity: 0.9;
+    text-decoration: none;
+  }
+
+  .body-content {
+    margin-bottom: 2rem;
+  }
+
+  .body-content :global(h2) {
+    color: var(--color-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .body-content :global(p) {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-top: 1rem;
+  }
+</style>

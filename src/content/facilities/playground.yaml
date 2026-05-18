@@ -1,0 +1,75 @@
+name: "Playground"
+shortDescription: "Outdoor play area for children"
+facilityType:
+  discriminant: generic
+  value:
+    intro:
+      - type: paragraph
+        children:
+          - text: "The playground at Meadowbrook has a wide range of equipment suitable for children of all ages."
+    body:
+      - type: paragraph
+        children:
+          - text: "The playground includes:"
+      - type: unordered-list
+        children:
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Zipline"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Standard swings"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Toddler swings"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "You and me swing"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Basket swing"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Playhouse with double slide"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "See saw"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Climbing frame"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Roundabout"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Spinning bowl"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Play aeroplane"
+          - type: list-item
+            children:
+              - type: list-item-content
+                children:
+                  - text: "Painted race track on tarmac for bikes and scooters"

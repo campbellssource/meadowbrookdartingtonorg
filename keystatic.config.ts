@@ -9,7 +9,9 @@ const richText = (label: string) =>
   });
 
 export default config({
-  storage: { kind: 'local' },
+  storage: process.env.NODE_ENV === 'production'
+    ? { kind: 'github', repo: 'campbellssource/meadowbrookdartingtonorg' }
+    : { kind: 'local' },
 
   singletons: {
     homepage: singleton({

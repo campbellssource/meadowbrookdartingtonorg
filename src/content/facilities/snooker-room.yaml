@@ -1,6 +1,4 @@
-name:
-  name: "Snooker Room"
-  slug: "snooker-room"
+name: "Snooker Room"
 shortDescription: "Snooker tables available for booking"
 facilityType:
   discriminant: bookable

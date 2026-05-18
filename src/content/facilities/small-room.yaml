@@ -1,6 +1,4 @@
-name:
-  name: "Lounge - Small Room"
-  slug: "small-room"
+name: "Lounge - Small Room"
 shortDescription: "Perfect for smaller gatherings"
 facilityType:
   discriminant: bookable

@@ -1,7 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
 
-// This content will come from the CMS after migration
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.pages.read('about');
+
+const introNodes = entry?.intro ? await entry.intro() : null;
+const bodyNodes = entry?.body ? await entry.body() : null;
+
 const documents = {
   key: [
     { title: 'DRA Vision', url: '/documents/DRA-vision.pdf' },
@@ -18,65 +26,21 @@ const documents = {
 };
 ---
 
-<Layout title="About" description="About Meadowbrook and the Dartington Recreation Association">
+<Layout title="About" description={entry?.seoDescription ?? 'About Meadowbrook and the Dartington Recreation Association'}>
   <article class="about-page">
-    <h1>About Meadowbrook and the Dartington Recreation Association</h1>
-    
-    <section class="intro">
-      <p>
-        These 10 acres of land were generously bequeathed to the village by the
-        Elmhirsts and the Dartington Hall Trust in 1962. The land is now managed by the
-        Dartington Recreation Association (DRA), a charity run by local volunteers, under a
-        lease that next comes up for renewal in 2118!
-      </p>
-      <p>
-        The Dartington Recreation Association is a registered charity (Charity number
-        1168817) run by volunteers. New members and helpers are always welcome. Please
-        contact us or read more below if you would like to get involved.
-      </p>
-    </section>
+    <h1>{entry?.title ?? 'About Meadowbrook and the Dartington Recreation Association'}</h1>
 
-    <section class="roles">
-      <h2>Roles</h2>
-      <p>The DRA has approximately 15 trustees.</p>
-      <ul>
-        <li>We have the typical charity roles: Chair, Treasurer, and Secretary.</li>
-        <li>Representatives from neighbouring organisations: Dartington Primary School, The Wave, and Bidwell Brook School, Lifeworks</li>
-        <li>Representatives from the clubs who use the facilities: Diving, Football, etc.</li>
-        <li>Members of the local community, many of whom possess skills and experience that contribute to our goals: Fundraising, volunteer coordination, facilities management, IT, and marketing.</li>
-      </ul>
-      <p>
-        Trustees stand down at each Annual General Meeting (AGM), and new trustees are
-        nominated. Meetings are open to the public; if you would like to attend, please 
-        <a href="/subscribe">subscribe to the mailing list</a>.
-      </p>
-      <p>
-        A <a href="/be-a-trustee">trustee application form</a> is available for anyone interested in becoming a trustee.
-      </p>
-    </section>
+    {introNodes && (
+      <section class="intro">
+        <DocumentRenderer document={introNodes} />
+      </section>
+    )}
 
-    <section class="volunteers">
-      <h2>Volunteers</h2>
-      <p>
-        A pool of volunteers keep the DRA going. We need help with both ad-hoc events
-        and day-to-day activities. Many volunteers are former trustees or are on the path
-        to becoming trustees. If you are interested in learning about volunteer
-        opportunities, please <a href="/volunteer">subscribe to the mailing list and let us know your areas of interest</a>.
-      </p>
-    </section>
-
-    <section class="working-groups">
-      <h2>Working Groups</h2>
-      <p>
-        Currently, we have several key working groups, composed of individuals who
-        report to the trustees but also operate with autonomy.
-      </p>
-      <ul>
-        <li><strong>Pool Group:</strong> working towards the revival of the Dartington swimming pool.</li>
-        <li><strong>Building Group:</strong> improving the existing building and scoping out the next phase of development.</li>
-        <li><strong>Management Group:</strong> responsible for the day-to-day management of the organization and facilities.</li>
-      </ul>
-    </section>
+    {bodyNodes && (
+      <section class="body-content">
+        <DocumentRenderer document={bodyNodes} />
+      </section>
+    )}
 
     <section class="documents">
       <h2>Key Documents</h2>
@@ -113,26 +77,42 @@ const documents = {
     margin-bottom: 3rem;
   }
 
-  h2 {
+  .intro :global(p),
+  .body-content :global(p) {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+
+  .body-content :global(h2) {
     color: var(--color-primary);
     margin-bottom: 1rem;
     border-bottom: 2px solid #eee;
     padding-bottom: 0.5rem;
   }
 
-  p {
-    margin-bottom: 1rem;
-    line-height: 1.7;
+  .body-content :global(h3) {
+    color: var(--color-primary);
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
   }
 
-  ul {
+  .body-content :global(ul),
+  .body-content :global(ol) {
     margin-left: 1.5rem;
     margin-bottom: 1rem;
   }
 
-  li {
+  .body-content :global(li) {
     margin-bottom: 0.5rem;
     line-height: 1.6;
+  }
+
+  .documents h2,
+  .minutes h2 {
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
   }
 
   .document-list {

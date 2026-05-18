@@ -1,0 +1,24 @@
+title: "Meadowchat"
+seoDescription: "Meadowchat is the internal communication platform for Meadowbrook volunteers and trustees."
+intro:
+  - type: paragraph
+    children:
+      - text: "Meadowchat is the place where volunteers and trustees can get things done while not together in person — a bit like WhatsApp but exclusively for Meadowbrook and DRA related topics."
+body:
+  - type: paragraph
+    children:
+      - text: "You can join the topics you are interested in and set how many notifications you get about each topic. If you want to find a file just search. It has to-do lists, reminders and video meetings."
+  - type: paragraph
+    children:
+      - text: "You'll need a Meadowbrook account to access these spaces. To have one of these you'll already need to be part of the groups of trustees or volunteers. Contact "
+      - type: link
+        href: "mailto:it@meadowbrookdartington.org"
+        children:
+          - text: "it@meadowbrookdartington.org"
+      - text: " to get one."
+  - type: paragraph
+    children:
+      - text: "Once you have an account, select a topic to get started. Topics include: Governance, Legal, Finance, Volunteers, Facilities, Contact, General, IT/Website/Branding, Energy, and Pool."
+  - type: paragraph
+    children:
+      - text: "Meadowchat uses Google Chat. We recommend downloading the chat app on your phone and signing in."

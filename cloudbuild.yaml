@@ -1,0 +1,28 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - -t
+      - europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
+      - .
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - meadowbrook-site
+      - --image=europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
+      - --region=europe-west2
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-env-vars=NODE_ENV=production
+      - --set-secrets=KEYSTATIC_GITHUB_CLIENT_ID=KEYSTATIC_GITHUB_CLIENT_ID:latest,KEYSTATIC_GITHUB_CLIENT_SECRET=KEYSTATIC_GITHUB_CLIENT_SECRET:latest,KEYSTATIC_SECRET=KEYSTATIC_SECRET:latest
+
+images:
+  - europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
