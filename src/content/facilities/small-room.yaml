@@ -1,20 +1,13 @@
-name: "Lounge - Small Room"
-shortDescription: "Perfect for smaller gatherings"
+name: Lounge - Small Room
+shortDescription: Perfect for smaller gatherings
 facilityType:
   discriminant: bookable
   value:
-    bookingCategory: "Lounge - Small room"
-    intro:
-      - type: paragraph
-        children:
-          - text: "Our cosy lounge is perfect for smaller gatherings, intimate meetings, or quiet study sessions."
-      - type: paragraph
-        children:
-          - text: "Please see the booking system below for current pricing and availability."
+    bookingCategory: Lounge - Small room
     amenities:
-      - "Comfortable seating"
-      - "Natural lighting"
-      - "Heating"
-      - "Kitchen access"
-      - "Toilet facilities"
-      - "Parking available"
+    - Comfortable seating
+    - Natural lighting
+    - Heating
+    - Kitchen access
+    - Toilet facilities
+    - Parking available

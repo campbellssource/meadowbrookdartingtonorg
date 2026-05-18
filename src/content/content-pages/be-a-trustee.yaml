@@ -1,21 +1,3 @@
-title: "Be a Trustee"
-seoDescription: "Express an interest in becoming a trustee of the Dartington Recreation Association. Help shape the future of Meadowbrook."
-intro:
-  - type: paragraph
-    children:
-      - text: "We are always pleased to hear from people who are interested in becoming a trustee."
-body:
-  - type: paragraph
-    children:
-      - text: "To formally become a trustee you'll need to be voted in at an AGM."
-  - type: paragraph
-    children:
-      - text: "Check out our "
-      - type: link
-        href: "/about"
-        children:
-          - text: "previous and upcoming meetings"
-      - text: " to see when we are next having an AGM and how you can help."
-  - type: paragraph
-    children:
-      - text: "Fill in the form below to let the other attendees at the AGM know a little more about you and how you can help (address and email will be redacted)."
+title: Be a Trustee
+seoDescription: Express an interest in becoming a trustee of the Dartington Recreation
+  Association. Help shape the future of Meadowbrook.

@@ -1,10 +1,6 @@
-name: "Somewhere Sauna"
-shortDescription: "Sauna at Meadowbrook"
+name: Somewhere Sauna
+shortDescription: Sauna at Meadowbrook
 facilityType:
   discriminant: link
   value:
-    externalUrl: "https://www.somewhere.uk"
-    intro:
-      - type: paragraph
-        children:
-          - text: "Somewhere Sauna offers a relaxing sauna experience at Meadowbrook."
+    externalUrl: https://www.somewhere.uk

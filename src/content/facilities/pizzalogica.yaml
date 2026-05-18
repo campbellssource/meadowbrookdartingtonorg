@@ -1,10 +1,6 @@
-name: "Pizzalogica"
-shortDescription: "Wood-fired pizza at Meadowbrook"
+name: Pizzalogica
+shortDescription: Wood-fired pizza at Meadowbrook
 facilityType:
   discriminant: link
   value:
-    externalUrl: "https://pizzalogica.co.uk"
-    intro:
-      - type: paragraph
-        children:
-          - text: "Pizzalogica serves delicious wood-fired pizza at Meadowbrook."
+    externalUrl: https://pizzalogica.co.uk

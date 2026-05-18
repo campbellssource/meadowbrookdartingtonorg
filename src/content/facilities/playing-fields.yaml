@@ -1,18 +1,5 @@
-name: "Playing Fields"
-shortDescription: "Football pitches and open space"
+name: Playing Fields
+shortDescription: Football pitches and open space
 facilityType:
   discriminant: generic
-  value:
-    intro:
-      - type: paragraph
-        children:
-          - text: "The playing fields (Dorothy Elmhirst Field) can be booked for formal use by contacting the DRA."
-    body:
-      - type: paragraph
-        children:
-          - text: "To make a booking for the playing fields, please "
-          - type: link
-            href: "/contact"
-            children:
-              - text: "contact us"
-          - text: "."
+  value: {}
