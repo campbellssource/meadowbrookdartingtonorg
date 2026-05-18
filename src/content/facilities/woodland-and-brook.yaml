@@ -1,4 +1,6 @@
 name: Woodland and Brook
+order: 10
+image: brook.png
 shortDescription: Nature walks and wildlife
 facilityType:
   discriminant: generic

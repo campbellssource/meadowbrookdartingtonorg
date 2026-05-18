@@ -45,6 +45,10 @@ export default config({
       format: { data: 'yaml' },
       schema: {
         name: fields.slug({ name: { label: 'Name' } }),
+        order: fields.number({
+          label: 'Display order',
+          description: 'Controls the order facilities appear in listings and navigation. Lower numbers appear first.',
+        }),
         shortDescription: fields.text({ label: 'Short description (used in listings)', multiline: true }),
         image: fields.image({
           label: 'Image',

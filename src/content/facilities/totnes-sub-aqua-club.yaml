@@ -1,0 +1,7 @@
+name: Totnes Sub Aqua Club
+order: 13
+shortDescription: Scuba diving club based at Meadowbrook
+facilityType:
+  discriminant: link
+  value:
+    externalUrl: https://totnes-bsac.link

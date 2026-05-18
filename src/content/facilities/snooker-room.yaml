@@ -1,4 +1,6 @@
 name: Snooker Room
+order: 5
+image: snooker.png
 shortDescription: Snooker tables available for booking
 facilityType:
   discriminant: bookable

@@ -1,4 +1,6 @@
 name: Bike Track
+order: 7
+image: bike-track.webp
 shortDescription: BMX and cycling track
 facilityType:
   discriminant: generic

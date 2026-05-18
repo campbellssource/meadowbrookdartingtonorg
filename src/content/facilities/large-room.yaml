@@ -1,4 +1,5 @@
 name: Studio - Large Room
+order: 8
 shortDescription: Ideal for classes, meetings and events
 facilityType:
   discriminant: bookable

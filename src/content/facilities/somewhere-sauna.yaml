@@ -1,4 +1,5 @@
 name: Somewhere Sauna
+order: 3
 shortDescription: Sauna at Meadowbrook
 facilityType:
   discriminant: link

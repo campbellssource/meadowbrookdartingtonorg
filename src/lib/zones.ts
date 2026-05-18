@@ -11,6 +11,9 @@ export const slugToZone: Record<string, string> = {
   'pizzalogica': 'bar',
   'somewhere-sauna': 'sauna',
   'woodland-and-brook': 'core',
+  'things-happen-here': 'bar',
+  'muga': 'muga',
+  'totnes-sub-aqua-club': 'scuba',
 };
 
 export const zoneFor = (slug: string): string => slugToZone[slug] ?? 'core';

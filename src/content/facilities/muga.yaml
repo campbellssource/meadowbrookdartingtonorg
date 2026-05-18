@@ -1,0 +1,6 @@
+name: Multi use games area
+order: 12
+shortDescription: All-weather games court
+facilityType:
+  discriminant: generic
+  value: {}
