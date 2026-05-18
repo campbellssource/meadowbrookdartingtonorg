@@ -21,7 +21,7 @@ steps:
       - --region=europe-west2
       - --platform=managed
       - --allow-unauthenticated
-      - --set-env-vars=NODE_ENV=production
+      - --set-env-vars=NODE_ENV=production,KEYSTATIC_GITHUB_STORAGE=true
       - --set-secrets=KEYSTATIC_GITHUB_CLIENT_ID=KEYSTATIC_GITHUB_CLIENT_ID:latest,KEYSTATIC_GITHUB_CLIENT_SECRET=KEYSTATIC_GITHUB_CLIENT_SECRET:latest,KEYSTATIC_SECRET=KEYSTATIC_SECRET:latest
 
 images:

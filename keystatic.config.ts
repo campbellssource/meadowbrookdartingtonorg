@@ -9,7 +9,7 @@ const richText = (label: string) =>
   });
 
 export default config({
-  storage: process.env.NODE_ENV === 'production'
+  storage: process.env.KEYSTATIC_GITHUB_STORAGE === 'true'
     ? { kind: 'github', repo: 'campbellssource/meadowbrookdartingtonorg' }
     : { kind: 'local' },
 
