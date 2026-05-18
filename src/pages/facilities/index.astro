@@ -2,100 +2,57 @@
 import Layout from '../../layouts/Layout.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
+import { zoneFor } from '../../lib/zones';
 
 const reader = createReader(process.cwd(), keystaticConfig);
 const allFacilities = await reader.collections.facilities.all();
 ---
 
 <Layout title="Facilities" description="Explore the facilities at Meadowbrook Dartington">
-  <h1>Our Facilities</h1>
-  <p class="intro">
-    Meadowbrook offers a variety of facilities for the Dartington community.
-    Some facilities can be booked online - look for the "Bookable" badge.
-  </p>
+  <section class="mw-sect">
+    <div class="mw-wrap">
+      <div class="mw-sect-head">
+        <div>
+          <span class="mw-eyebrow">Facilities</span>
+          <h2>Pick your zone.</h2>
+        </div>
+        <div class="right">
+          Some you can book online; some you turn up to; some you just wander into. Look for "Bookable" on the cards.
+        </div>
+      </div>
 
-  <div class="facility-grid">
-    {allFacilities.map(({ slug, entry }) => (
-      <a href={`/facilities/${slug}`} class="facility-card">
-        <div class="facility-image" style={`background-image: url(${entry.image ?? ''})`}>
-          {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
+      <div class="mw-grid-3">
+        {allFacilities.map(({ slug, entry }) => (
+          <a href={`/facilities/${slug}`} class="mw-card">
+            <div class="img" style={entry.image ? `background-image: url(${entry.image})` : ''}>
+              {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
+              {entry.facilityType.discriminant === 'link' && <span class="badge">Off-site</span>}
+            </div>
+            <div class="body">
+              <h3>{entry.name}</h3>
+              {entry.shortDescription && <p>{entry.shortDescription}</p>}
+              <span class="meta">
+                {entry.facilityType.discriminant === 'bookable' ? 'Book online' : entry.facilityType.discriminant === 'link' ? 'Visit website' : 'Find out more'}
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <div class="mw-sect-head" style="margin-top: var(--space-9);">
+        <div>
+          <span class="mw-eyebrow">By zone</span>
+          <h2>A flavour of each.</h2>
         </div>
-        <div class="facility-content">
-          <h2>{entry.name}</h2>
-          <p>{entry.shortDescription}</p>
-        </div>
-      </a>
-    ))}
-  </div>
+      </div>
+      <div class="mw-grid-4">
+        {allFacilities.map(({ slug, entry }) => (
+          <a href={`/facilities/${slug}`} class={`mw-zone-tile ${zoneFor(slug)}`}>
+            <span class="eyebrow">{entry.facilityType.discriminant === 'bookable' ? 'Bookable' : entry.facilityType.discriminant === 'link' ? 'On site' : 'Explore'}</span>
+            <h3>{entry.name}</h3>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
 </Layout>
-
-<style>
-  h1 {
-    color: var(--color-primary);
-    margin-bottom: 1rem;
-  }
-
-  .intro {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    color: #555;
-  }
-
-  .facility-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
-  }
-
-  .facility-card {
-    display: block;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .facility-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    text-decoration: none;
-  }
-
-  .facility-image {
-    height: 200px;
-    background-size: cover;
-    background-position: center;
-    background-color: #e0e0e0;
-    position: relative;
-  }
-
-  .badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--color-primary);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-  }
-
-  .facility-content {
-    padding: 1.5rem;
-  }
-
-  .facility-content h2 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: var(--color-primary);
-  }
-
-  .facility-content p {
-    color: #666;
-    line-height: 1.5;
-  }
-</style>

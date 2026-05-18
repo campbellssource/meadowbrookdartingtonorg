@@ -2,9 +2,20 @@
 interface Props {
   title: string;
   description?: string;
+  navOnPhoto?: boolean;
+  bodyClass?: string;
 }
 
-const { title, description = "Meadowbrook is managed by The Dartington Recreation Association, a charity run by volunteers." } = Astro.props;
+const {
+  title,
+  description = "Meadowbrook is managed by The Dartington Recreation Association, a charity run by volunteers.",
+  navOnPhoto = false,
+  bodyClass = "",
+} = Astro.props;
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? pathname === "/" : pathname.startsWith(href);
 ---
 
 <!doctype html>
@@ -17,171 +28,59 @@ const { title, description = "Meadowbrook is managed by The Dartington Recreatio
     <title>{title} | Meadowbrook Dartington</title>
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
-  <body>
-    <header class="site-header">
-      <nav class="nav-container">
-        <a href="/" class="logo">Meadowbrook + the DRA</a>
-        <button class="nav-toggle" aria-label="Toggle navigation">
-          <span></span>
-        </button>
-        <ul class="nav-links">
-          <li><a href="/">Home</a></li>
-          <li><a href="/about">About</a></li>
-          <li><a href="/facilities">Facilities</a></li>
-          <li><a href="/contact">Contact</a></li>
-          <li><a href="https://square.link/u/hCp8AnkF" class="btn-donate">Donate</a></li>
-        </ul>
-      </nav>
+  <body class={`mw-app ${bodyClass}`}>
+    <header class={`mw-nav ${navOnPhoto ? "on-photo" : ""}`}>
+      <div class="mw-wrap mw-nav-inner">
+        <a href="/" class="mw-nav-brand" aria-label="Meadowbrook home">
+          <img src="/assets/logos/hand.png" alt="" />
+          <span>
+            <span class="mark">Meadowbrook</span>
+            <small>The DRA</small>
+          </span>
+        </a>
+        <nav>
+          <ul class="mw-nav-links">
+            <li><a href="/" class={`mw-nav-link ${isActive("/") ? "active" : ""}`}>Home</a></li>
+            <li><a href="/facilities" class={`mw-nav-link ${isActive("/facilities") ? "active" : ""}`}>Facilities</a></li>
+            <li><a href="/about" class={`mw-nav-link ${isActive("/about") ? "active" : ""}`}>About</a></li>
+            <li><a href="/contact" class={`mw-nav-link hide-mobile ${isActive("/contact") ? "active" : ""}`}>Contact</a></li>
+            <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
+          </ul>
+        </nav>
+      </div>
     </header>
 
     <main>
       <slot />
     </main>
 
-    <footer class="site-footer">
-      <div class="footer-content">
-        <div class="footer-info">
-          <p>Meadowbrook, Shinners Bridge, Dartington, TQ9 6JD</p>
-          <p><a href="https://maps.app.goo.gl/ngFR4nEtYtdYe3SG9">Google maps</a></p>
-          <p>The Dartington Recreation Association is a charity (Charity number 1168817) run by volunteers.</p>
-          <p><a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a></p>
-        </div>
-        
-        <div class="footer-partners">
-          <p>In partnership with:</p>
-          <div class="partner-logos">
-            <!-- Partner logos will go here -->
+    <footer class="mw-footer">
+      <div class="mw-wrap">
+        <div class="footer-grid">
+          <div>
+            <h4>Meadowbrook</h4>
+            <p>The recreational heart of Dartington — pool, playground, fields, bike track, bar, and a wooden community building.</p>
+            <p>Meadowbrook, Shinners Bridge, Dartington, TQ9 6JD</p>
+            <p><a href="https://maps.app.goo.gl/ngFR4nEtYtdYe3SG9">Find us on Google Maps</a></p>
+          </div>
+          <div>
+            <h4>Explore</h4>
+            <a href="/">Home</a>
+            <a href="/facilities">Facilities</a>
+            <a href="/about">About the DRA</a>
+            <a href="/contact">Contact</a>
+          </div>
+          <div>
+            <h4>Get in touch</h4>
+            <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a>
+            <a href="https://square.link/u/hCp8AnkF">Donate</a>
+            <a href="/privacy">Privacy policy</a>
           </div>
         </div>
-        
-        <div class="footer-links">
-          <a href="/privacy">Privacy policy</a>
+        <div class="footer-bottom">
+          The Dartington Recreation Association is a registered charity (1168817) run by volunteers.
         </div>
       </div>
     </footer>
   </body>
 </html>
-
-<style is:global>
-  :root {
-    --color-primary: #2d5a27;
-    --color-secondary: #f5f5dc;
-    --color-text: #333;
-    --color-background: #fff;
-    --max-width: 1200px;
-    --spacing: 1rem;
-  }
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    font-family: system-ui, -apple-system, sans-serif;
-    line-height: 1.6;
-    color: var(--color-text);
-    background: var(--color-background);
-  }
-
-  a {
-    color: var(--color-primary);
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  .site-header {
-    background: var(--color-background);
-    border-bottom: 1px solid #eee;
-    padding: var(--spacing);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .nav-container {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .logo {
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: var(--spacing);
-    list-style: none;
-  }
-
-  .btn-donate {
-    background: var(--color-primary);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-  }
-
-  .btn-donate:hover {
-    text-decoration: none;
-    opacity: 0.9;
-  }
-
-  main {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    padding: calc(var(--spacing) * 2);
-  }
-
-  .site-footer {
-    background: #f9f9f9;
-    border-top: 1px solid #eee;
-    padding: calc(var(--spacing) * 2);
-    margin-top: calc(var(--spacing) * 4);
-  }
-
-  .footer-content {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .footer-info p {
-    margin-bottom: 0.5rem;
-  }
-
-  .nav-toggle {
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    .nav-toggle {
-      display: block;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-
-    .nav-links {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      flex-direction: column;
-      padding: var(--spacing);
-    }
-
-    .nav-links.active {
-      display: flex;
-    }
-  }
-</style>

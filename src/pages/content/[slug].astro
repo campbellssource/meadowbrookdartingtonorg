@@ -25,75 +25,25 @@ const bodyNodes = await entry.body();
 ---
 
 <Layout title={entry.title} description={entry.seoDescription ?? undefined}>
-  <article class="content-page">
-    <h1>{entry.title}</h1>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Meadowbrook</span>
+      <h1>{entry.title}</h1>
+    </div>
+  </section>
 
-    {introNodes && introNodes.length > 0 && (
-      <section class="intro">
-        <DocumentRenderer document={introNodes} />
-      </section>
-    )}
-
-    {bodyNodes && bodyNodes.length > 0 && (
-      <section class="body-content">
-        <DocumentRenderer document={bodyNodes} />
-      </section>
-    )}
-  </article>
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article">
+        {introNodes && introNodes.length > 0 && (
+          <div class="lead">
+            <DocumentRenderer document={introNodes} />
+          </div>
+        )}
+        {bodyNodes && bodyNodes.length > 0 && (
+          <DocumentRenderer document={bodyNodes} />
+        )}
+      </article>
+    </div>
+  </section>
 </Layout>
-
-<style>
-  .content-page {
-    max-width: 800px;
-  }
-
-  h1 {
-    color: var(--color-primary);
-    margin-bottom: 2rem;
-  }
-
-  section {
-    margin-bottom: 3rem;
-  }
-
-  .intro :global(p) {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    margin-bottom: 1rem;
-    color: #444;
-  }
-
-  .body-content :global(h2) {
-    color: var(--color-primary);
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 0.5rem;
-  }
-
-  .body-content :global(h3) {
-    color: var(--color-primary);
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .body-content :global(p) {
-    margin-bottom: 1rem;
-    line-height: 1.7;
-  }
-
-  .body-content :global(ul),
-  .body-content :global(ol) {
-    margin-left: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .body-content :global(li) {
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
-  }
-
-  .body-content :global(a) {
-    color: var(--color-primary);
-  }
-</style>

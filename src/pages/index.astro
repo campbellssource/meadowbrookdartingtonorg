@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
+import { zoneFor } from '../lib/zones';
 
 const reader = createReader(process.cwd(), keystaticConfig);
 
@@ -12,234 +13,95 @@ const allFacilities = await reader.collections.facilities.all();
 const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview() : null;
 ---
 
-<Layout title="Home">
-  <section class="hero">
-    <h1>{homepage?.heroHeading ?? 'Welcome to Meadowbrook'}</h1>
-    <p class="lead">{homepage?.heroSubtitle}</p>
-    <a href="/about" class="btn">Learn More</a>
-  </section>
-
-  <section class="facilities">
-    <h2>Our Facilities</h2>
-    <div class="facility-grid">
-      {allFacilities.map(({ slug, entry }) => (
-        <a href={`/facilities/${slug}`} class="facility-card">
-          <div class="facility-image" style={`background-image: url(${entry.image ?? ''})`}>
-            {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
-          </div>
-          <h3>{entry.name}</h3>
-          <p>{entry.shortDescription}</p>
-        </a>
-      ))}
+<Layout title="Home" navOnPhoto>
+  <section class="mw-hero">
+    <div class="photo" style="background-image: url('/assets/photos/hero.webp');"></div>
+    <div class="content mw-wrap">
+      <span class="mw-eyebrow">The recreational heart of Dartington</span>
+      <h1>{homepage?.heroHeading ?? 'Come as you are.'}</h1>
+      {homepage?.heroSubtitle && <p>{homepage.heroSubtitle}</p>}
+      <div class="actions">
+        <a href="/facilities" class="mw-btn mw-btn-sun">Explore facilities</a>
+        <a href="/about" class="mw-btn mw-btn-ghost">About the DRA</a>
+      </div>
     </div>
   </section>
 
-  <section class="about-preview">
-    <h2>About Meadowbrook</h2>
-    {aboutPreviewNodes && <DocumentRenderer document={aboutPreviewNodes} />}
-    <a href="/about" class="btn-secondary">About the DRA</a>
-  </section>
-
-  <section class="partners">
-    <h2>In Partnership With</h2>
-    {homepage?.partnersIntro && <p class="partners-intro">{homepage.partnersIntro}</p>}
-    <div class="partner-logos">
-      <a href="https://www.dartington.org/"><img src="/images/partners/dartington.png" alt="Dartington Hall Trust" /></a>
-      <a href="https://bidwellbrook.org/"><img src="/images/partners/bidwell-brook.png" alt="Bidwell Brook School" /></a>
-      <a href="https://www.sportengland.org/"><img src="/images/partners/sport-england.png" alt="Sport England" /></a>
-      <a href="https://lifeworks-uk.org/"><img src="/images/partners/lifeworks.png" alt="Lifeworks" /></a>
-    </div>
-  </section>
-
-  {homepage?.banners && homepage.banners.length > 0 && (
-    <section class="banners">
-      {homepage.banners.map((banner) => (
-        <div class="banner">
-          <h3>{banner.title}</h3>
-          <p>{banner.body}</p>
-          {banner.link && (
-            <a href={banner.link} class="btn">{banner.linkLabel || 'Learn more'}</a>
-          )}
+  <section class="mw-sect">
+    <div class="mw-wrap">
+      <div class="mw-sect-head">
+        <div>
+          <span class="mw-eyebrow">Facilities</span>
+          <h2>A place to swim, kick around and stay too late.</h2>
         </div>
-      ))}
+        <div class="right">
+          From the bike track to the snooker room, every corner of Meadowbrook has its own character.
+        </div>
+      </div>
+      <div class="mw-grid-4">
+        {allFacilities.map(({ slug, entry }) => (
+          <a href={`/facilities/${slug}`} class={`mw-zone-tile ${zoneFor(slug)}`}>
+            <span class="eyebrow">{entry.facilityType.discriminant === 'bookable' ? 'Bookable' : entry.facilityType.discriminant === 'link' ? 'On site' : 'Explore'}</span>
+            <h3>{entry.name}</h3>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {aboutPreviewNodes && (
+    <section class="mw-sect">
+      <div class="mw-wrap">
+        <div class="mw-map-block">
+          <div class="picture">
+            <img src="/assets/illustrations/map.png" alt="Hand-drawn map of Meadowbrook" />
+          </div>
+          <div class="copy">
+            <span class="mw-eyebrow">About Meadowbrook</span>
+            <div class="mw-article" style="padding: 0;">
+              <DocumentRenderer document={aboutPreviewNodes} />
+            </div>
+            <a href="/about" class="mw-btn mw-btn-primary" style="margin-top: 1.5rem;">About the DRA</a>
+          </div>
+        </div>
+      </div>
     </section>
   )}
+
+  {homepage?.banners && homepage.banners.length > 0 && (
+    <section class="mw-sect">
+      <div class="mw-wrap" style="display: grid; gap: 1.5rem;">
+        {homepage.banners.map((banner) => (
+          <div class="mw-banner">
+            <div>
+              <h3>{banner.title}</h3>
+              <p>{banner.body}</p>
+              {banner.link && (
+                <a href={banner.link} class="mw-btn mw-btn-primary">{banner.linkLabel || 'Find out more'}</a>
+              )}
+            </div>
+            <div class="visual" style="background-image: url('/assets/photos/extravaganza-parachute.webp');"></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      <div class="mw-sect-head">
+        <div>
+          <span class="mw-eyebrow">Partners</span>
+          <h2>In partnership with</h2>
+        </div>
+        {homepage?.partnersIntro && <div class="right">{homepage.partnersIntro}</div>}
+      </div>
+      <div class="mw-partners">
+        <a href="https://www.dartington.org/"><img src="/images/partners/dartington.png" alt="Dartington Hall Trust" /></a>
+        <a href="https://bidwellbrook.org/"><img src="/images/partners/bidwell-brook.png" alt="Bidwell Brook School" /></a>
+        <a href="https://www.sportengland.org/"><img src="/images/partners/sport-england.png" alt="Sport England" /></a>
+        <a href="https://lifeworks-uk.org/"><img src="/images/partners/lifeworks.png" alt="Lifeworks" /></a>
+      </div>
+    </div>
+  </section>
 </Layout>
-
-<style>
-  .hero {
-    text-align: center;
-    padding: 4rem 2rem;
-    background: linear-gradient(135deg, #f0f7f0 0%, #e8f4e8 100%);
-    border-radius: 12px;
-    margin-bottom: 3rem;
-  }
-
-  .hero h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: var(--color-primary);
-  }
-
-  .lead {
-    font-size: 1.25rem;
-    max-width: 600px;
-    margin: 0 auto 2rem;
-    color: #555;
-  }
-
-  .btn {
-    display: inline-block;
-    background: var(--color-primary);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: opacity 0.2s;
-  }
-
-  .btn:hover {
-    opacity: 0.9;
-    text-decoration: none;
-  }
-
-  .btn-secondary {
-    display: inline-block;
-    border: 2px solid var(--color-primary);
-    color: var(--color-primary);
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-weight: 500;
-    text-decoration: none;
-  }
-
-  section {
-    margin-bottom: 4rem;
-  }
-
-  section h2 {
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
-    color: var(--color-primary);
-  }
-
-  .facility-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .facility-card {
-    display: block;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .facility-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    text-decoration: none;
-  }
-
-  .facility-image {
-    height: 180px;
-    background-size: cover;
-    background-position: center;
-    background-color: #e0e0e0;
-    position: relative;
-  }
-
-  .badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--color-primary);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .facility-card h3 {
-    padding: 1rem 1rem 0.5rem;
-    font-size: 1.1rem;
-  }
-
-  .facility-card p {
-    padding: 0 1rem 1rem;
-    color: #666;
-    font-size: 0.9rem;
-  }
-
-  .about-preview {
-    background: #f9f9f9;
-    padding: 2rem;
-    border-radius: 12px;
-  }
-
-  .about-preview p {
-    max-width: 700px;
-    margin-bottom: 1.5rem;
-  }
-
-  .partners-intro {
-    margin-bottom: 1.5rem;
-    color: #555;
-  }
-
-  .partner-logos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .partner-logos img {
-    height: 60px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-
-  .partner-logos a:hover img {
-    opacity: 1;
-  }
-
-  .banners {
-    display: grid;
-    gap: 1.5rem;
-  }
-
-  .banner {
-    background: #f0f7f0;
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    border-left: 4px solid var(--color-primary);
-  }
-
-  .banner h3 {
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .banner p {
-    margin-bottom: 1rem;
-  }
-
-  @media (max-width: 768px) {
-    .hero h1 {
-      font-size: 1.75rem;
-    }
-
-    .lead {
-      font-size: 1rem;
-    }
-  }
-</style>
