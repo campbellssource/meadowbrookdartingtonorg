@@ -1,4 +1,8 @@
 ---
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { zoneFor } from '../lib/zones';
+
 interface Props {
   title: string;
   description?: string;
@@ -16,6 +20,9 @@ const {
 const pathname = Astro.url.pathname;
 const isActive = (href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+const reader = createReader(process.cwd(), keystaticConfig);
+const navFacilities = await reader.collections.facilities.all();
 ---
 
 <!doctype html>
@@ -41,7 +48,19 @@ const isActive = (href: string) =>
         <nav>
           <ul class="mw-nav-links">
             <li><a href="/" class={`mw-nav-link ${isActive("/") ? "active" : ""}`}>Home</a></li>
-            <li><a href="/facilities" class={`mw-nav-link ${isActive("/facilities") ? "active" : ""}`}>Facilities</a></li>
+            <li class="has-mega">
+              <a href="/facilities" class={`mw-nav-link ${isActive("/facilities") ? "active" : ""}`}>Facilities</a>
+              <div class="mw-mega" role="menu" aria-label="Facilities">
+                <div class="mw-wrap mw-mega-inner">
+                  {navFacilities.map(({ slug, entry }) => (
+                    <a href={`/facilities/${slug}`} class={`mw-mega-tile ${zoneFor(slug)}`} role="menuitem">
+                      <span class="eyebrow">{entry.facilityType.discriminant === 'bookable' ? 'Bookable' : entry.facilityType.discriminant === 'link' ? 'On site' : 'Explore'}</span>
+                      <span class="name">{entry.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </li>
             <li><a href="/about" class={`mw-nav-link ${isActive("/about") ? "active" : ""}`}>About</a></li>
             <li><a href="/contact" class={`mw-nav-link hide-mobile ${isActive("/contact") ? "active" : ""}`}>Contact</a></li>
             <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>

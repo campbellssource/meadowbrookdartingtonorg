@@ -21,30 +21,6 @@ const allFacilities = await reader.collections.facilities.all();
         </div>
       </div>
 
-      <div class="mw-grid-3">
-        {allFacilities.map(({ slug, entry }) => (
-          <a href={`/facilities/${slug}`} class="mw-card">
-            <div class="img" style={entry.image ? `background-image: url(${entry.image})` : ''}>
-              {entry.facilityType.discriminant === 'bookable' && <span class="badge">Bookable</span>}
-              {entry.facilityType.discriminant === 'link' && <span class="badge">Off-site</span>}
-            </div>
-            <div class="body">
-              <h3>{entry.name}</h3>
-              {entry.shortDescription && <p>{entry.shortDescription}</p>}
-              <span class="meta">
-                {entry.facilityType.discriminant === 'bookable' ? 'Book online' : entry.facilityType.discriminant === 'link' ? 'Visit website' : 'Find out more'}
-              </span>
-            </div>
-          </a>
-        ))}
-      </div>
-
-      <div class="mw-sect-head" style="margin-top: var(--space-9);">
-        <div>
-          <span class="mw-eyebrow">By zone</span>
-          <h2>A flavour of each.</h2>
-        </div>
-      </div>
       <div class="mw-grid-4">
         {allFacilities.map(({ slug, entry }) => (
           <a href={`/facilities/${slug}`} class={`mw-zone-tile ${zoneFor(slug)}`}>
