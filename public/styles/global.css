@@ -380,7 +380,7 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-zone-tile.snooker h3 { font-family: "Billiard", serif; font-size: 42px; }
 
 .mw-zone-tile.playground { background: #FFA500; color: var(--ink); }
-.mw-zone-tile.playground h3 { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 36px; letter-spacing: -0.02em; }
+.mw-zone-tile.playground h3 { font-family: "Nunito", sans-serif; font-weight: 900; font-size: 28px; letter-spacing: -0.02em; }
 
 .mw-zone-tile.fields { background: #228B22; }
 .mw-zone-tile.fields h3 { font-family: "Oswald", sans-serif; font-weight: 700; text-transform: uppercase; font-size: 36px; }
