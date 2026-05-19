@@ -1,7 +1,8 @@
 name: Pizzalogica
 order: 2
 shortDescription: Wood-fired pizza at Meadowbrook
+image: /images/facilities/pizzalogica/image.png
 facilityType:
   discriminant: link
   value:
-    externalUrl: https://pizzalogica.co.uk
+    externalUrl: https://pizzalogica.uk

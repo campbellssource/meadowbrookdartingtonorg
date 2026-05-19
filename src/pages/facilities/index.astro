@@ -18,7 +18,7 @@ const sorted = [...allFacilities].sort((a, b) => (a.entry.order ?? 99) - (b.entr
           <h2>Pick your zone.</h2>
         </div>
         <div class="right">
-          Some you can book online; some you turn up to; some you just wander into. Look for "Bookable" on the cards.
+          Some you can book online; some you turn up to; some you just wander into. Look for "Book now" on the cards.
         </div>
       </div>
 
@@ -27,14 +27,17 @@ const sorted = [...allFacilities].sort((a, b) => (a.entry.order ?? 99) - (b.entr
           const isLink = entry.facilityType.discriminant === 'link';
           const isBookable = entry.facilityType.discriminant === 'bookable';
           const href = isLink ? (entry.facilityType.value as any).externalUrl : `/facilities/${slug}`;
-          const label = isBookable ? 'Bookable' : isLink ? 'On site' : 'Explore';
+          const imageSrc = entry.image
+            ? (entry.image.startsWith('/') ? entry.image : `/images/facilities/${entry.image}`)
+            : null;
           return (
             <a
               href={href}
-              class={`mw-zone-tile ${zoneFor(slug)}`}
+              class={`mw-zone-tile ${zoneFor(slug)} ${slug}${imageSrc ? ' has-photo' : ''}`}
               {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             >
-              <span class="eyebrow">{label}</span>
+              {imageSrc && <div class="tile-photo" style={`background-image: url('${imageSrc}')`}></div>}
+              {isBookable && <span class="tile-pill">Book now</span>}
               <h3>{entry.name}</h3>
             </a>
           );

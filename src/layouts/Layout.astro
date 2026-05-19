@@ -57,7 +57,7 @@ const navFacilities = (await reader.collections.facilities.all())
                     const isLink = entry.facilityType.discriminant === 'link';
                     const isBookable = entry.facilityType.discriminant === 'bookable';
                     const href = isLink ? (entry.facilityType.value as any).externalUrl : `/facilities/${slug}`;
-                    const label = isBookable ? 'Bookable' : isLink ? 'On site' : 'Explore';
+                    const label = isBookable ? 'Book now' : isLink ? 'Open website' : '';
                     return (
                       <a
                         href={href}

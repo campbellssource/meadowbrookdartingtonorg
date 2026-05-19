@@ -1,14 +1,14 @@
-name: Snooker Room
+name: Snooker
 order: 5
-image: snooker.png
 shortDescription: Snooker tables available for booking
+image: /images/facilities/snooker-room/image.png
 facilityType:
   discriminant: bookable
   value:
-    bookingCategory: Snooker
     amenities:
-    - Full-size snooker table
-    - Cues and equipment provided
-    - Good lighting
-    - Heating
-    - Toilet facilities
+      - Full-size snooker table
+      - Cues and equipment provided
+      - Good lighting
+      - Heating
+      - Toilet facilities
+    bookingCategory: Snooker

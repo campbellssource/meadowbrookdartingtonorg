@@ -1,7 +1,7 @@
 name: Bike Track
 order: 7
-image: bike-track.webp
 shortDescription: BMX and cycling track
+image: /images/facilities/bike-track/image.jpg
 facilityType:
   discriminant: generic
   value: {}

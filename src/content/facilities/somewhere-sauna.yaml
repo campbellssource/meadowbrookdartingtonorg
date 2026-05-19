@@ -1,6 +1,7 @@
-name: Somewhere Sauna
+name: The Somewhere Sauna
 order: 3
 shortDescription: Sauna at Meadowbrook
+image: /images/facilities/somewhere-sauna/image.png
 facilityType:
   discriminant: link
   value:

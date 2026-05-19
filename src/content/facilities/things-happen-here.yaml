@@ -1,6 +1,7 @@
 name: Things Happen Here
 order: 1
 shortDescription: Bar and live music at Meadowbrook
+image: /images/facilities/things-happen-here/image.png
 facilityType:
   discriminant: link
   value:

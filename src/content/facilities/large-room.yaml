@@ -1,14 +1,15 @@
-name: Studio - Large Room
+name: Studio
 order: 8
 shortDescription: Ideal for classes, meetings and events
+image: /images/facilities/large-room/image.png
 facilityType:
   discriminant: bookable
   value:
-    bookingCategory: Studio - Large room
     amenities:
-    - Spacious open floor plan
-    - Natural lighting
-    - Heating
-    - Kitchen access
-    - Toilet facilities
-    - Parking available
+      - Spacious open floor plan
+      - Natural lighting
+      - Heating
+      - Kitchen access
+      - Toilet facilities
+      - Parking available
+    bookingCategory: Studio - Large room

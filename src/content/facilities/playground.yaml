@@ -1,6 +1,7 @@
 name: Playground
 order: 6
 shortDescription: Outdoor play area for children
+image: /images/facilities/playground/image.png
 facilityType:
   discriminant: generic
   value: {}
