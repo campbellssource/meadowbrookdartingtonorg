@@ -2,157 +2,91 @@
 
 Astro-based website for Meadowbrook and the Dartington Recreation Association.
 
-## Migration from Squarespace
+## Stack
 
-This project is a migration from the existing Squarespace site at `meadowbrookdartington.org`.
-
-### Site Crawling Strategy
-
-The crawler script extracts content from the existing site:
-
-```bash
-# Preview what will be crawled (dry run)
-npm run crawl:dry
-
-# Run the full crawl
-npm run crawl
-```
-
-**What the crawler does:**
-1. Fetches all known pages and converts HTML to Markdown
-2. Downloads all PDF documents (constitution, meeting minutes, etc.)
-3. Extracts image URLs for manual download
-4. Generates a `crawl-report.json` with the complete site inventory
-
-**Pages to crawl:**
-- `/` - Homepage
-- `/about` - About the DRA
-- `/pool` - Swimming pool
-- `/bike-track` - Bike track
-- `/snooker-room` - Snooker room (bookable)
-- `/large-room` - Large room (bookable)
-- `/small-room` - Small room (bookable)
-- `/playground` - Playground
-- `/playing-fields` - Playing fields
-- `/woodland-and-brook` - Woodland area
-- `/energy-hub` - Energy hub
-- `/contact` - Contact page
-- `/subscribe-to-updates` - Mailing list signup
-- `/volunteer` - Volunteer form
-- `/be-a-trustee` - Trustee application
-
-### Manual Steps After Crawling
-
-1. **Review extracted content** in `src/content/pages/`
-2. **Download images manually** - Squarespace images require authentication
-3. **Set up headless CMS** - Migrate markdown content to chosen CMS
-4. **Configure forms** - Replace Squarespace forms with Netlify Forms or similar
-
-## Room Booking (Acuity/Squarespace Scheduling)
-
-Room bookings use the existing Acuity Scheduling widget:
-
-```astro
----
-import AcuityBooking from '../components/AcuityBooking.astro';
----
-
-<AcuityBooking category="Studio - Large room" />
-```
-
-**Booking categories:**
-- `Studio - Large room`
-- `Lounge - Small room`
-- `Snooker`
-
-The widget ID is `4f74cd39` (configured in the component).
+- **[Astro](https://astro.build/)** — static site framework
+- **[Keystatic](https://keystatic.com/)** — git-based CMS (local mode), accessible at `/keystatic`
+- **[Acuity Scheduling](https://acuityscheduling.com/)** — embedded booking widget for bookable facilities
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm run dev      # dev server + Keystatic CMS
+npm run build    # production build
+npm run preview  # preview production build
 ```
+
+## Content Management
+
+Content is managed via Keystatic at `/keystatic` during local development. All content is stored as YAML files in `src/content/`.
+
+### Collections
+
+| Collection | Path | Notes |
+|---|---|---|
+| Pages | `src/content/content-pages/` | General content pages |
+| Facilities | `src/content/facilities/` | Each facility has a type: bookable, link, or generic |
+| Misc pages | `src/content/misc-pages/` | Privacy policy etc. |
+| Partners | `src/content/partners/` | "In partnership with" logos on homepage |
+| With thanks to | `src/content/supporters/` | Supporter logos on homepage |
+
+### Singletons
+
+| Singleton | Path | Notes |
+|---|---|---|
+| Homepage | `src/content/homepage.yaml` | Hero heading, about preview, banners, partners intro |
+
+## Facility Types
+
+Each facility has one of three types, set in Keystatic:
+
+- **Bookable** — embeds an Acuity Scheduling widget. Requires a `bookingCategory` that matches exactly in Acuity (e.g. `Snooker`, `Studio - Large room`, `Lounge - Small room`).
+- **Link** — links out to an external website (e.g. Pizzalogica, Things Happen Here). Opens in a new tab.
+- **Generic** — a standard content page with intro and body text.
+
+## Room Booking
+
+Bookable facilities embed the Acuity widget via `AcuityBooking.astro`:
+
+```astro
+<AcuityBooking category="Studio - Large room" />
+```
+
+Current booking categories: `Studio - Large room`, `Lounge - Small room`, `Snooker`
 
 ## Project Structure
 
 ```
-├── public/
-│   ├── documents/     # PDFs (constitution, minutes, etc.)
-│   └── images/        # Site images
-├── src/
-│   ├── components/
-│   │   └── AcuityBooking.astro
-│   ├── content/
-│   │   ├── facilities/
-│   │   ├── documents/
-│   │   └── pages/
-│   ├── layouts/
-│   │   └── Layout.astro
-│   ├── pages/
-│   │   ├── facilities/
-│   │   │   ├── index.astro
-│   │   │   ├── large-room.astro
-│   │   │   ├── small-room.astro
-│   │   │   └── snooker-room.astro
-│   │   ├── about.astro
-│   │   ├── contact.astro
-│   │   └── index.astro
-│   └── scripts/
-│       └── crawl-site.mjs
-└── package.json
+public/
+├── assets/          # Photos, illustrations, logos, textures
+├── fonts/           # Brand fonts (Rexton, Billiard, Lobster)
+├── images/
+│   ├── facilities/  # Facility card images (600×750px WebP recommended)
+│   ├── partners/    # Partner logos
+│   └── supporters/  # Supporter logos
+└── styles/
+    └── global.css   # Design tokens, zone themes, all component styles
+src/
+├── components/
+│   └── AcuityBooking.astro
+├── content/         # All CMS content (YAML + mdoc files)
+├── layouts/
+│   └── Layout.astro # Main layout with nav, mobile menu, footer
+├── lib/
+│   └── zones.ts     # Maps facility slugs to zone CSS class names
+└── pages/
+    ├── facilities/
+    │   ├── index.astro
+    │   └── [slug].astro
+    ├── index.astro
+    ├── about.astro
+    ├── contact.astro
+    └── content/[slug].astro
 ```
 
-## Next Steps
+## Design System
 
-### Phase 1: Content Migration
-- [ ] Run site crawler
-- [ ] Download and organize images
-- [ ] Review and clean up extracted content
-- [ ] Add missing facility pages (pool, bike-track, etc.)
+Styles live in `public/styles/global.css`. Each facility has a **zone theme** — a unique colour palette and typography style applied via a CSS class (e.g. `.zone-pool`, `.zone-snooker`). The mapping from facility slug to zone class is in `src/lib/zones.ts`.
 
-### Phase 2: CMS Integration
-- [ ] Choose CMS (Sanity, Decap CMS, or Contentful)
-- [ ] Define content schemas for facilities, pages, documents
-- [ ] Migrate content to CMS
-- [ ] Set up preview/editing workflow
-
-### Phase 3: Forms & Features
-- [ ] Set up contact form handler (Netlify Forms, Formspree, etc.)
-- [ ] Add mailing list subscription form
-- [ ] Add volunteer/trustee application forms
-- [ ] Configure analytics
-
-### Phase 4: Deployment
-- [ ] Set up hosting (Vercel, Netlify, or Cloudflare Pages)
-- [ ] Configure custom domain
-- [ ] Set up redirects from old URLs
-- [ ] DNS switchover
-
-## CMS Options
-
-### Sanity (Recommended)
-- Real-time collaborative editing
-- Great for non-technical editors
-- Generous free tier
-- [sanity.io](https://www.sanity.io/)
-
-### Decap CMS (Free, Git-based)
-- Content stored in Git as Markdown
-- No external dependencies
-- Simpler but less powerful
-- [decapcms.org](https://decapcms.org/)
-
-### Contentful
-- Enterprise-grade
-- Good free tier for small sites
-- [contentful.com](https://www.contentful.com/)
+Facility card images should be **600×750px** (4:5 ratio), WebP format, under ~150KB.
