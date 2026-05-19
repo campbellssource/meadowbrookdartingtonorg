@@ -494,4 +494,5 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
   .mw-nav-link { padding: 6px 10px; font-size: 13px; }
   .mw-nav-link.hide-mobile { display: none; }
   .mw-hero h1 { font-size: clamp(2rem, 8vw, 3rem); }
+  .mw-booking { padding: var(--space-5) var(--space-4); }
 }
