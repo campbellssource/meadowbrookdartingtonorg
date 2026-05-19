@@ -38,11 +38,30 @@ export default config({
   },
 
   collections: {
+    pages: collection({
+      label: 'Pages',
+      slugField: 'title',
+      path: 'src/content/content-pages/*',
+      format: { data: 'yaml' },
+      columns: ['seoDescription'],
+      schema: {
+        title: fields.slug({ name: { label: 'Title' } }),
+        seoDescription: fields.text({
+          label: 'SEO description',
+          multiline: true,
+          description: 'Used in meta tags. Keep under 160 characters.',
+        }),
+        intro: richText('Introduction (lead text)'),
+        body: richText('Main content'),
+      },
+    }),
+
     facilities: collection({
       label: 'Facilities',
       slugField: 'name',
       path: 'src/content/facilities/*',
       format: { data: 'yaml' },
+      columns: ['image', 'order', 'shortDescription'],
       schema: {
         name: fields.slug({ name: { label: 'Name' } }),
         order: fields.number({
@@ -94,23 +113,6 @@ export default config({
       },
     }),
 
-    pages: collection({
-      label: 'Pages',
-      slugField: 'title',
-      path: 'src/content/content-pages/*',
-      format: { data: 'yaml' },
-      schema: {
-        title: fields.slug({ name: { label: 'Title' } }),
-        seoDescription: fields.text({
-          label: 'SEO description',
-          multiline: true,
-          description: 'Used in meta tags. Keep under 160 characters.',
-        }),
-        intro: richText('Introduction (lead text)'),
-        body: richText('Main content'),
-      },
-    }),
-
     miscPages: collection({
       label: 'Misc pages',
       slugField: 'title',
@@ -119,6 +121,48 @@ export default config({
       schema: {
         title: fields.slug({ name: { label: 'Title' } }),
         body: richText('Content'),
+      },
+    }),
+
+    partners: collection({
+      label: 'Partners',
+      slugField: 'name',
+      path: 'src/content/partners/*',
+      format: { data: 'yaml' },
+      columns: ['image', 'order'],
+      schema: {
+        name: fields.slug({ name: { label: 'Name' } }),
+        url: fields.text({ label: 'Website URL' }),
+        image: fields.image({
+          label: 'Logo',
+          directory: 'public/images/partners',
+          publicPath: '/images/partners/',
+        }),
+        order: fields.number({
+          label: 'Display order',
+          description: 'Lower numbers appear first.',
+        }),
+      },
+    }),
+
+    supporters: collection({
+      label: 'With thanks to',
+      slugField: 'name',
+      path: 'src/content/supporters/*',
+      format: { data: 'yaml' },
+      columns: ['image', 'order'],
+      schema: {
+        name: fields.slug({ name: { label: 'Name' } }),
+        url: fields.text({ label: 'Website URL' }),
+        image: fields.image({
+          label: 'Logo',
+          directory: 'public/images/supporters',
+          publicPath: '/images/supporters/',
+        }),
+        order: fields.number({
+          label: 'Display order',
+          description: 'Lower numbers appear first.',
+        }),
       },
     }),
   },

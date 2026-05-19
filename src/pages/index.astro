@@ -8,6 +8,12 @@ import { zoneFor } from '../lib/zones';
 const reader = createReader(process.cwd(), keystaticConfig);
 
 const homepage = await reader.singletons.homepage.read();
+const allPartners = (await reader.collections.partners.all())
+  .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
+
+const allSupporters = (await reader.collections.supporters.all())
+  .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
+
 const allFacilities = (await reader.collections.facilities.all())
   .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
 
@@ -102,12 +108,41 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
         </div>
         {homepage?.partnersIntro && <div class="right">{homepage.partnersIntro}</div>}
       </div>
-      <div class="mw-partners">
-        <a href="https://www.dartington.org/"><img src="/images/partners/dartington.png" alt="Dartington Hall Trust" /></a>
-        <a href="https://bidwellbrook.org/"><img src="/images/partners/bidwell-brook.png" alt="Bidwell Brook School" /></a>
-        <a href="https://www.sportengland.org/"><img src="/images/partners/sport-england.png" alt="Sport England" /></a>
-        <a href="https://lifeworks-uk.org/"><img src="/images/partners/lifeworks.png" alt="Lifeworks" /></a>
-      </div>
+      {allPartners.length > 0 && (
+        <div class="mw-partners">
+          {allPartners.map(({ entry }) => {
+            const imageSrc = entry.image?.startsWith('/') ? entry.image : entry.image ? `/images/partners/${entry.image}` : null;
+            return (
+              <a href={entry.url} target="_blank" rel="noopener noreferrer">
+                {imageSrc && <img src={imageSrc} alt={entry.name} />}
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   </section>
+
+  {allSupporters.length > 0 && (
+    <section class="mw-sect tight">
+      <div class="mw-wrap">
+        <div class="mw-sect-head">
+          <div>
+            <span class="mw-eyebrow">Supporters</span>
+            <h2>With thanks to</h2>
+          </div>
+        </div>
+        <div class="mw-supporters">
+          {allSupporters.map(({ entry }) => {
+            const imageSrc = entry.image?.startsWith('/') ? entry.image : entry.image ? `/images/supporters/${entry.image}` : null;
+            return (
+              <a href={entry.url} target="_blank" rel="noopener noreferrer">
+                {imageSrc && <img src={imageSrc} alt={entry.name} />}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  )}
 </Layout>
