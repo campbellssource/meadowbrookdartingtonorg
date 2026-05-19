@@ -17,9 +17,8 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
   <section class="mw-hero">
     <div class="photo" style="background-image: url('/assets/photos/hero.webp');"></div>
     <div class="content mw-wrap">
-      <span class="mw-eyebrow">The recreational heart of Dartington</span>
       <h1>{homepage?.heroHeading ?? 'Come as you are.'}</h1>
-      {homepage?.heroSubtitle && <p>{homepage.heroSubtitle}</p>}
+      <p class="hero-sub">The recreational heart of Dartington</p>
       <div class="actions">
         <a href="/facilities" class="mw-btn mw-btn-sun">Explore facilities</a>
         <a href="/about" class="mw-btn mw-btn-ghost">About the DRA</a>
@@ -27,17 +26,14 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
     </div>
   </section>
 
+  <section class="mw-sect tight">
+    <div class="mw-wrap mw-intro">
+      <p>Meadowbrook is managed by <a href="/about">The Dartington Recreation Association</a>, a charity run by volunteers who manage the Meadowbrook building and surrounding facilities on behalf of the Dartington community.</p>
+    </div>
+  </section>
+
   <section class="mw-sect">
     <div class="mw-wrap">
-      <div class="mw-sect-head">
-        <div>
-          <span class="mw-eyebrow">Facilities</span>
-          <h2>A place to swim, kick around and stay too late.</h2>
-        </div>
-        <div class="right">
-          From the bike track to the snooker room, every corner of Meadowbrook has its own character.
-        </div>
-      </div>
       <div class="mw-grid-4">
         {allFacilities.map(({ slug, entry }) => (
           <a href={`/facilities/${slug}`} class={`mw-zone-tile ${zoneFor(slug)}`}>

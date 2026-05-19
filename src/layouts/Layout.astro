@@ -77,13 +77,46 @@ const navFacilities = (await reader.collections.facilities.all())
             <li><a href="/contact" class={`mw-nav-link hide-mobile ${isActive("/contact") ? "active" : ""}`}>Contact</a></li>
             <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
           </ul>
+          <button class="mw-nav-menu-btn" aria-expanded="false" aria-controls="mw-mobile-menu">Menu</button>
         </nav>
+
+        <div class="mw-mobile-menu" id="mw-mobile-menu" aria-hidden="true">
+          <ul>
+            <li><a href="/" class={isActive("/") ? "active" : ""}>Home</a></li>
+            <li><a href="/facilities" class={isActive("/facilities") ? "active" : ""}>Facilities</a></li>
+            <li><a href="/about" class={isActive("/about") ? "active" : ""}>About</a></li>
+            <li><a href="/contact" class={isActive("/contact") ? "active" : ""}>Contact</a></li>
+            <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
+          </ul>
+        </div>
       </div>
     </header>
 
     <main>
       <slot />
     </main>
+
+    <script>
+      const btn = document.querySelector('.mw-nav-menu-btn') as HTMLButtonElement;
+      const menu = document.getElementById('mw-mobile-menu');
+      if (btn && menu) {
+        btn.addEventListener('click', () => {
+          const open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!open));
+          menu.setAttribute('aria-hidden', String(open));
+          menu.classList.toggle('open', !open);
+          btn.textContent = open ? 'Menu' : 'Close';
+        });
+        menu.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => {
+            btn.setAttribute('aria-expanded', 'false');
+            menu.setAttribute('aria-hidden', 'true');
+            menu.classList.remove('open');
+            btn.textContent = 'Menu';
+          });
+        });
+      }
+    </script>
 
     <footer class="mw-footer">
       <div class="mw-wrap">
