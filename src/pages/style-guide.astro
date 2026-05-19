@@ -1,0 +1,300 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Brand style guide"
+  description="Brand and design guidance for Meadowbrook and the DRA — colours, typography, voice, and zone identities."
+>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="sg-hero">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Internal resource</span>
+      <h1>Brand style guide</h1>
+      <p class="sg-hero-lead">
+        Everything you need to create assets for Meadowbrook and the DRA.
+        Start with the Brand DNA, then pick up the colours, type, and zone identities below.
+      </p>
+      <nav class="sg-toc" aria-label="Page contents">
+        <a href="#brand-dna">Brand DNA</a>
+        <a href="#core-palette">Colours</a>
+        <a href="#typography">Typography</a>
+        <a href="#principles">Design principles</a>
+        <a href="#voice">Voice &amp; tone</a>
+        <a href="#assets">Assets &amp; fonts</a>
+        <a href="#zones">Zone identities</a>
+      </nav>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BRAND DNA
+       ============================================================ -->
+  <section class="mw-sect" id="brand-dna" style="background: var(--paper-deep);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">01 — Brand DNA</span>
+      <h2 class="sg-section-title">What Meadowbrook is</h2>
+
+      <div class="sg-prose">
+        <p class="sg-lead">
+          Meadowbrook is the recreational heart of Dartington. The surrounding Dartington estate
+          has a proud history of creativity, ecology and alternative thinking —
+          Meadowbrook is where you come to let your hair down, relax, and be social.
+          Our place for sport and play.
+        </p>
+
+        <h3>The physical site</h3>
+        <p>
+          The site was bequeathed to the community by the Dartington Hall Trust. Several
+          recognisable features ground the brand in the real place:
+        </p>
+        <ul>
+          <li>The <strong>wooden 1960s community building</strong> — built using salvaged telegraph poles with a nod to Californian style. Now painted dark grey with bright white window frames.</li>
+          <li>Verdant <strong>mounds of grass</strong> created when the community dug the swimming pool.</li>
+          <li>The <strong>outdoor swimming pool</strong> — currently closed, with strong community support behind its restoration.</li>
+          <li>The kids' <strong>playground</strong> with swings, zip line, roundabout and climbing frame.</li>
+          <li>A popular <strong>bar and pizza restaurant</strong>, creating a nightlife venue as well as a place to enjoy the sun with friends.</li>
+          <li>Cross the bridge over the brook to <strong>playing fields, bike track and nature trails</strong>.</li>
+        </ul>
+
+        <h3>Meadowbrook vs the DRA</h3>
+        <p>
+          <strong>Meadowbrook</strong> is what people know and recognise — the place itself.
+          The <strong>DRA</strong> (Dartington Recreation Association) is the charity that manages Meadowbrook.
+          Its identity should feel like the responsible, community-minded organisation behind the place:
+          warm and accessible. The DRA logo — the "hand" — is bright, sunny, optimistic and accessible.
+          It is referenced when talking about Meadowbrook but is the DRA logotype.
+        </p>
+        <p>
+          The design system should act as a <strong>chameleon</strong> — stepping back to let the
+          facilities and their sub-brands be the stars, while maintaining a cohesive overall feel.
+          The predominant way to create recognisable Meadowbrook identity is through photography.
+        </p>
+      </div>
+
+      <div class="sg-logo-block">
+        <div class="sg-logo-card">
+          <img src="/assets/logos/hand.png" alt="DRA hand logotype" class="sg-logo-hand" />
+          <div class="sg-logo-meta">
+            <span class="mw-eyebrow no-line">DRA logotype</span>
+            <p>The "hand" — bright, sunny, optimistic, accessible. Used on all DRA communications.</p>
+          </div>
+        </div>
+        <div class="sg-logo-wordmarks">
+          <div class="sg-wordmark-row">
+            <span class="sg-wordmark-meadowbrook">Meadowbrook</span>
+            <span class="sg-wordmark-label">Meadowbrook wordmark — Plus Jakarta Sans Bold</span>
+          </div>
+          <div class="sg-wordmark-row">
+            <span class="sg-wordmark-dra">DRA</span>
+            <span class="sg-wordmark-label">DRA wordmark — Lobster Regular</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CORE PALETTE
+       ============================================================ -->
+  <section class="mw-sect" id="core-palette" style="background: var(--paper);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">02 — Colours</span>
+      <h2 class="sg-section-title">Core palette</h2>
+      <p class="sg-section-intro">
+        Drawn from the landscape itself — warm, natural, and unassuming.
+        This palette provides the canvas that zone colours sit on top of.
+      </p>
+
+      <div class="sg-palette-group">
+        <h3 class="sg-palette-group-label">Backgrounds &amp; bases</h3>
+        <div class="sg-swatches">
+          <div class="sg-swatch" style="background:#FBF0DF; color:#28201A;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Paper</span>
+              <span class="sg-swatch-hex">#FBF0DF</span>
+              <span class="sg-swatch-var">--paper</span>
+            </div>
+            <span class="sg-swatch-note">Base — warm cream. Primary page background.</span>
+          </div>
+          <div class="sg-swatch" style="background:#F4E4CB; color:#28201A;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Paper deep</span>
+              <span class="sg-swatch-hex">#F4E4CB</span>
+              <span class="sg-swatch-var">--paper-deep</span>
+            </div>
+            <span class="sg-swatch-note">One shade darker for tonal layering.</span>
+          </div>
+          <div class="sg-swatch" style="background:#D1B08B; color:#28201A;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Sand</span>
+              <span class="sg-swatch-hex">#D1B08B</span>
+              <span class="sg-swatch-var">--sand</span>
+            </div>
+            <span class="sg-swatch-note">Sandy stone block colour.</span>
+          </div>
+          <div class="sg-swatch" style="background:#FFFFFF; color:#28201A; outline: 1px solid #D1B08B;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Bone</span>
+              <span class="sg-swatch-hex">#FFFFFF</span>
+              <span class="sg-swatch-var">--bone</span>
+            </div>
+            <span class="sg-swatch-note">Clean white. Cards and surfaces.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-palette-group">
+        <h3 class="sg-palette-group-label">Greens — logo &amp; grassy mounds</h3>
+        <div class="sg-swatches">
+          <div class="sg-swatch" style="background:#74A953; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Green</span>
+              <span class="sg-swatch-hex">#74A953</span>
+              <span class="sg-swatch-var">--green</span>
+            </div>
+            <span class="sg-swatch-note">Logo green. Primary accent.</span>
+          </div>
+          <div class="sg-swatch" style="background:#A7C756; color:#28201A;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Green light</span>
+              <span class="sg-swatch-hex">#A7C756</span>
+              <span class="sg-swatch-var">--green-light</span>
+            </div>
+            <span class="sg-swatch-note">Fresh upper green.</span>
+          </div>
+          <div class="sg-swatch" style="background:#4D7A33; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Green dark</span>
+              <span class="sg-swatch-hex">#4D7A33</span>
+              <span class="sg-swatch-var">--green-dark</span>
+            </div>
+            <span class="sg-swatch-note">AA contrast. Links on light backgrounds.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-palette-group">
+        <h3 class="sg-palette-group-label">Brights — sunshine &amp; sky</h3>
+        <div class="sg-swatches">
+          <div class="sg-swatch" style="background:#F9D21E; color:#28201A;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Sun</span>
+              <span class="sg-swatch-hex">#F9D21E</span>
+              <span class="sg-swatch-var">--sun</span>
+            </div>
+            <span class="sg-swatch-note">Strong warm yellow. Evocative of sunshine.</span>
+          </div>
+          <div class="sg-swatch" style="background:#1DB5EF; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Sky</span>
+              <span class="sg-swatch-hex">#1DB5EF</span>
+              <span class="sg-swatch-var">--sky</span>
+            </div>
+            <span class="sg-swatch-note">Bright blue sky.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-palette-group">
+        <h3 class="sg-palette-group-label">At night — building colours</h3>
+        <div class="sg-swatches">
+          <div class="sg-swatch" style="background:#3C3C3A; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Night</span>
+              <span class="sg-swatch-hex">#3C3C3A</span>
+              <span class="sg-swatch-var">--night</span>
+            </div>
+            <span class="sg-swatch-note">Building dark grey. Nav and footer.</span>
+          </div>
+          <div class="sg-swatch" style="background:#A73916; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Ember</span>
+              <span class="sg-swatch-hex">#A73916</span>
+              <span class="sg-swatch-var">--ember</span>
+            </div>
+            <span class="sg-swatch-note">Warm red. Building wood &amp; festive accent.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-palette-group">
+        <h3 class="sg-palette-group-label">Text</h3>
+        <div class="sg-swatches">
+          <div class="sg-swatch" style="background:#28201A; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Ink</span>
+              <span class="sg-swatch-hex">#28201A</span>
+              <span class="sg-swatch-var">--ink</span>
+            </div>
+            <span class="sg-swatch-note">Body text. Warm near-black — never pure black.</span>
+          </div>
+          <div class="sg-swatch" style="background:#5B4E42; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Ink soft</span>
+              <span class="sg-swatch-hex">#5B4E42</span>
+              <span class="sg-swatch-var">--ink-soft</span>
+            </div>
+            <span class="sg-swatch-note">Secondary text.</span>
+          </div>
+          <div class="sg-swatch" style="background:#8B7C6E; color:#fff;">
+            <div class="sg-swatch-body">
+              <span class="sg-swatch-name">Ink mute</span>
+              <span class="sg-swatch-hex">#8B7C6E</span>
+              <span class="sg-swatch-var">--ink-mute</span>
+            </div>
+            <span class="sg-swatch-note">Tertiary text, metadata.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TYPOGRAPHY
+       ============================================================ -->
+  <section class="mw-sect" id="typography" style="background: var(--paper-deep);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">03 — Typography</span>
+      <h2 class="sg-section-title">Core typeface — Plus Jakarta Sans</h2>
+      <p class="sg-section-intro">
+        Used for all body copy and UI across the site. Zone display fonts sit on top of this —
+        they're for headlines only; the rest always stays Plus Jakarta Sans.
+      </p>
+
+      <div class="sg-type-specimen">
+        <div class="sg-type-row">
+          <div class="sg-type-meta">
+            <span class="sg-type-label">Display</span>
+            <span class="sg-type-spec">3.5rem / Bold / −0.02em</span>
+            <code class="sg-type-code">h1, .h-display</code>
+          </div>
+          <div class="sg-type-example" style="font-size: 3.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05;">
+            Come as you are.
+          </div>
+        </div>
+        <div class="sg-type-row">
+          <div class="sg-type-meta">
+            <span class="sg-type-label">Headline</span>
+            <span class="sg-type-spec">2rem / Medium / −0.01em</span>
+            <code class="sg-type-code">h2, .h-headline</code>
+          </div>
+          <div class="sg-type-example" style="font-size: 2rem; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15;">
+            A place to swim, eat pizza and stay too late.
+          </div>
+        </div>
+        <div class="sg-type-row">
+          <div class="sg-type-meta">
+            <span class="sg-type-label">Title</span>
+            <span class="sg-type-spec">1.375rem / Semibold</span>
+            <code class="sg-type-code">h3, .h-title</code>
+          </div>
+          <div class="sg-type-example" style="font-size: 1.375rem; font-weight: 600; line-height: 1.3;">
+            Outdoor pool restoration
+          </div>
+        </div>
+        <div class="sg-type-row">
+          <div class="sg-type-meta">
