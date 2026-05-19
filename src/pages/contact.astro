@@ -12,56 +12,22 @@ import Layout from '../layouts/Layout.astro';
   </section>
 
   <section class="mw-sect" style="background: var(--bg-elevated);">
-    <div class="mw-wrap" style="display: grid; grid-template-columns: 1fr 1.1fr; gap: var(--space-8);">
-      <div>
-        <span class="mw-eyebrow">By post or email</span>
-        <h2 style="font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin: var(--space-2) 0 var(--space-5);">Find us</h2>
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">By post or email</span>
+      <h2 style="font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin: var(--space-2) 0 var(--space-5);">Find us</h2>
+      <div class="mw-article" style="padding: 0;">
+        <p><strong>Email</strong><br />
+        <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a></p>
 
-        <div class="mw-article" style="padding: 0;">
-          <p><strong>Email</strong><br />
-          <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a></p>
+        <p><strong>Address</strong><br />
+        Meadowbrook<br />
+        Shinners Bridge<br />
+        Dartington<br />
+        TQ9 6JD</p>
 
-          <p><strong>Address</strong><br />
-          Meadowbrook<br />
-          Shinners Bridge<br />
-          Dartington<br />
-          TQ9 6JD</p>
-
-          <p>
-            <a href="https://maps.app.goo.gl/ngFR4nEtYtdYe3SG9" target="_blank" rel="noopener">View on Google Maps →</a>
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <span class="mw-eyebrow">Send a message</span>
-        <h2 style="font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin: var(--space-2) 0 var(--space-5);">Drop us a line</h2>
-
-        <form action="/api/contact" method="POST" class="mw-form">
-          <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" required />
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required />
-          </div>
-          <div class="field">
-            <label for="subject">Subject</label>
-            <select id="subject" name="subject">
-              <option value="general">General enquiry</option>
-              <option value="booking">Room booking</option>
-              <option value="volunteer">Volunteering</option>
-              <option value="trustee">Becoming a trustee</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="message">Message</label>
-            <textarea id="message" name="message" rows="5" required></textarea>
-          </div>
-          <button type="submit" class="mw-btn mw-btn-primary mw-btn-lg">Send message</button>
-        </form>
+        <p>
+          <a href="https://maps.app.goo.gl/ngFR4nEtYtdYe3SG9" target="_blank" rel="noopener">View on Google Maps →</a>
+        </p>
       </div>
     </div>
   </section>
