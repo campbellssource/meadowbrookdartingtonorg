@@ -265,8 +265,7 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; gap: 16px; }
 .mw-nav-brand { display: flex; align-items: center; gap: 20px; text-decoration: none; }
 .mw-nav-brand img { height: 38px; width: auto; flex: none; }
-.mw-nav-brand > span { text-align: right; }
-.mw-nav-brand .mark { font-family: var(--font-body); font-weight: 700; font-size: 18px; color: #fff; letter-spacing: -0.01em; line-height: 1; }
+.mw-nav-brand .mark { font-family: var(--font-body); font-weight: 700; font-size: 24px; color: #fff; letter-spacing: -0.01em; line-height: 1; }
 .mw-nav-brand small { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.78); font-weight: 600; margin-top: 3px; }
 .mw-nav-links { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; align-items: center; }
 .mw-nav-link { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: var(--r-pill); transition: background var(--dur-fast) var(--ease-natural); cursor: pointer; background: none; border: 0; display: inline-block; }
