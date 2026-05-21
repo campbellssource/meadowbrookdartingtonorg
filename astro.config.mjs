@@ -9,4 +9,29 @@ export default defineConfig({
   integrations: [react(), markdoc(), keystatic()],
   output: 'server',
   adapter: node({ mode: 'standalone' }),
+  redirects: {
+    // Facilities — old top-level URLs → new /facilities/ prefix
+    '/snooker-room':         '/facilities/snooker-room',
+    '/bike-track':           '/facilities/bike-track',
+    '/large-room':           '/facilities/large-room',
+    '/muga':                 '/facilities/muga',
+    '/pizzalogica':          '/facilities/pizzalogica',
+    '/playground':           '/facilities/playground',
+    '/playing-fields':       '/facilities/playing-fields',
+    '/pool':                 '/facilities/pool',
+    '/small-room':           '/facilities/small-room',
+    '/somewhere-sauna':      '/facilities/somewhere-sauna',
+    '/things-happen-here':   '/facilities/things-happen-here',
+    '/totnes-sub-aqua-club': '/facilities/totnes-sub-aqua-club',
+    '/woodland-and-brook':   '/facilities/woodland-and-brook',
+
+    // Content pages — old top-level URLs → /content/ prefix
+    '/volunteer':    '/content/volunteer',
+    '/be-a-trustee': '/content/be-a-trustee',
+    '/meadowchat':   '/content/meadowchat',
+    '/energy-hub':   '/content/energy-hub',
+
+    // Misc pages — now served by dedicated pages
+    // '/privacy' is served directly at /privacy so no redirect needed
+  },
 });
