@@ -31,7 +31,7 @@ export default defineConfig({
     '/meadowchat':   '/content/meadowchat',
     '/energy-hub':   '/content/energy-hub',
 
-    // Misc pages — now served by dedicated pages
-    // '/privacy' is served directly at /privacy so no redirect needed
+    // Privacy policy — maintained in Google Docs
+    '/privacy': 'https://docs.google.com/document/d/1V94cmxs0Nix99-eZzGKzUx9z8Bzd0ynNno5waPc0hQQ/edit',
   },
 });

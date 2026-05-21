@@ -9,7 +9,10 @@ const richText = (label: string) =>
   });
 
 export default config({
-  storage: { kind: 'local' },
+  storage: {
+    kind: 'github',
+    repo: 'campbellssource/meadowbrookdartingtonorg',
+  },
 
   singletons: {
     homepage: singleton({
