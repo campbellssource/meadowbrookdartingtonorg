@@ -9,6 +9,12 @@ export default defineConfig({
   integrations: [react(), markdoc(), keystatic()],
   output: 'server',
   adapter: node({ mode: 'standalone' }),
+  security: {
+    allowedDomains: [
+      { hostname: 'meadowbrookdartington.org', protocol: 'https' },
+      { hostname: 'www.meadowbrookdartington.org', protocol: 'https' },
+    ],
+  },
   redirects: {
     // Facilities — old top-level URLs → new /facilities/ prefix
     '/snooker-room':         '/facilities/snooker-room',
