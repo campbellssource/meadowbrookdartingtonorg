@@ -1,0 +1,271 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Subscribe to updates"
+  description="Subscribe to updates from Meadowbrook and the DRA. Get notifications on upcoming events and news."
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Stay in the loop</span>
+      <h1>Subscribe to updates</h1>
+      <p>Get notifications on upcoming events, news from Meadowbrook, and updates from the Dartington Recreation Association.</p>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <div class="subscribe-form-wrap">
+
+        <form id="subscribe-form" novalidate>
+          <div class="field-row">
+            <div class="field">
+              <label for="firstName">First name <span class="optional">(optional)</span></label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                autocomplete="given-name"
+                placeholder="Your first name"
+              />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="email">Email address <span class="required">*</span></label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="consent" name="consent" required />
+              <span>
+                I agree to receive occasional updates from Meadowbrook and the DRA.
+                You can unsubscribe at any time. Read our
+                <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+              </span>
+            </label>
+          </div>
+
+          <div id="form-error" class="form-message form-message--error" hidden></div>
+
+          <button type="submit" class="mw-btn mw-btn-primary" id="submit-btn">
+            Subscribe
+          </button>
+        </form>
+
+        <div id="success-message" class="success-wrap" hidden>
+          <div class="success-icon">✓</div>
+          <h2>You're subscribed!</h2>
+          <p>Thanks for signing up. We'll be in touch when there's something worth sharing.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const form = document.getElementById('subscribe-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const errorEl = document.getElementById('form-error') as HTMLDivElement;
+  const successEl = document.getElementById('success-message') as HTMLDivElement;
+
+  function showError(msg: string) {
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+
+  function clearError() {
+    errorEl.textContent = '';
+    errorEl.hidden = true;
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const email = (form.querySelector('#email') as HTMLInputElement).value.trim();
+    const firstName = (form.querySelector('#firstName') as HTMLInputElement).value.trim();
+    const consent = (form.querySelector('#consent') as HTMLInputElement).checked;
+
+    if (!email) {
+      showError('Please enter your email address.');
+      return;
+    }
+    if (!consent) {
+      showError("Please tick the box to confirm you'd like to receive updates.");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Subscribing…';
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, firstName }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        form.hidden = true;
+        successEl.hidden = false;
+      } else {
+        showError(data.error ?? 'Something went wrong. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Subscribe';
+      }
+    } catch {
+      showError('Could not connect. Please check your connection and try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Subscribe';
+    }
+  });
+</script>
+
+<style>
+  .subscribe-form-wrap {
+    max-width: 480px;
+  }
+
+  .field-row {
+    margin-bottom: var(--space-5);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--fg-mute);
+  }
+
+  .required {
+    color: #c0392b;
+  }
+
+  input[type="email"],
+  input[type="text"] {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bone);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+    outline: none;
+  }
+
+  input[type="email"]:focus,
+  input[type="text"]:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
+  }
+
+  input[type="email"]::placeholder,
+  input[type="text"]::placeholder {
+    color: var(--ink-mute);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: var(--fg-soft);
+    cursor: pointer;
+    line-height: 1.5;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+
+  .checkbox-label a {
+    color: var(--green-dark);
+  }
+
+  .form-message {
+    font-size: 0.875rem;
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: var(--space-5);
+  }
+
+  .form-message--error {
+    background: #fdf0ee;
+    color: #a93226;
+    border: 1px solid #f0b8b2;
+  }
+
+  #submit-btn {
+    margin-top: var(--space-5);
+  }
+
+  #submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .success-wrap {
+    text-align: center;
+    padding: var(--space-7) 0;
+  }
+
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: var(--space-5);
+  }
+
+  .success-wrap h2 {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .success-wrap p {
+    color: var(--fg-soft);
+    margin: 0;
+  }
+</style>
