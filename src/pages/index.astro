@@ -17,7 +17,7 @@ const upcomingEvents = (await reader.collections.events.all())
     new Date(a.entry.date! + 'T12:00:00').getTime() -
     new Date(b.entry.date! + 'T12:00:00').getTime()
   )
-  .slice(0, 3);
+  .slice(0, 4);
 
 function formatEventDate(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00');
@@ -63,9 +63,11 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
   </section>
 
   {upcomingEvents.length > 0 && (() => {
-    const featured = upcomingEvents[0];
-    const rest = upcomingEvents.slice(1);
-    const featuredImage = featured.entry.image
+    // DRA Socials are never the hero — find the first non-social event for that slot.
+    // Socials (and any events before the hero) stay in the compact list.
+    const featured = upcomingEvents.find(({ slug }) => !slug.startsWith('dra-social-')) ?? null;
+    const rest = upcomingEvents.filter(({ slug }) => slug !== featured?.slug);
+    const featuredImage = featured?.entry.image
       ? (featured.entry.image.startsWith('/') ? featured.entry.image : `/images/events/${featured.entry.image}`)
       : null;
     return (
@@ -73,28 +75,30 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
         <div class="mw-wrap">
           <span class="mw-eyebrow">What's on</span>
 
-          <div class="mw-event-featured" style="margin-top: var(--space-5);">
-            <div class="poster-wrap">
-              {featuredImage
-                ? <img src={featuredImage} alt={featured.entry.title} class="poster" />
-                : <div class="poster-placeholder"></div>
-              }
-            </div>
-            <div class="info">
-              <p class="event-date">
-                {featured.entry.date ? formatEventDate(featured.entry.date) : ''}
-                {featured.entry.startTime ? ` · ${featured.entry.startTime}${featured.entry.endTime ? `–${featured.entry.endTime}` : ''}` : ''}
-              </p>
-              <h2><a href={`/calendar/${featured.slug}`} class="event-title-link">{featured.entry.title}</a></h2>
-              {featured.entry.summary && <p class="summary">{featured.entry.summary}</p>}
-              <div class="actions">
-                {featured.entry.ctaLabel && featured.entry.ctaUrl && (
-                  <a href={featured.entry.ctaUrl} class="mw-btn mw-btn-primary">{featured.entry.ctaLabel}</a>
-                )}
-                <a href={`/calendar/${featured.slug}`} class="mw-btn mw-btn-ghost">More details</a>
+          {featured && (
+            <div class="mw-event-featured" style="margin-top: var(--space-5);">
+              <div class="poster-wrap">
+                {featuredImage
+                  ? <img src={featuredImage} alt={featured.entry.title} class="poster" />
+                  : <div class="poster-placeholder"></div>
+                }
+              </div>
+              <div class="info">
+                <p class="event-date">
+                  {featured.entry.date ? formatEventDate(featured.entry.date) : ''}
+                  {featured.entry.startTime ? ` · ${featured.entry.startTime}${featured.entry.endTime ? `–${featured.entry.endTime}` : ''}` : ''}
+                </p>
+                <h2><a href={`/calendar/${featured.slug}`} class="event-title-link">{featured.entry.title}</a></h2>
+                {featured.entry.summary && <p class="summary">{featured.entry.summary}</p>}
+                <div class="actions">
+                  {featured.entry.ctaLabel && featured.entry.ctaUrl && (
+                    <a href={featured.entry.ctaUrl} class="mw-btn mw-btn-primary">{featured.entry.ctaLabel}</a>
+                  )}
+                  <a href={`/calendar/${featured.slug}`} class="mw-btn mw-btn-ghost">More details</a>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {rest.length > 0 && (
             <div class="mw-event-list">
