@@ -100,8 +100,27 @@ All welcome. No agenda, no formalities, just good company.
 The DRA Social takes place on the **last Thursday of every month**, from 7pm upstairs at Meadowbrook.
 `;
 
+// ── Generate OG image ──────────────────────────────────────────────────────
+let imageFilename = null;
+try {
+  const { generateSocialImage } = await import('./generate-social-image.mjs');
+  imageFilename = await generateSocialImage({
+    slug,
+    title: `DRA Social – ${monthName} ${year}`,
+    date: dateStr,
+    time: '7pm',
+  });
+} catch (err) {
+  console.warn(`Image generation skipped: ${err.message}`);
+}
+
+// ── Write YAML (with image if generated) ──────────────────────────────────
+const yamlWithImage = imageFilename
+  ? yaml + `image: '${imageFilename}'\n`
+  : yaml;
+
 mkdirSync(bodyDir, { recursive: true });
-writeFileSync(yamlPath, yaml);
+writeFileSync(yamlPath, yamlWithImage);
 writeFileSync(bodyPath, body);
 
 console.log(`Created: ${slug} — ${dateStr}`);

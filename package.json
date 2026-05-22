@@ -19,5 +19,10 @@
     "astro": "^6.3.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
+    "@resvg/resvg-js": "^2.6.2",
+    "satori": "^0.26.0"
   }
 }

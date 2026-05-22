@@ -30,7 +30,7 @@ const timeStr = entry.startTime
   : null;
 ---
 
-<Layout title={entry.title} description={entry.summary ?? undefined}>
+<Layout title={entry.title} description={entry.summary ?? undefined} ogImage={imageSrc ?? undefined}>
   {imageSrc ? (
     <section class="mw-event-hero">
       <div class="photo" style={`background-image: url('${imageSrc}')`}></div>

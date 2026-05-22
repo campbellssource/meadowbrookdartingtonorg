@@ -6,6 +6,7 @@ import { zoneFor } from '../lib/zones';
 interface Props {
   title: string;
   description?: string;
+  ogImage?: string;   // absolute URL or site-relative path e.g. /images/events/foo-og.jpg
   navOnPhoto?: boolean;
   bodyClass?: string;
 }
@@ -13,9 +14,15 @@ interface Props {
 const {
   title,
   description = "Meadowbrook is managed by The Dartington Recreation Association, a charity run by volunteers.",
+  ogImage,
   navOnPhoto = false,
   bodyClass = "",
 } = Astro.props;
+
+const siteUrl = 'https://meadowbrookdartington.org';
+const ogImageUrl = ogImage
+  ? (ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`)
+  : `${siteUrl}/assets/photos/hero.webp`;
 
 const pathname = Astro.url.pathname;
 const isActive = (href: string) =>
@@ -32,6 +39,17 @@ const navFacilities = (await reader.collections.facilities.all())
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <!-- Open Graph -->
+    <meta property="og:title" content={`${title} | Meadowbrook Dartington`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Meadowbrook Dartington" />
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImageUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | Meadowbrook Dartington</title>
     <link rel="stylesheet" href="/styles/global.css" />
