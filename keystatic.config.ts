@@ -148,6 +148,41 @@ export default config({
       },
     }),
 
+    events: collection({
+      label: 'Events',
+      slugField: 'title',
+      path: 'src/content/events/*',
+      format: { data: 'yaml' },
+      columns: ['date', 'location'],
+      schema: {
+        title: fields.slug({ name: { label: 'Title' } }),
+        date: fields.date({ label: 'Date', validation: { isRequired: true } }),
+        startTime: fields.text({ label: 'Start time', description: 'e.g. 12pm' }),
+        endTime: fields.text({ label: 'End time (optional)', description: 'e.g. 2pm' }),
+        location: fields.text({ label: 'Location' }),
+        summary: fields.text({
+          label: 'Summary',
+          multiline: true,
+          description: 'Short description shown in listings and on the homepage.',
+        }),
+        image: fields.image({
+          label: 'Hero / poster image',
+          description: 'Landscape format works best — aim for roughly 3:2 ratio (e.g. 900×600px).',
+          directory: 'public/images/events',
+          publicPath: '/images/events/',
+        }),
+        body: richText('Event details'),
+        ctaLabel: fields.text({
+          label: 'Button label',
+          description: 'e.g. "Volunteer to help" — leave blank to hide the button.',
+        }),
+        ctaUrl: fields.text({
+          label: 'Button URL',
+          description: 'Where the button links to (URL or mailto:).',
+        }),
+      },
+    }),
+
     supporters: collection({
       label: 'With thanks to',
       slugField: 'name',

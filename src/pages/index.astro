@@ -8,6 +8,29 @@ import { zoneFor } from '../lib/zones';
 const reader = createReader(process.cwd(), keystaticConfig);
 
 const homepage = await reader.singletons.homepage.read();
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const upcomingEvents = (await reader.collections.events.all())
+  .filter(({ entry }) => entry.date && new Date(entry.date + 'T12:00:00') >= today)
+  .sort((a, b) =>
+    new Date(a.entry.date! + 'T12:00:00').getTime() -
+    new Date(b.entry.date! + 'T12:00:00').getTime()
+  )
+  .slice(0, 3);
+
+function formatEventDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+}
+function shortDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return {
+    day: d.toLocaleDateString('en-GB', { day: 'numeric' }),
+    mon: d.toLocaleDateString('en-GB', { month: 'short' }),
+  };
+}
+
 const allPartners = (await reader.collections.partners.all())
   .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
 
@@ -38,6 +61,65 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
       <p>Meadowbrook is managed by <a href="/about">The Dartington Recreation Association</a>, a charity run by volunteers who manage the Meadowbrook building and surrounding facilities on behalf of the Dartington community.</p>
     </div>
   </section>
+
+  {upcomingEvents.length > 0 && (() => {
+    const featured = upcomingEvents[0];
+    const rest = upcomingEvents.slice(1);
+    const featuredImage = featured.entry.image
+      ? (featured.entry.image.startsWith('/') ? featured.entry.image : `/images/events/${featured.entry.image}`)
+      : null;
+    return (
+      <section class="mw-sect">
+        <div class="mw-wrap">
+          <span class="mw-eyebrow">What's on</span>
+
+          <div class="mw-event-featured" style="margin-top: var(--space-5);">
+            <div class="poster-wrap">
+              {featuredImage
+                ? <img src={featuredImage} alt={featured.entry.title} class="poster" />
+                : <div class="poster-placeholder"></div>
+              }
+            </div>
+            <div class="info">
+              <p class="event-date">
+                {featured.entry.date ? formatEventDate(featured.entry.date) : ''}
+                {featured.entry.startTime ? ` · ${featured.entry.startTime}${featured.entry.endTime ? `–${featured.entry.endTime}` : ''}` : ''}
+              </p>
+              <h2><a href={`/calendar/${featured.slug}`} class="event-title-link">{featured.entry.title}</a></h2>
+              {featured.entry.summary && <p class="summary">{featured.entry.summary}</p>}
+              <div class="actions">
+                {featured.entry.ctaLabel && featured.entry.ctaUrl && (
+                  <a href={featured.entry.ctaUrl} class="mw-btn mw-btn-primary">{featured.entry.ctaLabel}</a>
+                )}
+                <a href={`/calendar/${featured.slug}`} class="mw-btn mw-btn-ghost">More details</a>
+              </div>
+            </div>
+          </div>
+
+          {rest.length > 0 && (
+            <div class="mw-event-list">
+              {rest.map(({ slug, entry }) => {
+                const d = shortDate(entry.date!);
+                return (
+                  <a href={`/calendar/${slug}`} class="mw-event-list-item">
+                    <div class="date-col">
+                      <div class="day">{d.day}</div>
+                      <div class="mon">{d.mon}</div>
+                    </div>
+                    <div class="text-col">
+                      <h3>{entry.title}</h3>
+                      {entry.summary && <p>{entry.summary}</p>}
+                    </div>
+                    <span class="mw-btn mw-btn-sm mw-btn-secondary">Details</span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  })()}
 
   <section class="mw-sect">
     <div class="mw-wrap">

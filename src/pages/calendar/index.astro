@@ -1,0 +1,80 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const allEvents = (await reader.collections.events.all())
+  .filter(({ entry }) => {
+    if (!entry.date) return false;
+    return new Date(entry.date + 'T12:00:00') >= today;
+  })
+  .sort((a, b) =>
+    new Date(a.entry.date! + 'T12:00:00').getTime() -
+    new Date(b.entry.date! + 'T12:00:00').getTime()
+  );
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function shortDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return {
+    day: d.toLocaleDateString('en-GB', { day: 'numeric' }),
+    mon: d.toLocaleDateString('en-GB', { month: 'short' }),
+  };
+}
+---
+
+<Layout title="Events" description="Upcoming events at Meadowbrook, Dartington.">
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Meadowbrook</span>
+      <h1>What's on</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      {allEvents.length === 0 ? (
+        <p style="color: var(--ink-soft); font-size: 1.1rem;">
+          Nothing coming up right now — check back soon, or{' '}
+          <a href="/subscribe-to-updates">subscribe to updates</a> to hear first.
+        </p>
+      ) : (
+        <div class="mw-event-cards">
+          {allEvents.map(({ slug, entry }) => {
+            const d = shortDate(entry.date!);
+            const imageSrc = entry.image
+              ? (entry.image.startsWith('/') ? entry.image : `/images/events/${entry.image}`)
+              : null;
+            return (
+              <a href={`/calendar/${slug}`} class="mw-card mw-event-card-item">
+                <div class="img" style={imageSrc ? `background-image: url('${imageSrc}')` : 'background: var(--paper-deep);'}>
+                  <div class="mw-event-date-badge">
+                    <span class="day">{d.day}</span>
+                    <span class="mon">{d.mon}</span>
+                  </div>
+                </div>
+                <div class="body">
+                  <h3>{entry.title}</h3>
+                  {entry.summary && <p>{entry.summary}</p>}
+                  {entry.startTime && (
+                    <span class="meta">
+                      {entry.startTime}{entry.endTime ? `–${entry.endTime}` : ''} · {entry.location}
+                    </span>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,91 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+const { slug } = Astro.params;
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.events.read(slug as string);
+
+if (!entry) {
+  return Astro.redirect('/calendar');
+}
+
+const bodyNodes = await entry.body();
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const imageSrc = entry.image
+  ? (entry.image.startsWith('/') ? entry.image : `/images/events/${entry.image}`)
+  : null;
+
+const timeStr = entry.startTime
+  ? entry.endTime
+    ? `${entry.startTime}–${entry.endTime}`
+    : entry.startTime
+  : null;
+---
+
+<Layout title={entry.title} description={entry.summary ?? undefined}>
+  {imageSrc ? (
+    <section class="mw-event-hero">
+      <div class="photo" style={`background-image: url('${imageSrc}')`}></div>
+      <div class="overlay mw-wrap">
+        <span class="mw-eyebrow" style="color: rgba(255,255,255,0.85);">Events</span>
+      </div>
+    </section>
+  ) : (
+    <section class="mw-zone-hero" style="padding-bottom: var(--space-6);">
+      <div class="mw-wrap">
+        <span class="mw-eyebrow">Events</span>
+      </div>
+    </section>
+  )}
+
+  <section class="mw-sect" style={imageSrc ? "padding-top: var(--space-7);" : "padding-top: 0;"}>
+    <div class="mw-wrap" style="max-width: var(--content-narrow); margin: 0 auto;">
+      <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.02em; line-height: 1.05; margin-bottom: var(--space-5);">
+        {entry.title}
+      </h1>
+
+      <div class="mw-event-meta">
+        <div class="mw-event-meta-row">
+          <span class="label">Date</span>
+          <span>{entry.date ? formatDate(entry.date) : '—'}</span>
+        </div>
+        {timeStr && (
+          <div class="mw-event-meta-row">
+            <span class="label">Time</span>
+            <span>{timeStr}</span>
+          </div>
+        )}
+        {entry.location && (
+          <div class="mw-event-meta-row">
+            <span class="label">Location</span>
+            <span>{entry.location}</span>
+          </div>
+        )}
+      </div>
+
+      {entry.ctaLabel && entry.ctaUrl && (
+        <div style="margin-bottom: var(--space-6);">
+          <a href={entry.ctaUrl} class="mw-btn mw-btn-primary">{entry.ctaLabel}</a>
+        </div>
+      )}
+
+      {bodyNodes && bodyNodes.length > 0 && (
+        <article class="mw-article" style="padding: 0; margin: 0;">
+          <DocumentRenderer document={bodyNodes} />
+        </article>
+      )}
+
+      <div style="margin-top: var(--space-7);">
+        <a href="/calendar" class="mw-back">All events</a>
+      </div>
+    </div>
+  </section>
+</Layout>

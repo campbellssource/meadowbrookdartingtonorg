@@ -73,6 +73,7 @@ const navFacilities = (await reader.collections.facilities.all())
                 </div>
               </div>
             </li>
+            <li><a href="/calendar" class={`mw-nav-link ${isActive("/calendar") ? "active" : ""}`}>Events</a></li>
             <li><a href="/about" class={`mw-nav-link ${isActive("/about") ? "active" : ""}`}>About</a></li>
             <li><a href="/contact" class={`mw-nav-link hide-mobile ${isActive("/contact") ? "active" : ""}`}>Contact</a></li>
             <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
@@ -84,6 +85,7 @@ const navFacilities = (await reader.collections.facilities.all())
           <ul>
             <li><a href="/" class={isActive("/") ? "active" : ""}>Home</a></li>
             <li><a href="/facilities" class={isActive("/facilities") ? "active" : ""}>Facilities</a></li>
+            <li><a href="/calendar" class={isActive("/calendar") ? "active" : ""}>Events</a></li>
             <li><a href="/about" class={isActive("/about") ? "active" : ""}>About</a></li>
             <li><a href="/contact" class={isActive("/contact") ? "active" : ""}>Contact</a></li>
             <li><a href="https://square.link/u/hCp8AnkF" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
@@ -131,6 +133,7 @@ const navFacilities = (await reader.collections.facilities.all())
             <h4>Explore</h4>
             <a href="/">Home</a>
             <a href="/facilities">Facilities</a>
+            <a href="/calendar">Events</a>
             <a href="/about">About the DRA</a>
             <a href="/contact">Contact</a>
           </div>
