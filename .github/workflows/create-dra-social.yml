@@ -1,0 +1,59 @@
+name: Create DRA Social event
+
+# Runs on the 1st of every month at 9am UTC.
+# Calculates the last Thursday of that month and creates the event
+# files if they don't already exist, then commits and pushes.
+#
+# Can also be triggered manually from the Actions tab (useful for
+# backfilling a month or testing).
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Month number (1–12) — leave blank for current month'
+        required: false
+      year:
+        description: 'Year — leave blank for current year'
+        required: false
+
+jobs:
+  create-event:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create DRA Social event file
+        run: |
+          EXTRA_ARGS=""
+          if [ -n "${{ github.event.inputs.month }}" ]; then
+            EXTRA_ARGS="--month ${{ github.event.inputs.month }}"
+          fi
+          if [ -n "${{ github.event.inputs.year }}" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --year ${{ github.event.inputs.year }}"
+          fi
+          node scripts/create-social.mjs $EXTRA_ARGS
+
+      - name: Commit and push if a new event was created
+        run: |
+          git config user.name  "Meadowbrook Bot"
+          git config user.email "bot@meadowbrookdartington.org"
+          git add src/content/events/
+          if git diff --staged --quiet; then
+            echo "Nothing to commit — event already existed."
+          else
+            MONTH_YEAR=$(date +'%B %Y')
+            git commit -m "chore: add DRA Social event for ${MONTH_YEAR}"
+            git push
+          fi
