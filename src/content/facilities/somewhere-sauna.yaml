@@ -5,4 +5,4 @@ image: /images/facilities/somewhere-sauna/image.png
 facilityType:
   discriminant: link
   value:
-    externalUrl: https://www.somewhere.uk
+    externalUrl: https://www.thesomewheresauna.com
