@@ -37,6 +37,7 @@ const zone = zoneFor(slug);
 <Layout
   title={facility.name}
   description={facility.shortDescription ?? undefined}
+  ogImage={`/images/facilities/${slug}-og.jpg`}
   bodyClass={`zone-${zone}`}
 >
   <section class="mw-zone-hero">

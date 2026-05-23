@@ -8,7 +8,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "crawl": "node scripts/crawl-site.mjs",
-    "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose"
+    "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose",
+    "og:facilities": "node scripts/generate-facility-og-images.mjs",
+    "og:events": "node scripts/generate-social-image.mjs"
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",
