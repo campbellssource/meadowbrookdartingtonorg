@@ -1,7 +1,7 @@
 /* ============================================================
-   MEADOWBROOK + THE DRA — DESIGN TOKENS
+   MEADOWBROOK + THE DRA - DESIGN TOKENS
    Colors, type, spacing, radii, shadows.
-   Drawn from the physical site — warm, papery, natural.
+   Drawn from the physical site - warm, papery, natural.
    ============================================================ */
 
 /* Core: Plus Jakarta Sans (UI + body across all zones). */
@@ -13,7 +13,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Righteous&display=swap");
 
-/* Brand fonts — served from /fonts. */
+/* Brand fonts - served from /fonts. */
 @font-face { font-family: "Rexton";   src: url("/fonts/Rexton-Light.otf")     format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rexton";   src: url("/fonts/Rexton-Regular.otf")   format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rexton";   src: url("/fonts/Rexton-Medium.otf")    format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
@@ -610,7 +610,7 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
   .mw-event-list-item .mw-btn { display: none; }
 }
 
-/* Mobile menu button — hidden on wide screens */
+/* Mobile menu button - hidden on wide screens */
 .mw-nav-menu-btn { display: none; }
 .mw-mobile-menu { display: none; }
 

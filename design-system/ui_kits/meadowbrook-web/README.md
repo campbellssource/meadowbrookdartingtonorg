@@ -1,6 +1,6 @@
 # Meadowbrook web kit
 
-A click-through marketing-site prototype demonstrating the core Meadowbrook design system: nav, hero, zone grid, event list, pool-campaign banner, map block, footer — plus a generic zone-page template that re-themes on the same layout chassis (showing the chameleon principle).
+A click-through marketing-site prototype demonstrating the core Meadowbrook design system: nav, hero, zone grid, event list, pool-campaign banner, map block, footer - plus a generic zone-page template that re-themes on the same layout chassis (showing the chameleon principle).
 
 ## Run
 
@@ -26,7 +26,7 @@ components/
 ## What it covers
 
 - **Homepage**: hero photo, intro, zone grid, what's-on list, pool-campaign banner, map, footer.
-- **Zone page**: same chassis re-themed via `.zone-*` classes — try Bike Track, Pool, Snooker.
+- **Zone page**: same chassis re-themed via `.zone-*` classes - try Bike Track, Pool, Snooker.
 - **Donate page**: pool-restoration support flow stub.
 
 ## What it does *not* cover

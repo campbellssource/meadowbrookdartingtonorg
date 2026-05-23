@@ -115,7 +115,7 @@ function formatDate(dateStr) {
 }
 
 // ── Element helpers ────────────────────────────────────────────────────────
-// Satori uses React-like element objects — no JSX needed.
+// Satori uses React-like element objects - no JSX needed.
 
 const el = (type, style, children, extra = {}) => ({
   type,
@@ -130,7 +130,7 @@ const span = (style, children)        => el('span', style, children);
 function buildCard({ title, date, time, photoDataUri }) {
   const titleFontSize = title.length > 18 ? 108 : 132;
 
-  // Fallback when no photo — solid dark background
+  // Fallback when no photo - solid dark background
   const bgLayer = photoDataUri
     ? div({
         position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
@@ -157,7 +157,7 @@ function buildCard({ title, date, time, photoDataUri }) {
     display: 'flex',
   });
 
-  // Corner pill — top-left
+  // Corner pill - top-left
   const cornerPill = div(
     {
       position: 'absolute', top: 28, left: 28,
@@ -231,7 +231,7 @@ function buildCard({ title, date, time, photoDataUri }) {
     metaItems.flatMap((item, i) => i === 0 ? [metaBlock(item)] : [metaDivider, metaBlock(item)]),
   );
 
-  // Content stack — anchored bottom-left
+  // Content stack - anchored bottom-left
   const contentStack = div(
     {
       position: 'absolute', bottom: 48, left: 48, right: 48,
@@ -240,7 +240,7 @@ function buildCard({ title, date, time, photoDataUri }) {
     [eyebrow, headline, metaRow],
   );
 
-  // Root element — must be display:flex for Satori
+  // Root element - must be display:flex for Satori
   return div(
     {
       width: 1200, height: 630,

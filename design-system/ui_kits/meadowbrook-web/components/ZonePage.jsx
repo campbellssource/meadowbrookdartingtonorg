@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* Re-themed zone landing template — same chassis, different paint. */
+/* Re-themed zone landing template - same chassis, different paint. */
 
 const ZONE_CONFIG = {
   pool: {
@@ -58,7 +58,7 @@ const ZONE_CONFIG = {
     name: 'Playing Fields',
     eyebrow: 'Open daylight hours',
     headline: 'On the\npitch.',
-    body: 'Dorothy Elmhirst playing field — football pitches, a place to picnic, a place to lie in the grass. Cross Colin\'s Bridge over the brook to find them.',
+    body: 'Dorothy Elmhirst playing field - football pitches, a place to picnic, a place to lie in the grass. Cross Colin\'s Bridge over the brook to find them.',
     photo: '../../assets/photos/site-wide.png',
     facts: [
       ['Pitches', '1 full, 1 mini'],
@@ -165,7 +165,7 @@ function ZonePage({ zoneId, navigate }) {
               Eight zones, one site.
             </h2>
             <p style={{ fontSize: 15, opacity: 0.85, lineHeight: 1.55, maxWidth: 420 }}>
-              Each one has its own feel — different paint, different font, different smells from the bar — but it\'s all Meadowbrook underneath.
+              Each one has its own feel - different paint, different font, different smells from the bar - but it\'s all Meadowbrook underneath.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>

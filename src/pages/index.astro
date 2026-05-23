@@ -63,7 +63,7 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
   </section>
 
   {upcomingEvents.length > 0 && (() => {
-    // DRA Socials are never the hero — find the first non-social event for that slot.
+    // DRA Socials are never the hero - find the first non-social event for that slot.
     // Socials (and any events before the hero) stay in the compact list.
     const featured = upcomingEvents.find(({ slug }) => !slug.startsWith('dra-social-')) ?? null;
     const rest = upcomingEvents.filter(({ slug }) => slug !== featured?.slug);
@@ -153,7 +153,7 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
         <div>
           <span class="mw-eyebrow mw-eyebrow--on-green">Community initiative</span>
           <h3>Meadowbrook Energy Hub</h3>
-          <p>We're working with our neighbours to build shared solar and clean heating infrastructure — cutting costs, cutting carbon, and keeping the benefits in the community.</p>
+          <p>We're working with our neighbours to build shared solar and clean heating infrastructure - cutting costs, cutting carbon, and keeping the benefits in the community.</p>
           <a href="/energy-hub" class="mw-btn mw-btn-sun">Find out more</a>
         </div>
         <div class="visual" style="background-image: url('/images/energy-hub/image+30.png.webp');"></div>

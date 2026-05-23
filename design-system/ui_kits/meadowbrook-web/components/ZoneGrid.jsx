@@ -16,7 +16,7 @@ function ZoneGrid({ navigate }) {
         <SectionHead
           eyebrow="Recreation zones"
           title="Eight ways to spend an afternoon."
-          right="Each zone has its own feel — but it's all Meadowbrook underneath."
+          right="Each zone has its own feel - but it's all Meadowbrook underneath."
         />
         <div className="mw-grid-4">
           {tiles.map(t => (

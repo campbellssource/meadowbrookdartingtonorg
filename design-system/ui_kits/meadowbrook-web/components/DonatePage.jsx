@@ -18,7 +18,7 @@ function DonatePage({ navigate }) {
             £{custom || amount} closer to a full pool.
           </h1>
           <p style={{ color: 'var(--ink-soft)', fontSize: 15, lineHeight: 1.55, margin: '0 0 28px' }}>
-            We\'ll email a receipt to you, {name || 'friend'}. The next campaign meeting is the first Tuesday of July — come along.
+            We\'ll email a receipt to you, {name || 'friend'}. The next campaign meeting is the first Tuesday of July - come along.
           </p>
           <Button kind="primary" onClick={() => navigate('home')}>Back to Meadowbrook</Button>
         </div>

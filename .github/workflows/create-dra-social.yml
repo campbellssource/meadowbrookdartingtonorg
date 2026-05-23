@@ -13,10 +13,10 @@ on:
   workflow_dispatch:
     inputs:
       month:
-        description: 'Month number (1–12) — leave blank for current month'
+        description: 'Month number (1–12) - leave blank for current month'
         required: false
       year:
-        description: 'Year — leave blank for current year'
+        description: 'Year - leave blank for current year'
         required: false
 
 jobs:
@@ -55,7 +55,7 @@ jobs:
           git config user.email "bot@meadowbrookdartington.org"
           git add src/content/events/
           if git diff --staged --quiet; then
-            echo "Nothing to commit — event already existed."
+            echo "Nothing to commit - event already existed."
           else
             MONTH_YEAR=$(date +'%B %Y')
             git commit -m "chore: add DRA Social event for ${MONTH_YEAR}"

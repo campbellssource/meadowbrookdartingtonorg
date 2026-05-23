@@ -73,7 +73,7 @@ const bodyPath = join(bodyDir, 'body.mdoc');
 
 // ── Idempotency check ──────────────────────────────────────────────────────
 if (existsSync(yamlPath)) {
-  console.log(`Already exists — skipping: ${slug}`);
+  console.log(`Already exists - skipping: ${slug}`);
   process.exit(0);
 }
 
@@ -90,7 +90,7 @@ const upcomingSocials = readdirSync(eventsDir)
   });
 
 if (upcomingSocials.length >= 2) {
-  console.log(`Already have ${upcomingSocials.length} upcoming socials — skipping.`);
+  console.log(`Already have ${upcomingSocials.length} upcoming socials - skipping.`);
   process.exit(0);
 }
 
@@ -101,14 +101,14 @@ startTime: '7pm'
 location: "Meadowbrook, can't find us, ask at the bar"
 summary: >-
   Come and meet the volunteers and trustees behind Meadowbrook. A relaxed
-  monthly get-together — all welcome, whether you're new to the village or
+  monthly get-together - all welcome, whether you're new to the village or
   have been here for years.
 `;
 
 // ── Write body ─────────────────────────────────────────────────────────────
 const body = `Come and hang out with the team behind Meadowbrook and the Dartington Recreation Association.
 
-The DRA Social is a relaxed, informal gathering — a chance to meet the people who run the site, hear what's going on, and share your ideas for the future of Meadowbrook.
+The DRA Social is a relaxed, informal gathering - a chance to meet the people who run the site, hear what's going on, and share your ideas for the future of Meadowbrook.
 
 All welcome. No agenda, no formalities, just good company.
 
@@ -140,4 +140,4 @@ mkdirSync(bodyDir, { recursive: true });
 writeFileSync(yamlPath, yamlWithImage);
 writeFileSync(bodyPath, body);
 
-console.log(`Created: ${slug} — ${dateStr}`);
+console.log(`Created: ${slug} - ${dateStr}`);

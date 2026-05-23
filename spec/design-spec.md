@@ -2,29 +2,29 @@
 
 ## Meadowbrook and the DRA
 
-**Meadowbrook** is the recreational heart of Dartington. The surrounding Dartington estate has a proud history of creativity, ecology and alternative thinking — Meadowbrook is where you come to let your hair down, relax, and be social.
+**Meadowbrook** is the recreational heart of Dartington. The surrounding Dartington estate has a proud history of creativity, ecology and alternative thinking - Meadowbrook is where you come to let your hair down, relax, and be social.
 Our place for sport and play.
 
 The physical site, Bequeathed to the community by the Dartington Hall Trust, has some recognisable features that we reference in our branding:
 
-- Its **wooden 1960s community building**, built by the local community using salvaged telegraph poles with a nod to the Californian style — formally red wood cladding but now painted dark grey and bright white window frames
+- Its **wooden 1960s community building**, built by the local community using salvaged telegraph poles with a nod to the Californian style - formally red wood cladding but now painted dark grey and bright white window frames
 - The verdant **mounds of grass** created when the community dug the swimming pool
-- The **outdoor swimming pool** — currently closed, with strong community support behind its restoration
+- The **outdoor swimming pool** - currently closed, with strong community support behind its restoration
 - The kids' **playground** with swings, zip line, roundabout and climbing frame
 - A popular **bar and pizza restaurant**, creating a nightlife venue as well as a place to enjoy the sun with friends
 - Cross the bridge over the brook to **playing fields, bike track and nature trails**
 
-The DRA is the charity that manages Meadowbrook. Its identity should feel like the responsible, community-minded organisation behind the place — warm and accessible.
+The DRA is the charity that manages Meadowbrook. Its identity should feel like the responsible, community-minded organisation behind the place - warm and accessible.
 
-The DRA logo — the "hand" ![DRA Logotype](images/hand.png) — is bright, sunny, optimistic and accessible. Is referenced when talking about Meadowbrook but is the DRA logotype. Meadowbrook is what people know and recognise. The DRA are the people that make it work.
+The DRA logo - the "hand" ![DRA Logotype](images/hand.png) - is bright, sunny, optimistic and accessible. Is referenced when talking about Meadowbrook but is the DRA logotype. Meadowbrook is what people know and recognise. The DRA are the people that make it work.
 
-The predominant way to create a recognisable Meadowbrook identity is through photography. The design system should act as a **chameleon** — stepping back to let the facilities and their sub-brands be the stars, while maintaining a cohesive overall feel.
+The predominant way to create a recognisable Meadowbrook identity is through photography. The design system should act as a **chameleon** - stepping back to let the facilities and their sub-brands be the stars, while maintaining a cohesive overall feel.
 
 ---
 
 ### Core Colour - from the physical setting
 
-The Meadowbrook palette is drawn from the landscape itself — warm, natural, and unassuming. It provides the canvas that zone colours sit on top of.
+The Meadowbrook palette is drawn from the landscape itself - warm, natural, and unassuming. It provides the canvas that zone colours sit on top of.
 
 Backgrounds and bases: a warm, papery palette, hints of sandy stone. #FBF0DF with blocks of #D1B08B and whites. Organic and natural slightly nostalgic.
 
@@ -52,7 +52,7 @@ Pair a Display headline with a Label eyebrow for a magazine-style layout.
 ### Core design principles
 
 #### No borders
-Avoid 1px solid borders to define sections. Use background shifts and tonal transitions instead — this creates a seamless, high-quality feel that doesn't compete with photography.
+Avoid 1px solid borders to define sections. Use background shifts and tonal transitions instead - this creates a seamless, high-quality feel that doesn't compete with photography.
 
 #### Tonal layering over shadows
 Use surface-level contrast (light vs. slightly lighter) rather than drop shadows. If a floating element genuinely needs separation, use a diffused shadow: `box-shadow: 0 20px 40px rgba(40, 35, 32, 0.06)`.
@@ -61,24 +61,24 @@ Use surface-level contrast (light vs. slightly lighter) rather than drop shadows
 Separate content with spacing and background shifts, not lines.
 
 #### Photography
-Mood: Candid over posed. Capture people doing things — swimming, eating, laughing, building — not looking at camera. The energy is relaxed participation, not performance.
+Mood: Candid over posed. Capture people doing things - swimming, eating, laughing, building - not looking at camera. The energy is relaxed participation, not performance.
 
 Light: Favour golden hour and bright overcast. Avoid harsh midday shadows or flat grey skies. If shooting interiors (bar, studio, lounge), lean into the warmth of the existing lighting rather than correcting it to neutral.
 
-Colour grading: Warm highlights, slightly lifted shadows. Think "sunny afternoon" not "Instagram filter." Greens should feel lush and true, not teal-shifted. Skin tones stay natural — never orange, never desaturated.
+Colour grading: Warm highlights, slightly lifted shadows. Think "sunny afternoon" not "Instagram filter." Greens should feel lush and true, not teal-shifted. Skin tones stay natural - never orange, never desaturated.
 
-People: Always with consent. Show the range of who actually uses the space — families, teenagers, older regulars, solo visitors. Groups of 2–5 feel more intimate and real than crowd shots. Include hands doing things (pulling pints, chalking cues, planting).
+People: Always with consent. Show the range of who actually uses the space - families, teenagers, older regulars, solo visitors. Groups of 2–5 feel more intimate and real than crowd shots. Include hands doing things (pulling pints, chalking cues, planting).
 
-Place without people: When shooting the site empty, shoot it as if someone just left or is about to arrive — a half-finished drink, an open gate, towels on the grass. Avoid the "closed for business" feel.
+Place without people: When shooting the site empty, shoot it as if someone just left or is about to arrive - a half-finished drink, an open gate, towels on the grass. Avoid the "closed for business" feel.
 
 What to avoid:
 
 Drone/aerial shots as a default (save for the map and rare context)
 Over-saturated or HDR processing
-Anything that makes the space look bigger or shinier than it is — honesty is part of the brand
+Anything that makes the space look bigger or shinier than it is - honesty is part of the brand
 Stock photography or AI-generated imagery
 
-Framing: Mix close-up detail (texture of the building cladding, water rippling, pizza dough stretching) with mid-range activity shots. Full wide establishing shots are useful but shouldn't dominate — they flatten the sense of intimacy.
+Framing: Mix close-up detail (texture of the building cladding, water rippling, pizza dough stretching) with mid-range activity shots. Full wide establishing shots are useful but shouldn't dominate - they flatten the sense of intimacy.
 
 #### Map
 A key asset is the [map of our site](images/map.png).
@@ -86,9 +86,9 @@ A key asset is the [map of our site](images/map.png).
 ### Voice and tone
 - **Warm and direct.** Write as a neighbour or friend, not a corporation.
 - **Community-first.** "We" and "us" refer to the whole community, not just the DRA staff. Second person ("you", "your") is used to address the reader.
-- **Optimistic but grounded.** Meadowbrook has rough edges — a pool that needs restoring, a community building that's seen better days. Copy acknowledges this without apologising for it.
-- **Short.** Headlines are punchy — often just 2–4 words. Body copy gets to the point fast.
-- **Sentence case throughout** — never title case in body or UI. Zone and facility names are proper nouns; everything else is lowercase.
+- **Optimistic but grounded.** Meadowbrook has rough edges - a pool that needs restoring, a community building that's seen better days. Copy acknowledges this without apologising for it.
+- **Short.** Headlines are punchy - often just 2–4 words. Body copy gets to the point fast.
+- **Sentence case throughout** - never title case in body or UI. Zone and facility names are proper nouns; everything else is lowercase.
 - **No emoji** in formal materials. Informal social posts may use them sparingly.
 
 #### Examples
@@ -111,7 +111,7 @@ A key asset is the [map of our site](images/map.png).
 The core meadowbrook brand falls away when we focus on a specific zone. We use zone heading fonts, and colours without re-building the whole brand, layout /design principles.
 
 ### Extravaganza and events
-Music, events, food, and community celebrations. Village fete energy — handmade, joyful, and participatory.
+Music, events, food, and community celebrations. Village fete energy - handmade, joyful, and participatory.
 
 The core Meadowbrook palette amplified: lead with warm yellow and green, bring in the warm red as a festive accent. Feels rooted in Meadowbrook but has a sense of occasion.
 
@@ -131,7 +131,7 @@ Dark green baize, warm snooker lighting. Reference snooker ball colours as requi
 Heading font: **Billiards** https://www.dafont.com/billiards.font
 
 ### Scuba Diving Club 
-Nautical — navy, white, blue-grey equipment 
+Nautical - navy, white, blue-grey equipment 
 #0490A4 
 https://totnes-bsac.link 
 

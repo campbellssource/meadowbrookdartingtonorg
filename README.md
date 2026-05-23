@@ -4,9 +4,9 @@ Astro-based website for Meadowbrook and the Dartington Recreation Association.
 
 ## Stack
 
-- **[Astro](https://astro.build/)** — static site framework
-- **[Keystatic](https://keystatic.com/)** — git-based CMS (local mode), accessible at `/keystatic`
-- **[Acuity Scheduling](https://acuityscheduling.com/)** — embedded booking widget for bookable facilities
+- **[Astro](https://astro.build/)** - static site framework
+- **[Keystatic](https://keystatic.com/)** - git-based CMS (local mode), accessible at `/keystatic`
+- **[Acuity Scheduling](https://acuityscheduling.com/)** - embedded booking widget for bookable facilities
 
 ## Development
 
@@ -41,9 +41,9 @@ Content is managed via Keystatic at `/keystatic` during local development. All c
 
 Each facility has one of three types, set in Keystatic:
 
-- **Bookable** — embeds an Acuity Scheduling widget. Requires a `bookingCategory` that matches exactly in Acuity (e.g. `Snooker`, `Studio - Large room`, `Lounge - Small room`).
-- **Link** — links out to an external website (e.g. Pizzalogica, Things Happen Here). Opens in a new tab.
-- **Generic** — a standard content page with intro and body text.
+- **Bookable** - embeds an Acuity Scheduling widget. Requires a `bookingCategory` that matches exactly in Acuity (e.g. `Snooker`, `Studio - Large room`, `Lounge - Small room`).
+- **Link** - links out to an external website (e.g. Pizzalogica, Things Happen Here). Opens in a new tab.
+- **Generic** - a standard content page with intro and body text.
 
 ## Room Booking
 
@@ -87,6 +87,6 @@ src/
 
 ## Design System
 
-Styles live in `public/styles/global.css`. Each facility has a **zone theme** — a unique colour palette and typography style applied via a CSS class (e.g. `.zone-pool`, `.zone-snooker`). The mapping from facility slug to zone class is in `src/lib/zones.ts`.
+Styles live in `public/styles/global.css`. Each facility has a **zone theme** - a unique colour palette and typography style applied via a CSS class (e.g. `.zone-pool`, `.zone-snooker`). The mapping from facility slug to zone class is in `src/lib/zones.ts`.
 
 Facility card images should be **600×750px** (4:5 ratio), WebP format, under ~150KB.

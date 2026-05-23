@@ -39,7 +39,7 @@ function App() {
               Eight ways to spend an afternoon.
             </h1>
             <p style={{ fontSize: 17, color: 'var(--ink-soft)', maxWidth: '50ch', lineHeight: 1.6, margin: 0 }}>
-              Each zone has its own feel — different paint, different font, different smells from the bar.
+              Each zone has its own feel - different paint, different font, different smells from the bar.
             </p>
           </div>
         </section>
@@ -75,7 +75,7 @@ function App() {
             The Dartington Recreation Association is the charity that runs Meadowbrook. We were given this site by the Dartington Hall Trust, and we look after it on behalf of everyone who uses it.
           </p>
           <p style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 18 }}>
-            Meadowbrook is what people know and love — the building, the pool, the playground, the bike track, the noise on a summer evening. The DRA is the much less interesting bit underneath: trustees, a couple of part-time staff, a lot of volunteers, and the patience to keep it all going.
+            Meadowbrook is what people know and love - the building, the pool, the playground, the bike track, the noise on a summer evening. The DRA is the much less interesting bit underneath: trustees, a couple of part-time staff, a lot of volunteers, and the patience to keep it all going.
           </p>
           <p style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
             We\'re funded by membership, hire fees, the bar, the occasional grant, and donations from people who think this kind of place should exist.

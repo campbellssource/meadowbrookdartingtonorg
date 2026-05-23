@@ -1,7 +1,7 @@
 /* ============================================================
-   MEADOWBROOK + THE DRA — DESIGN TOKENS
+   MEADOWBROOK + THE DRA - DESIGN TOKENS
    Colors, type, spacing, radii, shadows.
-   Drawn from the physical site — warm, papery, natural.
+   Drawn from the physical site - warm, papery, natural.
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -18,7 +18,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Righteous&display=swap");
 
-/* Brand fonts — served from /fonts. Listed first so they win over
+/* Brand fonts - served from /fonts. Listed first so they win over
    any same-named Google import. */
 @font-face { font-family: "Rexton";   src: url("fonts/Rexton-Light.otf")     format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rexton";   src: url("fonts/Rexton-Regular.otf")   format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -31,11 +31,11 @@
 
 :root {
   /* ==========================================================
-     CORE PALETTE — the canvas
+     CORE PALETTE - the canvas
      Warm, papery, hints of sandy stone. Greens from the logo
      and grassy mounds. Bright primaries for punch.
      ========================================================== */
-  --paper:        #FBF0DF;  /* base — warm cream, like sun on stone */
+  --paper:        #FBF0DF;  /* base - warm cream, like sun on stone */
   --paper-deep:   #F4E4CB;  /* one shade darker, for tonal layering */
   --sand:         #D1B08B;  /* sandy stone block colour */
   --bone:         #FFFFFF;  /* clean white */
@@ -48,9 +48,9 @@
   --sky:          #1DB5EF;  /* bright blue sky */
 
   --night:        #3C3C3A;  /* building dark grey at night */
-  --ember:        #A73916;  /* warm red — building wood, festive accent */
+  --ember:        #A73916;  /* warm red - building wood, festive accent */
 
-  --ink:          #28201A;  /* body text — warm near-black, never pure */
+  --ink:          #28201A;  /* body text - warm near-black, never pure */
   --ink-soft:     #5B4E42;  /* secondary text */
   --ink-mute:     #8B7C6E;  /* tertiary / metadata */
 
@@ -72,21 +72,21 @@
   --warn:         var(--ember);
 
   /* ==========================================================
-     TYPE — SIZES + WEIGHTS
+     TYPE - SIZES + WEIGHTS
      Plus Jakarta Sans for all body + UI.
      Display / Headline / Body / Label scale.
      ========================================================== */
   --font-body:    "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif; /* overridden per zone */
 
-  --fs-display:   3.5rem;   /* 56px — billboards */
-  --fs-display-s: 2.75rem;  /* 44px — mobile billboards */
-  --fs-headline:  2rem;     /* 32px — section starts */
-  --fs-headline-s: 1.75rem; /* 28px — mobile */
-  --fs-title:     1.375rem; /* 22px — card titles */
+  --fs-display:   3.5rem;   /* 56px - billboards */
+  --fs-display-s: 2.75rem;  /* 44px - mobile billboards */
+  --fs-headline:  2rem;     /* 32px - section starts */
+  --fs-headline-s: 1.75rem; /* 28px - mobile */
+  --fs-title:     1.375rem; /* 22px - card titles */
   --fs-body:      1rem;     /* 16px */
   --fs-body-s:    0.875rem; /* 14px */
-  --fs-label:     0.75rem;  /* 12px — eyebrows, chips */
+  --fs-label:     0.75rem;  /* 12px - eyebrows, chips */
   --fs-label-s:   0.6875rem;/* 11px */
 
   --lh-display:   1.05;
@@ -105,7 +105,7 @@
   --fw-black:   800;
 
   /* ==========================================================
-     SPACING — 4px base
+     SPACING - 4px base
      ========================================================== */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -120,7 +120,7 @@
 
   /* ==========================================================
      RADII
-     Soft but not bubbly. Pulled tighter after first review —
+     Soft but not bubbly. Pulled tighter after first review -
      buttons and nav now read as confident, not playful.
      ========================================================== */
   --r-xs: 2px;
@@ -131,14 +131,14 @@
   --r-pill: 999px;
 
   /* ==========================================================
-     SHADOWS — used sparingly. Tonal layering preferred.
+     SHADOWS - used sparingly. Tonal layering preferred.
      ========================================================== */
   --shadow-float: 0 20px 40px rgba(40, 35, 32, 0.06);
   --shadow-press: 0 2px 6px rgba(40, 35, 32, 0.08);
   --shadow-pop:   0 30px 80px -20px rgba(40, 35, 32, 0.18);
 
   /* ==========================================================
-     MOTION — gentle. No bouncy/playful curves outside Playground/Bike.
+     MOTION - gentle. No bouncy/playful curves outside Playground/Bike.
      ========================================================== */
   --ease-natural: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
@@ -259,7 +259,7 @@ a:hover { text-decoration-thickness: 2px; }
   --accent: var(--bone);
   --accent-2: #F9D21E;
   --font-display: "Billiard", "Plus Jakarta Sans", serif;
-  /* Billiard needs lots of room — use it sparingly, centred, with deep padding */
+  /* Billiard needs lots of room - use it sparingly, centred, with deep padding */
 }
 
 /* Scuba Diving Club -------------------------------------------- */

@@ -12,7 +12,7 @@ function Footer() {
             </div>
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.7)', maxWidth: 360, margin: 0 }}>
-            We run Meadowbrook — the recreational heart of Dartington. Registered charity, run mostly by volunteers, mostly with a smile.
+            We run Meadowbrook - the recreational heart of Dartington. Registered charity, run mostly by volunteers, mostly with a smile.
           </p>
         </div>
         <div>

@@ -4,17 +4,17 @@ description: Use this skill to generate well-branded interfaces and assets for M
 user-invocable: true
 ---
 
-# Meadowbrook + the DRA — design skill
+# Meadowbrook + the DRA - design skill
 
-Meadowbrook is the recreational heart of Dartington — community building, pool, playground, fields, bike track, bar. The DRA (Dartington Recreation Association) is the charity that runs it. The brand is a **chameleon**: a calm papery core that steps back so the zones (Pool, Snooker, Bike Track, Playground, etc.) can shine.
+Meadowbrook is the recreational heart of Dartington - community building, pool, playground, fields, bike track, bar. The DRA (Dartington Recreation Association) is the charity that runs it. The brand is a **chameleon**: a calm papery core that steps back so the zones (Pool, Snooker, Bike Track, Playground, etc.) can shine.
 
 ## How to use this skill
 
-1. **Read `README.md`** first — it has the full brand DNA, voice, visual foundations, iconography rules.
-2. **Pull tokens from `colors_and_type.css`** — every colour, font, radius, shadow, zone theme is in there. Drop the file in and use the CSS custom properties. Apply `.zone-pool`, `.zone-bike`, etc. on a section root to switch theme.
-3. **Use the real assets in `assets/`** — the hand logo, the hand-drawn map, the pool-tile texture, the photography. Don't invent new SVG logos or generate imagery; copy these files out.
-4. **For interface work, look at `ui_kits/meadowbrook-web/`** — homepage, nav, zone cards, event list, footer are all factored into JSX components.
-5. **Follow the voice** — sentence case, warm and direct, optimistic but grounded, short headlines. "We" = the community. No emoji.
+1. **Read `README.md`** first - it has the full brand DNA, voice, visual foundations, iconography rules.
+2. **Pull tokens from `colors_and_type.css`** - every colour, font, radius, shadow, zone theme is in there. Drop the file in and use the CSS custom properties. Apply `.zone-pool`, `.zone-bike`, etc. on a section root to switch theme.
+3. **Use the real assets in `assets/`** - the hand logo, the hand-drawn map, the pool-tile texture, the photography. Don't invent new SVG logos or generate imagery; copy these files out.
+4. **For interface work, look at `ui_kits/meadowbrook-web/`** - homepage, nav, zone cards, event list, footer are all factored into JSX components.
+5. **Follow the voice** - sentence case, warm and direct, optimistic but grounded, short headlines. "We" = the community. No emoji.
 
 ## When invoked without other guidance
 
