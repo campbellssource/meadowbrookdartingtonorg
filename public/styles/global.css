@@ -442,6 +442,11 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .zone-playground .mw-zone-hero h1 { letter-spacing: -0.03em; }
 .zone-pool .mw-zone-hero h1 { font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; font-size: clamp(2.6rem, 6.5vw, 5rem); line-height: 1.1; }
 .zone-pool .mw-zone-hero p, .zone-pool .mw-zone-hero { color: #000; }
+.zone-pool .mw-zone-hero {
+  background-image: url('/images/facilities/pool/Tile-background.png');
+  background-size: cover;
+  background-position: center;
+}
 .zone-snooker .mw-zone-hero { text-align: center; }
 .zone-snooker .mw-zone-hero h1, .zone-snooker .mw-zone-hero p { margin-left: auto; margin-right: auto; }
 
