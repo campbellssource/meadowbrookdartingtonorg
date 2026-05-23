@@ -11,9 +11,10 @@ import { zoneFor } from '../../lib/zones';
 export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
   const allFacilities = await reader.collections.facilities.all();
-  // pool has its own dedicated page at /facilities/pool.astro
+  // these slugs have dedicated static .astro pages that take routing priority
+  const staticPages = new Set(['pool', 'playground', 'bike-track', 'woodland-and-brook']);
   return allFacilities
-    .filter(({ slug }) => slug !== 'pool')
+    .filter(({ slug }) => !staticPages.has(slug))
     .map(({ slug }) => ({ params: { slug } }));
 }
 
