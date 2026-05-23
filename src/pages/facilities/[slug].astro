@@ -86,30 +86,8 @@ const zone = zoneFor(slug);
   {discriminant === 'bookable' && bodyNodes && (
     <section class="mw-sect">
       <div class="mw-wrap">
-        <div class="mw-article" style="margin: 0;">
-          <DocumentRenderer
-            document={bodyNodes}
-            renderers={{
-              inline: {
-                image: ({ src, alt }) => (
-                  <img
-                    src={src}
-                    alt={alt ?? ''}
-                    style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 16/9; object-fit: cover; margin-top: var(--space-5); display: block;"
-                  />
-                ),
-              },
-              block: {
-                image: ({ src, alt }) => (
-                  <img
-                    src={src}
-                    alt={alt ?? ''}
-                    style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 16/9; object-fit: cover; margin-top: var(--space-5);"
-                  />
-                ),
-              },
-            }}
-          />
+        <div class="mw-article mw-article--facility-body" style="margin: 0;">
+          <DocumentRenderer document={bodyNodes} />
         </div>
       </div>
     </section>
@@ -159,3 +137,14 @@ const zone = zoneFor(slug);
     </div>
   </section>
 </Layout>
+
+<style>
+  .mw-article--facility-body img {
+    width: 100%;
+    border-radius: var(--r-lg);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    margin-top: var(--space-5);
+  }
+</style>
