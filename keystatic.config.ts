@@ -74,6 +74,7 @@ export default config({
         shortDescription: fields.text({ label: 'Short description (used in listings)', multiline: true }),
         image: fields.image({
           label: 'Image',
+          description: 'Shown on the facilities grid and facility page. Landscape format, ideally under 500KB.',
           directory: 'public/images/facilities',
           publicPath: '/images/facilities/',
         }),
@@ -167,7 +168,7 @@ export default config({
         }),
         image: fields.image({
           label: 'Hero / poster image',
-          description: 'Landscape format works best — aim for roughly 3:2 ratio (e.g. 900×600px).',
+          description: 'Used as the hero on the event page and as the social media preview image (shown when the link is shared on Facebook, WhatsApp, etc.). Aim for 1200×630px landscape. Keep the file under 1MB — phone photos straight from camera are usually 5–10MB and will be ignored by social platforms.',
           directory: 'public/images/events',
           publicPath: '/images/events/',
         }),
