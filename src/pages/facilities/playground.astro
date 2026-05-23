@@ -1,0 +1,127 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Playground"
+  description="Outdoor play area for children of all ages at Meadowbrook Park, Dartington."
+  ogImage="/images/facilities/playground-og.jpg"
+  bodyClass="zone-core"
+>
+
+  <section class="mw-zone-hero">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Facility</span>
+      <h1>Playground</h1>
+      <p>Outdoor play area for children of all ages.</p>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section class="mw-sect" style="background: var(--bg-elevated, var(--paper));">
+    <div class="mw-wrap pg-intro-grid">
+      <div class="pg-intro-text">
+        <p class="pg-lead">The playground at Meadowbrook has a wide range of equipment suitable for children of all ages.</p>
+        <ul class="pg-equipment">
+          <li>Zipline</li>
+          <li>Standard swings</li>
+          <li>Toddler swings</li>
+          <li>You and me swing</li>
+          <li>Basket swing</li>
+          <li>Playhouse with double slide</li>
+          <li>See saw</li>
+          <li>Climbing frame</li>
+          <li>Roundabout</li>
+          <li>Spinning bowl</li>
+          <li>Play aeroplane</li>
+          <li>Painted race track on tarmac for bikes and scooters</li>
+        </ul>
+      </div>
+      <div class="pg-intro-image">
+        <img src="/images/facilities/playground/image.png" alt="Meadowbrook playground" />
+      </div>
+    </div>
+  </section>
+
+  <!-- PHOTO GALLERY -->
+  <section class="mw-sect">
+    <div class="mw-wrap">
+      <div class="pg-gallery">
+        <img src="/images/facilities/playground/IMG_7796.jpeg" alt="Meadowbrook playground" loading="lazy" class="pg-gallery-wide" />
+        <img src="/images/facilities/playground/IMG_7802.jpeg" alt="Meadowbrook playground" loading="lazy" />
+        <img src="/images/facilities/playground/IMG_7803.jpeg" alt="Meadowbrook playground" loading="lazy" />
+        <img src="/images/facilities/playground/IMG_7806.jpeg" alt="Meadowbrook playground" loading="lazy" />
+        <img src="/images/facilities/playground/IMG_7807.jpeg" alt="Meadowbrook playground" loading="lazy" />
+        <img src="/images/facilities/playground/IMG_7810.jpeg" alt="Meadowbrook playground" loading="lazy" />
+        <img src="/images/facilities/playground/IMG_7811.jpeg" alt="Meadowbrook playground" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      <a href="/facilities" class="mw-back">Back to all facilities</a>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  /* ---- Intro grid ---- */
+  .pg-intro-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-7);
+    align-items: start;
+  }
+  .pg-lead {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    opacity: 0.85;
+    margin-bottom: var(--space-5);
+  }
+  .pg-equipment {
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .pg-equipment li {
+    line-height: 1.6;
+  }
+  .pg-intro-image img {
+    width: 100%;
+    border-radius: var(--r-lg);
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ---- Photo gallery ---- */
+  .pg-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .pg-gallery img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: var(--r-lg);
+    display: block;
+  }
+  .pg-gallery-wide {
+    grid-column: span 3;
+    aspect-ratio: 16/7 !important;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 900px) {
+    .pg-intro-grid { grid-template-columns: 1fr; }
+    .pg-intro-image { display: none; }
+  }
+  @media (max-width: 600px) {
+    .pg-gallery { grid-template-columns: repeat(2, 1fr); }
+    .pg-gallery-wide { grid-column: span 2; aspect-ratio: 4/3 !important; }
+  }
+</style>
