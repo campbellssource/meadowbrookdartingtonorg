@@ -237,7 +237,7 @@ img { max-width: 100%; display: block; }
 }
 .zone-lounge {
   --bg: #401D00; --bg-elevated: #5A2A05; --bg-deep: #2A1200;
-  --fg: #EEC776; --accent: #EEC776;
+  --fg: #EEC776; --fg-soft: rgba(255,255,255,0.7); --accent: #EEC776;
   --font-display: "Righteous", "Plus Jakarta Sans", sans-serif;
 }
 .zone-sauna {
