@@ -1,0 +1,445 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const squareAppId = import.meta.env.PUBLIC_SQUARE_APPLICATION_ID ?? '';
+const squareLocationId = import.meta.env.PUBLIC_SQUARE_LOCATION_ID ?? '';
+const squareEnv = import.meta.env.PUBLIC_SQUARE_ENVIRONMENT ?? 'production';
+const squareSdkUrl = squareEnv === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+---
+
+<Layout
+  title="Donate"
+  description="Support Meadowbrook and the Dartington Recreation Association with a donation. Every contribution helps us keep this community space open for everyone."
+>
+  <section class="mw-zone-hero">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Support us</span>
+      <h1>Make a donation.</h1>
+      <p>Every contribution helps us maintain Meadowbrook and keep it open to the whole community.</p>
+    </div>
+  </section>
+
+  <section class="mw-sect donate-sect">
+    <div class="mw-wrap donate-layout">
+
+      <div class="donate-info">
+        <h2>Why your support matters</h2>
+        <p>The Dartington Recreation Association is a registered charity run entirely by volunteers. We rely on donations to maintain Meadowbrook's facilities, run community events, and keep the grounds in good shape for everyone.</p>
+        <p>Whether it's keeping the tennis courts playable, maintaining the woodland paths, or funding community events — your donation goes directly into the site.</p>
+        <div class="charity-note">
+          <strong>Registered charity</strong><br />
+          Dartington Recreation Association<br />
+          Charity No. 1205473
+        </div>
+      </div>
+
+      <div class="donate-form-outer">
+        <form id="donate-form" novalidate>
+          <div class="form-section">
+            <label class="form-label">Choose an amount</label>
+            <div class="amount-grid">
+              <button type="button" class="amount-btn" data-pence="500">£5</button>
+              <button type="button" class="amount-btn" data-pence="1000">£10</button>
+              <button type="button" class="amount-btn selected" data-pence="2500">£25</button>
+              <button type="button" class="amount-btn" data-pence="5000">£50</button>
+            </div>
+            <div class="custom-amount-row">
+              <span class="currency-prefix">£</span>
+              <input
+                type="number"
+                id="custom-amount"
+                min="1"
+                step="any"
+                placeholder="Other amount"
+                aria-label="Enter a custom donation amount in pounds"
+              />
+            </div>
+          </div>
+
+          <div class="form-section" id="card-section">
+            <label class="form-label">Card details</label>
+            <div id="card-container"></div>
+            <p class="card-note">Payments are processed securely by Square. We never store your card details.</p>
+          </div>
+
+          <div id="form-error" class="form-message form-message--error" hidden></div>
+
+          <button type="submit" id="donate-btn" class="mw-btn mw-btn-primary donate-submit" disabled>
+            Donate <span id="amount-display">£25</span>
+          </button>
+        </form>
+
+        <div id="success-message" class="success-wrap" hidden>
+          <div class="success-icon">✓</div>
+          <h2>Thank you so much!</h2>
+          <p>Your donation has been received and will go straight towards maintaining Meadowbrook for the whole community.</p>
+          <a href="/" class="mw-btn mw-btn-primary" style="margin-top: var(--space-5);">Back to home</a>
+        </div>
+
+        <div id="config-missing" class="form-message form-message--error" hidden>
+          Online donations are not yet configured. Please <a href="/contact">get in touch</a> to donate directly.
+        </div>
+      </div>
+
+    </div>
+  </section>
+</Layout>
+
+<!-- Square Web Payments SDK -->
+<script src={squareSdkUrl}></script>
+
+<script define:vars={{ squareAppId, squareLocationId }}>
+  const form = document.getElementById('donate-form');
+  const submitBtn = document.getElementById('donate-btn');
+  const amountDisplay = document.getElementById('amount-display');
+  const errorEl = document.getElementById('form-error');
+  const successEl = document.getElementById('success-message');
+  const configMissingEl = document.getElementById('config-missing');
+  const customInput = document.getElementById('custom-amount');
+
+  // Selected amount in pence
+  let selectedPence = 2500;
+
+  function formatGBP(pence) {
+    const pounds = pence / 100;
+    return pounds % 1 === 0 ? `£${pounds}` : `£${pounds.toFixed(2)}`;
+  }
+
+  function updateAmountDisplay() {
+    if (amountDisplay) amountDisplay.textContent = formatGBP(selectedPence);
+  }
+
+  function showError(msg) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+
+  function clearError() {
+    if (!errorEl) return;
+    errorEl.textContent = '';
+    errorEl.hidden = true;
+  }
+
+  // Preset amount buttons
+  document.querySelectorAll('.amount-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.amount-btn').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedPence = Number(btn.dataset.pence);
+      if (customInput) customInput.value = '';
+      updateAmountDisplay();
+    });
+  });
+
+  // Custom amount input
+  customInput?.addEventListener('input', () => {
+    const val = parseFloat(customInput.value);
+    if (!isNaN(val) && val > 0) {
+      document.querySelectorAll('.amount-btn').forEach((b) => b.classList.remove('selected'));
+      selectedPence = Math.round(val * 100);
+      updateAmountDisplay();
+    }
+  });
+
+  // Initialize Square
+  async function initSquare() {
+    if (!squareAppId || !squareLocationId) {
+      if (form) form.hidden = true;
+      if (configMissingEl) configMissingEl.hidden = false;
+      return;
+    }
+
+    if (typeof Square === 'undefined') {
+      if (form) form.hidden = true;
+      if (configMissingEl) configMissingEl.hidden = false;
+      return;
+    }
+
+    const payments = await Square.payments(squareAppId, squareLocationId);
+    const card = await payments.card({
+      style: {
+        '.input-container': { borderColor: '#d4c4b0', borderRadius: '6px' },
+        '.input-container.is-focus': { borderColor: '#74A953' },
+        '.input-container.is-error': { borderColor: '#c0392b' },
+        '.message-text': { color: '#5A3F38' },
+        '.message-icon': { color: '#5A3F38' },
+        input: { color: '#2d2d2d', fontFamily: 'inherit' },
+        'input::placeholder': { color: '#9e9289' },
+      }
+    });
+    await card.attach('#card-container');
+
+    if (submitBtn) submitBtn.disabled = false;
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      if (selectedPence < 100) {
+        showError('Minimum donation is £1.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing…';
+
+      const result = await card.tokenize();
+
+      if (result.status !== 'OK') {
+        const msg = result.errors?.[0]?.message ?? 'Card details invalid. Please check and try again.';
+        showError(msg);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/donate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceId: result.token, amount: selectedPence }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          if (form) form.hidden = true;
+          if (successEl) successEl.hidden = false;
+        } else {
+          showError(data.error ?? 'Payment failed. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+        }
+      } catch {
+        showError('Could not connect. Please check your connection and try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+      }
+    });
+  }
+
+  initSquare();
+</script>
+
+<style>
+  .donate-sect {
+    background: var(--bg-elevated);
+  }
+
+  .donate-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--space-9);
+    align-items: start;
+  }
+
+  .donate-info h2 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+    margin: 0 0 var(--space-5);
+  }
+
+  .donate-info p {
+    color: var(--fg-soft);
+    line-height: 1.7;
+    margin: 0 0 var(--space-5);
+  }
+
+  .charity-note {
+    font-size: 0.875rem;
+    color: var(--fg-mute);
+    background: var(--paper);
+    border-radius: var(--r-md);
+    padding: var(--space-4) var(--space-5);
+    line-height: 1.6;
+    margin-top: var(--space-6);
+  }
+
+  .donate-form-outer {
+    background: var(--paper);
+    border-radius: var(--r-lg);
+    padding: var(--space-7);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .form-section {
+    margin-bottom: var(--space-6);
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: var(--space-3);
+  }
+
+  .amount-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .amount-btn {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--fg);
+    background: var(--bg-elevated);
+    border: 2px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    text-align: center;
+  }
+
+  .amount-btn:hover {
+    border-color: var(--green);
+  }
+
+  .amount-btn.selected {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+
+  .custom-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bone);
+    transition: border-color 0.15s;
+  }
+
+  .custom-amount-row:focus-within {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
+  }
+
+  .currency-prefix {
+    padding: 11px 12px 11px 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fg-mute);
+    background: var(--bone);
+    user-select: none;
+  }
+
+  #custom-amount {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bone);
+    border: none;
+    outline: none;
+    padding: 11px 14px 11px 0;
+    width: 100%;
+  }
+
+  #custom-amount::-webkit-outer-spin-button,
+  #custom-amount::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  #custom-amount[type=number] { -moz-appearance: textfield; }
+
+  #card-container {
+    min-height: 89px;
+  }
+
+  .card-note {
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+    margin: var(--space-3) 0 0;
+    line-height: 1.5;
+  }
+
+  .form-message {
+    font-size: 0.875rem;
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: var(--space-5);
+    line-height: 1.5;
+  }
+
+  .form-message--error {
+    background: #fdf0ee;
+    color: #a93226;
+    border: 1px solid #f0b8b2;
+  }
+
+  .donate-submit {
+    width: 100%;
+    justify-content: center;
+    font-size: 1.05rem;
+    padding: 14px 24px;
+  }
+
+  .donate-submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .success-wrap {
+    text-align: center;
+    padding: var(--space-7) var(--space-5);
+  }
+
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 1.6rem;
+    margin-bottom: var(--space-5);
+  }
+
+  .success-wrap h2 {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .success-wrap p {
+    color: var(--fg-soft);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 820px) {
+    .donate-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .donate-form-outer {
+      padding: var(--space-6);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .amount-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .donate-form-outer {
+      padding: var(--space-5);
+    }
+  }
+</style>
