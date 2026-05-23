@@ -8,6 +8,18 @@ const richText = (label: string) =>
     dividers: true,
   });
 
+const richTextWithImages = (label: string) =>
+  fields.document({
+    label,
+    formatting: true,
+    links: true,
+    dividers: true,
+    images: {
+      directory: 'public/images/facilities',
+      publicPath: '/images/facilities/',
+    },
+  });
+
 export default config({
   storage: {
     kind: 'github',
@@ -91,6 +103,12 @@ export default config({
           {
             bookable: fields.object({
               intro: richText('Introduction'),
+              secondImage: fields.image({
+                label: 'Second image (optional — shown below main image in header)',
+                description: 'A second photo displayed stacked below the main facility image.',
+                directory: 'public/images/facilities',
+                publicPath: '/images/facilities/',
+              }),
               amenities: fields.array(
                 fields.text({ label: 'Amenity' }),
                 {
@@ -103,7 +121,7 @@ export default config({
                 description: 'Must match the category name exactly in Acuity Scheduling (e.g. "Lounge - Small room").',
                 validation: { isRequired: true },
               }),
-              body: richText('Main content (shown below amenities, before booking)'),
+              body: richTextWithImages('Main content (shown below amenities, before booking)'),
             }),
             link: fields.object({
               externalUrl: fields.text({ label: 'External URL' }),
@@ -169,14 +187,14 @@ export default config({
         }),
         image: fields.image({
           label: 'Hero / poster image',
-          description: 'Used as the hero on the event page and as the social media preview image (shown when the link is shared on Facebook, WhatsApp, etc.). Aim for 1200×630px landscape. Keep the file under 1MB — phone photos straight from camera are usually 5–10MB and will be ignored by social platforms.',
+          description: 'Used as the hero on the event page and as the social media preview image (shown when the link is shared on Facebook, WhatsApp, etc.). Aim for 1200×630px landscape. Keep the file under 1MB - phone photos straight from camera are usually 5–10MB and will be ignored by social platforms.',
           directory: 'public/images/events',
           publicPath: '/images/events/',
         }),
         body: richText('Event details'),
         ctaLabel: fields.text({
           label: 'Button label',
-          description: 'e.g. "Volunteer to help" — leave blank to hide the button.',
+          description: 'e.g. "Volunteer to help" - leave blank to hide the button.',
         }),
         ctaUrl: fields.text({
           label: 'Button URL',

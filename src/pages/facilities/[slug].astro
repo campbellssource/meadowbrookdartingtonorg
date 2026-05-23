@@ -28,6 +28,7 @@ const introNodes = await (value as any).intro();
 const bodyNodes = (discriminant === 'generic' || discriminant === 'bookable') ? await (value as any).body() : null;
 const amenities: string[] = discriminant === 'bookable' ? (value as any).amenities : [];
 const bookingCategory: string = discriminant === 'bookable' ? (value as any).bookingCategory : '';
+const secondImage: string | null = discriminant === 'bookable' ? ((value as any).secondImage ?? null) : null;
 const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
 
 const zone = zoneFor(slug);
@@ -72,8 +73,11 @@ const zone = zoneFor(slug);
       </div>
 
       {facility.image && (
-        <div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-4);">
           <img src={facility.image} alt={facility.name} style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 4/3; object-fit: cover;" />
+          {secondImage && (
+            <img src={secondImage} alt={facility.name} style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 4/3; object-fit: cover;" />
+          )}
         </div>
       )}
     </div>
@@ -83,7 +87,29 @@ const zone = zoneFor(slug);
     <section class="mw-sect">
       <div class="mw-wrap">
         <div class="mw-article" style="margin: 0;">
-          <DocumentRenderer document={bodyNodes} />
+          <DocumentRenderer
+            document={bodyNodes}
+            renderers={{
+              inline: {
+                image: ({ src, alt }) => (
+                  <img
+                    src={src}
+                    alt={alt ?? ''}
+                    style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 16/9; object-fit: cover; margin-top: var(--space-5); display: block;"
+                  />
+                ),
+              },
+              block: {
+                image: ({ src, alt }) => (
+                  <img
+                    src={src}
+                    alt={alt ?? ''}
+                    style="width: 100%; border-radius: var(--r-lg); aspect-ratio: 16/9; object-fit: cover; margin-top: var(--space-5);"
+                  />
+                ),
+              },
+            }}
+          />
         </div>
       </div>
     </section>

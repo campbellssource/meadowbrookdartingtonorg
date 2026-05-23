@@ -1,24 +1,24 @@
 name: Studio
 order: 8
-shortDescription: A versatile 75 m² studio with high vaulted ceiling — ideal for yoga, martial arts, meetings and events
-image: /images/facilities/large-room/image.png
+shortDescription: A versatile 75 m² studio with high vaulted ceiling - ideal for yoga, martial arts, meetings and events
+image: /images/facilities/large-room/large-room-1.jpeg
 facilityType:
   discriminant: bookable
   value:
+    secondImage: /images/facilities/large-room/large-room-2.jpeg
     amenities:
-      - High vaulted ceiling — full headroom for yoga, kicks and aerial work
-      - Full-length wall-mounted barre — ideal for ballet, contemporary dance and yoga warm-ups
-      - Parquet floor section (4.3m × 4.7m) — warm bare-wood surface for movement and mat work
+      - High vaulted ceiling
+      - Full-length wall-mounted barre - ideal for ballet, contemporary dance and yoga warm-ups
+      - Parquet floor section (4.3m × 4.7m) - warm bare-wood surface for movement and mat work
       - Full clear floor 11m × 6.85m (approx. 75 m²) when chairs are stored
       - 70 stacking chairs included
-      - Tables — six 80×80cm square, one 278×183cm banquet table, one 110×122cm table
+      - Tables - six 80×80cm square, one 278×183cm banquet table, one 110×122cm table
       - Furniture stored within the room (3.7m × 4.7m dedicated area)
       - Additional furniture available from the adjoining Lounge (subject to availability)
       - Warm air heating (winter)
-      - No sound system — please bring your own speaker
-      - Kitchen access
+      - No sound system - please bring your own speaker
       - Toilets on site
       - On-site sauna (separate booking)
-      - Parking available
-      - Stair access only — not step-free
+      - Parking available (Dartington Hall Trust paid parking)
+      - Stair access only - not step-free
     bookingCategory: Studio - Large room
