@@ -9,6 +9,7 @@ env:
   REGION: europe-west2
   SERVICE: meadowbrook-site
   IMAGE: europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
