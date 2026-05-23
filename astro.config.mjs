@@ -35,7 +35,6 @@ export default defineConfig({
     '/volunteer':    '/content/volunteer',
     '/be-a-trustee': '/content/be-a-trustee',
     '/meadowchat':   '/content/meadowchat',
-    '/energy-hub':   '/content/energy-hub',
 
     // Privacy policy — maintained in Google Docs
     '/privacy': 'https://docs.google.com/document/d/1V94cmxs0Nix99-eZzGKzUx9z8Bzd0ynNno5waPc0hQQ/edit',

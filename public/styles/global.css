@@ -456,6 +456,21 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-banner h3 { font-family: var(--font-body); font-weight: 700; font-size: 28px; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 12px; }
 .mw-banner p { color: var(--ink-soft); margin: 0 0 20px; max-width: 460px; }
 .mw-banner .visual { aspect-ratio: 5/4; border-radius: var(--r-lg); background-size: cover; background-position: center; background-color: var(--paper-deep); }
+.mw-banner--green { background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%); }
+.mw-banner--green h3 { color: #fff; }
+.mw-banner--green p { color: rgba(255,255,255,0.85); }
+.mw-banner--green .visual { background-color: var(--green-dark); }
+.mw-eyebrow--on-green { color: var(--sun); }
+.mw-eyebrow--on-green::before { background: var(--sun); }
+
+/* ---------- Energy Hub page ---------- */
+.mw-energy-img { border-radius: var(--r-xl); overflow: hidden; }
+.mw-energy-img img { width: 100%; height: auto; display: block; }
+.mw-energy-cta { background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%); border-radius: var(--r-xl); padding: var(--space-7) var(--space-6); }
+.mw-energy-cta h2 { font-family: var(--font-body); font-weight: 700; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.02em; color: #fff; margin: 0 0 12px; }
+.mw-energy-cta p { color: rgba(255,255,255,0.85); margin: 0 0 20px; max-width: 52ch; }
+.mw-energy-funders { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: center; margin-top: var(--space-5); }
+.mw-energy-funders img { height: 52px; width: auto; opacity: 0.8; }
 
 /* ---------- Partners ---------- */
 .mw-partners { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: center; justify-content: center; background: var(--night); border-radius: var(--r-lg); padding: var(--space-7) var(--space-6); }
@@ -568,6 +583,12 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-event-meta-row .label { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute); width: 64px; flex: none; }
 
 /* ---------- Responsive ---------- */
+@media (max-width: 980px) {
+  .mw-nav-links { gap: 0; }
+  .mw-nav-link { padding: 6px 10px; font-size: 13px; }
+  .mw-nav-link.hide-mobile { display: none; }
+}
+
 @media (max-width: 900px) {
   .mw-grid-4 { grid-template-columns: repeat(2, 1fr); }
   .mw-grid-3, .mw-grid-2 { grid-template-columns: 1fr; }
@@ -582,10 +603,7 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
   .mw-nav-inner { padding-left: var(--space-4); padding-right: var(--space-4); }
 }
 
-@media (max-width: 720px) {
-  .mw-nav-links { gap: 0; }
-  .mw-nav-link { padding: 6px 10px; font-size: 13px; }
-  .mw-nav-link.hide-mobile { display: none; }
+@media (max-width: 767px) {
   .mw-hero h1 { font-size: clamp(2rem, 8vw, 3rem); }
   .mw-booking { padding: var(--space-5) var(--space-4); }
   .mw-event-cards { grid-template-columns: 1fr; }
@@ -596,7 +614,7 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-nav-menu-btn { display: none; }
 .mw-mobile-menu { display: none; }
 
-@media (max-width: 720px) {
+@media (max-width: 767px) {
   .mw-nav-links { display: none; }
 
   .mw-nav-menu-btn {

@@ -1,0 +1,92 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.pages.read('energy-hub');
+
+if (!entry) return Astro.redirect('/404');
+
+const introNodes = await entry.intro();
+const bodyNodes = await entry.body();
+---
+
+<Layout title={entry.title} description={entry.seoDescription ?? undefined}>
+  <section class="mw-zone-hero" style="background: var(--green-dark); color: white; padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow" style="color: var(--sun);">Community initiative</span>
+      <h1>{entry.title}</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: var(--space-6); padding-bottom: 0;">
+    <div class="mw-wrap">
+      <div class="mw-energy-img">
+        <img src="/images/energy-hub/image+30.png.webp" alt="Meadowbrook Energy Hub — generating, storing and sharing clean energy locally" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-bottom: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article" style="padding: var(--space-7) 0;">
+        {introNodes && introNodes.length > 0 && (
+          <div class="lead">
+            <DocumentRenderer document={introNodes} />
+          </div>
+        )}
+      </article>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0; padding-bottom: 0;">
+    <div class="mw-wrap">
+      <div class="mw-energy-img">
+        <img src="/images/energy-hub/social.jpeg.webp" alt="Ground source heat pump illustration" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-bottom: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article" style="padding: var(--space-7) 0;">
+        {bodyNodes && bodyNodes.length > 0 && (
+          <DocumentRenderer document={bodyNodes} />
+        )}
+      </article>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0; padding-bottom: 0;">
+    <div class="mw-wrap">
+      <div class="mw-energy-img">
+        <img src="/images/energy-hub/solar.jpeg.webp" alt="Solar panels on the Pavilion roof at Meadowbrook" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect">
+    <div class="mw-wrap">
+      <div class="mw-energy-cta">
+        <div>
+          <h2>Get involved</h2>
+          <p>Whether you run a local facility, want to reduce your organisation's energy costs, or simply want to know more — we'd love to hear from you.</p>
+          <a href="mailto:energyhub@meadowbrookdartington.org" class="mw-btn mw-btn-primary">Email us to find out more</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect tight" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Funded and supported by</span>
+      <div class="mw-energy-funders">
+        <img src="/images/energy-hub/image001.png.webp" alt="Department for Energy Security and Net Zero" />
+        <img src="/images/energy-hub/south+West+Net+Zero.png.webp" alt="Southwest Net Zero Hub" />
+        <img src="/images/energy-hub/west+of+england+combined.png.webp" alt="West of England Combined Authority" />
+      </div>
+    </div>
+  </section>
+</Layout>

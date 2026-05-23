@@ -9,7 +9,9 @@ import { DocumentRenderer } from '@keystatic/core/renderer';
 export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
   const allPages = await reader.collections.pages.all();
-  return allPages.map(({ slug }) => ({ params: { slug } }));
+  return allPages
+    .filter(({ slug }) => slug !== 'energy-hub')
+    .map(({ slug }) => ({ params: { slug } }));
 }
 
 const { slug } = Astro.params;
