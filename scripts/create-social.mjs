@@ -10,7 +10,7 @@
  *   node scripts/create-social.mjs --month 8 --year 2026
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -74,6 +74,23 @@ const bodyPath = join(bodyDir, 'body.mdoc');
 // ── Idempotency check ──────────────────────────────────────────────────────
 if (existsSync(yamlPath)) {
   console.log(`Already exists — skipping: ${slug}`);
+  process.exit(0);
+}
+
+// ── Cap at 2 upcoming socials ──────────────────────────────────────────────
+const eventsDir = join(repoRoot, 'src/content/events');
+const today2 = new Date(); today2.setHours(0, 0, 0, 0);
+const upcomingSocials = readdirSync(eventsDir)
+  .filter(f => f.startsWith('dra-social-') && f.endsWith('.yaml'))
+  .filter(f => {
+    const content = readFileSync(join(eventsDir, f), 'utf8');
+    const match = content.match(/^date:\s*'?(\d{4}-\d{2}-\d{2})/m);
+    if (!match) return false;
+    return new Date(match[1] + 'T12:00:00') >= today2;
+  });
+
+if (upcomingSocials.length >= 2) {
+  console.log(`Already have ${upcomingSocials.length} upcoming socials — skipping.`);
   process.exit(0);
 }
 
