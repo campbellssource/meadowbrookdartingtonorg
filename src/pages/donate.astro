@@ -1,9 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const squareAppId = import.meta.env.PUBLIC_SQUARE_APPLICATION_ID ?? '';
-const squareLocationId = import.meta.env.PUBLIC_SQUARE_LOCATION_ID ?? '';
-const squareEnv = import.meta.env.PUBLIC_SQUARE_ENVIRONMENT ?? 'production';
+const squareAppId = process.env.PUBLIC_SQUARE_APPLICATION_ID ?? '';
+const squareLocationId = process.env.PUBLIC_SQUARE_LOCATION_ID ?? '';
+const squareEnv = process.env.PUBLIC_SQUARE_ENVIRONMENT ?? 'production';
 const squareSdkUrl = squareEnv === 'sandbox'
   ? 'https://sandbox.web.squarecdn.com/v1/square.js'
   : 'https://web.squarecdn.com/v1/square.js';

@@ -2,9 +2,9 @@ import type { APIRoute } from 'astro';
 import { randomUUID } from 'crypto';
 
 export const POST: APIRoute = async ({ request }) => {
-  const accessToken = import.meta.env.SQUARE_ACCESS_TOKEN;
-  const locationId = import.meta.env.PUBLIC_SQUARE_LOCATION_ID;
-  const environment = import.meta.env.PUBLIC_SQUARE_ENVIRONMENT ?? 'production';
+  const accessToken = process.env.SQUARE_ACCESS_TOKEN;
+  const locationId = process.env.PUBLIC_SQUARE_LOCATION_ID;
+  const environment = process.env.PUBLIC_SQUARE_ENVIRONMENT ?? 'production';
 
   if (!accessToken || !locationId) {
     return new Response(
