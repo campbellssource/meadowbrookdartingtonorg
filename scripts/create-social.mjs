@@ -81,7 +81,7 @@ if (existsSync(yamlPath)) {
 const yaml = `title: 'DRA Social – ${monthName} ${year}'
 date: '${dateStr}'
 startTime: '7pm'
-location: 'Upstairs at Meadowbrook, Shinners Bridge, Dartington'
+location: "Meadowbrook, can't find us, ask at the bar"
 summary: >-
   Come and meet the volunteers and trustees behind Meadowbrook. A relaxed
   monthly get-together — all welcome, whether you're new to the village or
