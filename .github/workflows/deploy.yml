@@ -42,4 +42,5 @@ jobs:
             --image=${{ env.IMAGE }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
+            --update-env-vars="PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic" \
             --quiet
