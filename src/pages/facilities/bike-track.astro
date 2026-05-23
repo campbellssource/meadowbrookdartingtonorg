@@ -1,0 +1,87 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Bike Track"
+  description="BMX and cycling track at Meadowbrook Dartington."
+  ogImage="/images/facilities/bike-track-og.jpg"
+  bodyClass="zone-bike"
+>
+
+  <section class="mw-zone-hero">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Facility</span>
+      <h1>Bike Track</h1>
+      <p>BMX and cycling track</p>
+    </div>
+  </section>
+
+  <section class="mw-sect bt-content">
+    <div class="mw-wrap bt-grid">
+      <div class="bt-text">
+        <p>You'll find the Bike Track on the other side of the bridge from the main Meadowbrook building.</p>
+        <p>Follow us on <a href="https://www.facebook.com/thebiketrack">Facebook</a> for news and events.</p>
+      </div>
+      <div class="bt-photos">
+        <img src="/images/facilities/bike-track/image.jpg" alt="Bike Track at Meadowbrook" />
+        <img src="/images/facilities/bike-track/e2c601_ad23cd2764354a44b6fb528e7a0ef5de~mv2_d_2500_1667_s_2.jpg.webp" alt="Bike Track at Meadowbrook" />
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      <a href="/facilities" class="mw-back">Back to all facilities</a>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  .bt-content {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .bt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--space-7);
+    align-items: start;
+  }
+
+  .bt-text p {
+    line-height: 1.7;
+    max-width: 50ch;
+    margin-bottom: var(--space-4);
+  }
+
+  .bt-text a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    font-weight: 600;
+  }
+
+  .bt-photos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .bt-photos img {
+    width: 100%;
+    border-radius: var(--r-lg);
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    display: block;
+  }
+
+  @media (max-width: 700px) {
+    .bt-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

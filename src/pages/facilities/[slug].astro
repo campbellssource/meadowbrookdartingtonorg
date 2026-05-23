@@ -11,7 +11,10 @@ import { zoneFor } from '../../lib/zones';
 export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
   const allFacilities = await reader.collections.facilities.all();
-  return allFacilities.map(({ slug }) => ({ params: { slug } }));
+  // pool has its own dedicated page at /facilities/pool.astro
+  return allFacilities
+    .filter(({ slug }) => slug !== 'pool')
+    .map(({ slug }) => ({ params: { slug } }));
 }
 
 const { slug } = Astro.params;
