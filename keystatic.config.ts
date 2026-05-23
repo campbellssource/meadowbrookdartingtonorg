@@ -103,6 +103,7 @@ export default config({
                 description: 'Must match the category name exactly in Acuity Scheduling (e.g. "Lounge - Small room").',
                 validation: { isRequired: true },
               }),
+              body: richText('Main content (shown below amenities, before booking)'),
             }),
             link: fields.object({
               externalUrl: fields.text({ label: 'External URL' }),

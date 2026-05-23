@@ -25,7 +25,7 @@ if (!facility) {
 const { discriminant, value } = facility.facilityType;
 
 const introNodes = await (value as any).intro();
-const bodyNodes = discriminant === 'generic' ? await (value as any).body() : null;
+const bodyNodes = (discriminant === 'generic' || discriminant === 'bookable') ? await (value as any).body() : null;
 const amenities: string[] = discriminant === 'bookable' ? (value as any).amenities : [];
 const bookingCategory: string = discriminant === 'bookable' ? (value as any).bookingCategory : '';
 const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
@@ -78,6 +78,16 @@ const zone = zoneFor(slug);
       )}
     </div>
   </section>
+
+  {discriminant === 'bookable' && bodyNodes && (
+    <section class="mw-sect">
+      <div class="mw-wrap">
+        <div class="mw-article" style="margin: 0;">
+          <DocumentRenderer document={bodyNodes} />
+        </div>
+      </div>
+    </section>
+  )}
 
   {discriminant === 'bookable' && (
     <section class="mw-sect" id="book">
