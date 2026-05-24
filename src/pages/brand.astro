@@ -1,0 +1,934 @@
+---
+export const prerender = true;
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Brand brief"
+  description="How to make things that feel like Meadowbrook — voice, colour, type and assets for anyone making materials with our name on it."
+  noindex={true}
+>
+
+<style>
+  /* ----------------------------------------------------------------
+     BRAND BRIEF — page-local layout
+     All styles scoped to this page automatically by Astro.
+     Colours, type, spacing come from /styles/global.css tokens.
+  ---------------------------------------------------------------- */
+
+  .bb-narrow {
+    width: 100%;
+    max-width: var(--content-narrow);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  .bb-sect       { padding: var(--space-8) 0; }
+  .bb-sect-tall  { padding: var(--space-9) 0; }
+
+  .bb-eyebrow {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 600; color: var(--green-dark);
+  }
+  .bb-eyebrow::before {
+    content: ""; width: 26px; height: 1px; background: currentColor; flex: none;
+  }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.88em;
+    background: rgba(40,35,32,0.07);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  /* ---- Hero ---- */
+  .brief-hero { padding: var(--space-9) 0 var(--space-8); }
+  .brief-hero .stamp {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-weight: 600; color: var(--ink-mute); margin-bottom: 28px;
+  }
+  .brief-hero .stamp img { height: 44px; width: auto; }
+  .brief-hero h1 {
+    font-size: clamp(2.75rem, 7vw, 5.5rem);
+    line-height: 0.95; letter-spacing: -0.025em;
+    margin: 0 0 24px; max-width: 16ch;
+  }
+  .brief-hero .lede {
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    line-height: 1.55; color: var(--ink-soft); max-width: 56ch; margin: 0;
+  }
+  .brief-hero .meta-row { margin-top: 40px; display: flex; gap: 48px; flex-wrap: wrap; }
+  .brief-hero .meta-row > div { display: flex; flex-direction: column; gap: 2px; }
+  .brief-hero .meta-row .k {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-mute); font-weight: 600;
+  }
+  .brief-hero .meta-row .v { font-size: 15px; color: var(--ink); font-weight: 500; }
+
+  /* ---- Section heading ---- */
+  .sect-head { margin-bottom: var(--space-6); display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .sect-head h2 {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    line-height: 1.05; letter-spacing: -0.02em; margin: 0; max-width: 22ch;
+    font-weight: 700;
+  }
+
+  /* ---- Story ---- */
+  .story p { font-size: 1.05rem; line-height: 1.7; color: var(--ink); margin: 0 0 1.1em; max-width: 64ch; }
+  .story p.lead { font-size: 1.3rem; line-height: 1.45; font-weight: 500; color: var(--ink); margin-bottom: 1.4em; }
+  .story h3 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; margin: 2.2em 0 0.6em; }
+  .story em { font-style: italic; color: var(--ink-soft); }
+
+  .pull { margin: var(--space-7) 0; padding: var(--space-6) 0; }
+  .pull::before {
+    content: ""; display: block; width: 56px; height: 4px;
+    background: var(--green); margin-bottom: 22px; border-radius: 2px;
+  }
+  .pull q {
+    quotes: none;
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    line-height: 1.2; letter-spacing: -0.015em; font-weight: 500;
+    color: var(--ink); display: block; max-width: 24ch;
+  }
+
+  /* ---- Voice tiles ---- */
+  .voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: var(--space-5); }
+  .voice { background: var(--bone); border-radius: var(--r-lg); padding: 24px 26px; display: flex; flex-direction: column; gap: 8px; }
+  .voice .tag { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+  .voice.yes .tag { color: var(--green-dark); }
+  .voice.no  .tag { color: var(--ember); }
+  .voice ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  .voice li { font-size: 0.95rem; line-height: 1.45; color: var(--ink); padding-left: 22px; position: relative; }
+  .voice.yes li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 12px; height: 2px; background: var(--green-dark); }
+  .voice.no li::before  { content: ""; position: absolute; left: 2px; top: 0.4em; width: 8px; height: 8px; background: var(--ember); border-radius: 50%; }
+
+  /* ---- Logo block ---- */
+  .logo-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; align-items: start; }
+  .logo-card { background: var(--bone); border-radius: var(--r-lg); padding: 48px; display: flex; align-items: center; justify-content: center; min-height: 320px; }
+  .logo-card img { max-width: 60%; max-height: 75%; height: auto; }
+  .logo-notes { background: var(--paper-deep); border-radius: var(--r-lg); padding: 32px; display: flex; flex-direction: column; gap: 14px; }
+  .logo-notes h4 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute); margin: 0; }
+  .logo-notes p { font-size: 0.95rem; line-height: 1.55; color: var(--ink); margin: 0; }
+  .logo-notes p + h4 { margin-top: 8px; }
+
+  /* ---- Colour swatches ---- */
+  .swatch-grid-core { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; }
+  .swatch { border-radius: var(--r-md); padding: 18px; min-height: 150px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+  .swatch.lg { min-height: 220px; padding: 24px; grid-row: span 2; }
+  .swatch .name { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+  .swatch .hex  { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; opacity: 0.7; letter-spacing: 0.02em; }
+  .swatch .role { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.55; }
+  .swatch.dark  { color: var(--bone); }
+  .swatch.light { color: var(--ink); }
+  .swatch.outline { box-shadow: inset 0 0 0 1px rgba(40,35,32,0.08); }
+
+  .palette-section + .palette-section { margin-top: var(--space-6); }
+  .palette-section h3 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute); margin: 0 0 14px; }
+
+  /* ---- Zone palette cards ---- */
+  .zone-palettes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .zone-card { border-radius: var(--r-lg); overflow: hidden; display: flex; flex-direction: column; min-height: 220px; }
+  .zone-card .head { padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 4px; }
+  .zone-card .head .zlabel { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
+  .zone-card .head .zname  { font-size: 1.5rem; line-height: 1.05; margin: 0; }
+  .zone-card .stripes { display: flex; flex: 1; min-height: 64px; }
+  .zone-card .stripes > div { flex: 1; display: flex; align-items: flex-end; padding: 8px 10px; }
+  .zone-card .stripes > div span { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; letter-spacing: 0.02em; opacity: 0.7; }
+
+  /* ---- Type section ---- */
+  .type-card { background: var(--bone); border-radius: var(--r-lg); padding: 32px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 32px; align-items: center; margin-bottom: 16px; }
+  .type-card .meta { display: flex; flex-direction: column; gap: 8px; }
+  .type-card .trole  { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
+  .type-card .family { font-size: 1.5rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .type-card .desc   { font-size: 0.9rem; line-height: 1.5; opacity: 0.75; margin: 0; }
+  .type-card .specimen { font-size: clamp(2rem, 4.5vw, 3.25rem); line-height: 0.95; margin: 0; }
+
+  .zone-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .zone-type { border-radius: var(--r-lg); padding: 28px 28px 24px; min-height: 180px; display: flex; flex-direction: column; gap: 14px; justify-content: space-between; }
+  .zone-type .top  { display: flex; flex-direction: column; gap: 4px; }
+  .zone-type .ztrole { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
+  .zone-type .ztfam  { font-size: 14px; font-weight: 500; opacity: 0.9; }
+  .zone-type .specimen { font-size: clamp(2.2rem, 4vw, 3rem); line-height: 1; }
+
+  .zt-extravaganza { background: #F9D21E; color: var(--ink); }
+  .zt-extravaganza .specimen { font-family: "Abril Fatface", serif; }
+  .zt-pool { background: #20B9DB; color: #000; }
+  .zt-pool .specimen { font-family: "Rexton", sans-serif; font-weight: 300; letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(1.6rem, 3.2vw, 2.4rem); }
+  .zt-snooker { background: #004D26; color: var(--bone); }
+  .zt-snooker .specimen { font-family: "Billiard", serif; font-size: clamp(2.6rem, 4.8vw, 3.6rem); }
+  .zt-bike { background: #F04E23; color: #000; }
+  .zt-bike .specimen { font-family: "Bebas Neue", sans-serif; letter-spacing: 0.01em; }
+  .zt-fields { background: #228B22; color: var(--bone); }
+  .zt-fields .specimen { font-family: "Oswald", sans-serif; font-weight: 700; text-transform: uppercase; }
+  .zt-playground { background: #FFA500; color: var(--ink); }
+  .zt-playground .specimen { font-family: "Nunito", sans-serif; font-weight: 900; letter-spacing: -0.02em; }
+  .zt-studio { background: #F5DEB3; color: #4A2A0A; }
+  .zt-studio .specimen { font-family: "Josefin Sans", sans-serif; font-weight: 300; letter-spacing: 0.04em; }
+  .zt-lounge { background: #401D00; color: #EEC776; }
+  .zt-lounge .specimen { font-family: "Righteous", sans-serif; }
+  .zt-dra { background: var(--paper-deep); color: var(--ink); }
+  .zt-dra .specimen { font-family: "Lobster", cursive; }
+
+  /* ---- Photography ---- */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .photo { aspect-ratio: 4/5; background-color: var(--paper-deep); background-size: cover; background-position: center; border-radius: var(--r-md); position: relative; overflow: hidden; }
+  .photo .cap { position: absolute; left: 14px; bottom: 12px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--bone); text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+  .photo.placeholder {
+    background-image: repeating-linear-gradient(45deg, rgba(40,35,32,0.05) 0, rgba(40,35,32,0.05) 12px, rgba(40,35,32,0.02) 12px, rgba(40,35,32,0.02) 24px);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-mute); font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    text-align: center; padding: 16px;
+  }
+
+  /* ---- House rules ---- */
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .rule { padding: 22px 24px; border-radius: var(--r-md); }
+  .rule.do   { background: var(--bone); }
+  .rule.dont { background: #EFE3D2; }
+  .rule .head { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+  .rule.do   .head { color: var(--green-dark); }
+  .rule.dont .head { color: var(--ember); }
+  .rule .head::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .rule p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--ink); }
+
+  /* ---- Asset list ---- */
+  .asset-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }
+  .asset { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 14px 0; box-shadow: 0 1px 0 0 rgba(40,35,32,0.06); }
+  .asset .thumb { width: 64px; height: 64px; background-size: cover; background-position: center; background-color: var(--paper-deep); border-radius: var(--r-sm); }
+  .asset .aname { font-size: 14px; font-weight: 600; }
+  .asset .apath { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+  .asset .atag  { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute); }
+
+  /* ---- Contact card ---- */
+  .contact-card { background: var(--ink); color: var(--bone); border-radius: var(--r-xl); padding: var(--space-7); display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: center; }
+  .contact-card h2 { font-weight: 700; font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1.1; letter-spacing: -0.02em; margin: 12px 0; max-width: 20ch; }
+  .contact-card p { font-size: 1rem; opacity: 0.78; margin: 0; max-width: 38ch; line-height: 1.55; }
+  .contact-card .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .contact-card .actions a { background: var(--bone); color: var(--ink); padding: 14px 22px; border-radius: var(--r-pill); font-weight: 600; font-size: 15px; text-decoration: none; transition: background var(--dur-base) var(--ease-natural); }
+  .contact-card .actions a:hover { background: var(--paper-deep); text-decoration: none; }
+  .contact-card .actions a.ghost { background: transparent; color: var(--bone); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.4); }
+  .contact-card .actions a.ghost:hover { background: rgba(255,255,255,0.1); }
+  .contact-card .bb-eyebrow { color: var(--sun); }
+  .contact-card .bb-eyebrow::before { background: var(--sun); }
+
+  /* ---- Colophon ---- */
+  .colophon { padding: var(--space-7) 0 var(--space-6); color: var(--ink-mute); font-size: 12px; letter-spacing: 0.04em; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  /* ---- Note text ---- */
+  .bb-note { margin-top: var(--space-5); max-width: 62ch; font-size: 0.95rem; color: var(--ink-soft); line-height: 1.6; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 880px) {
+    .voice-grid, .zone-palettes, .zone-type-grid, .photo-grid, .rules, .asset-list { grid-template-columns: 1fr; }
+    .logo-row { grid-template-columns: 1fr; }
+    .swatch-grid-core { grid-template-columns: 1fr 1fr; }
+    .swatch.lg { grid-row: auto; min-height: 180px; }
+    .type-card { grid-template-columns: 1fr; gap: 18px; }
+    .contact-card { grid-template-columns: 1fr; }
+    .contact-card .actions { justify-content: flex-start; }
+  }
+</style>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section class="brief-hero">
+  <div class="mw-wrap">
+    <div class="stamp">
+      <img src="/assets/logos/hand.png" alt="Meadowbrook + DRA logo">
+      <span>Meadowbrook brand brief · v1.0 · May 2026</span>
+    </div>
+    <h1>Make things that feel like Meadowbrook.</h1>
+    <p class="lede">
+      This page is for anyone making something with our name on it — a poster, a flyer, a social post,
+      a sign on a gate. It explains who we are, what we sound like, and the colours and type to use so
+      it all hangs together. Read it once. Keep it open while you work.
+    </p>
+    <div class="meta-row">
+      <div><span class="k">For</span><span class="v">Volunteers, partners, designers</span></div>
+      <div><span class="k">Owner</span><span class="v">The DRA</span></div>
+      <div><span class="k">Questions</span><span class="v">contact@meadowbrookdartington.org</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     THE STORY
+     ============================================================ -->
+<section class="bb-sect-tall">
+  <div class="bb-narrow story">
+    <div class="bb-eyebrow">The story</div>
+
+    <h2 style="font-weight: 700; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.05; letter-spacing: -0.02em; margin: 14px 0 28px; max-width: 18ch;">
+      Ten acres, bequeathed by the village, for the village.
+    </h2>
+
+    <p class="lead">
+      Meadowbrook is the recreational heart of Dartington — a wooden 1960s community building, grassy
+      mounds, an outdoor pool waiting to be restored, a playground, a bar, playing fields, a bike track
+      and nature trails.
+    </p>
+
+    <p>
+      The land — ten acres on the edge of the village — was generously bequeathed by the Elmhirsts and
+      the Dartington Hall Trust in 1962. It is managed by <strong>The Dartington Recreation
+      Association</strong> (the DRA), a registered charity (1168817) run entirely by local volunteers,
+      under a lease that next comes up for renewal in 2118. We have time.
+    </p>
+
+    <p>
+      Meadowbrook is what people know — the place, the building, the field at the end of the road. The
+      DRA are the people who make it work. Both names matter; we use them differently. <em>Meadowbrook</em>
+      goes on the gate, the signs and the social posts. <em>The DRA</em> signs the grant applications, the
+      newsletters and the thank-yous.
+    </p>
+
+    <div class="pull">
+      <q>A place to swim, kick around, eat pizza and stay too late.</q>
+    </div>
+
+    <h3>What it actually is, on the ground</h3>
+    <p>
+      The site is a patchwork. A pool dug by hand by the village in the 60s, now closed and waiting for
+      a restoration that's almost fully funded. A wooden community building that's seen better days but
+      hosts a bar, a snooker room, a studio and a lounge. Playing fields across Colin's Bridge. A pump
+      track and dirt jumps in the woods over the brook. A playground that gets battered and stays
+      loved. Grassy mounds the community dug when they built the pool — kids still roll down them.
+    </p>
+
+    <h3>The chameleon principle</h3>
+    <p>
+      The brand is built like the site itself: a calm, papery core that steps back to let each facility
+      have its own feel. We call these <strong>zones</strong> — the Pool, the Snooker Room, the Bike
+      Track, the Playground, the Playing Fields, the Studio, the Lounge, the Extravaganza. Each one has
+      its own paint colour, its own display typeface, sometimes its own motif. Underneath, the layout,
+      the body type, the voice and the spacing all stay the same. So eight things can look like eight
+      different things and still obviously be Meadowbrook.
+    </p>
+
+    <h3>Three things to remember</h3>
+    <p>
+      <strong>One — photography over illustration.</strong> The site does the work. Don't draw what you
+      can photograph. The only big illustration we use is the hand-drawn site map, which is always
+      shown whole.
+    </p>
+    <p>
+      <strong>Two — sentence case, never title case.</strong> "Book a table", not "Book A Table". The
+      tone is a neighbour, not a corporation.
+    </p>
+    <p>
+      <strong>Three — no borders.</strong> If you need to separate two things, use a background shift
+      or more space. Never a 1px line.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     VOICE
+     ============================================================ -->
+<section class="bb-sect" style="background: var(--paper-deep);">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Voice</div>
+      <h2>How we sound. Warm, direct, optimistic but grounded.</h2>
+    </div>
+    <div class="voice-grid">
+      <div class="voice yes">
+        <div class="tag">Sounds right</div>
+        <ul>
+          <li>"Come as you are."</li>
+          <li>"The pool is closed for now. Help us bring it back."</li>
+          <li>"A place to swim, kick around, eat pizza and stay too late."</li>
+          <li>"Cross the bridge, find the fields."</li>
+          <li>"Bring chalk and patience."</li>
+        </ul>
+      </div>
+      <div class="voice no">
+        <div class="tag">Doesn't sound like us</div>
+        <ul>
+          <li>"Experience World-Class Recreation At Dartington!"</li>
+          <li>"Splash Zone Active"</li>
+          <li>"Unlock your full potential with our state-of-the-art facilities."</li>
+          <li>"Premium Membership Tier Available Now"</li>
+          <li>"Synergistic community engagement opportunities."</li>
+        </ul>
+      </div>
+    </div>
+    <p class="bb-note">
+      Write like you're talking to a neighbour. "We" and "us" mean the whole community, not just DRA
+      staff. Headlines are 2–4 words. Body copy gets to the point. No emoji in formal materials.
+      Acknowledge the rough edges — a pool that needs restoring, a building that's seen better days —
+      without apologising.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     MARKS (LOGO)
+     ============================================================ -->
+<section class="bb-sect">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Marks</div>
+      <h2>One hand, sun behind it.</h2>
+    </div>
+    <div class="logo-row">
+      <div class="logo-card">
+        <img src="/assets/logos/hand.png" alt="DRA hand logo on cream">
+      </div>
+      <div class="logo-notes">
+        <h4>The hand</h4>
+        <p>
+          A green hand, sun rays behind it. The Meadowbrook + DRA primary mark. Use the PNG from
+          <code>assets/logos/hand.png</code>; don't redraw it.
+        </p>
+        <h4>Lockup</h4>
+        <p>
+          Hand mark, then "Meadowbrook" set in Plus Jakarta Sans Bold, with "The Dartington Recreation
+          Association" as a small uppercase eyebrow beneath. Sentence case in body — proper noun only.
+        </p>
+        <h4>Don't</h4>
+        <p>
+          Don't recolour the hand. Don't add a stroke. Don't put it inside a circle. Don't trace it as
+          an SVG. Don't drop it on a busy photograph — give it papery cream or solid green to sit on.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     COLOURS — CORE
+     ============================================================ -->
+<section class="bb-sect" style="background: var(--paper-deep);">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Colours</div>
+      <h2>A papery core, with bright primaries used sparingly.</h2>
+    </div>
+
+    <div class="palette-section">
+      <h3>The canvas — what most pages sit on</h3>
+      <div class="swatch-grid-core">
+        <div class="swatch lg outline light" style="background: #FBF0DF;">
+          <div class="role">Paper · base</div>
+          <div><div class="name">Paper cream</div><div class="hex">#FBF0DF</div></div>
+        </div>
+        <div class="swatch outline light" style="background: #F4E4CB;">
+          <div class="role">Tonal step</div>
+          <div><div class="name">Paper deep</div><div class="hex">#F4E4CB</div></div>
+        </div>
+        <div class="swatch light" style="background: #D1B08B;">
+          <div class="role">Block</div>
+          <div><div class="name">Sandy stone</div><div class="hex">#D1B08B</div></div>
+        </div>
+        <div class="swatch outline light" style="background: #FFFFFF;">
+          <div class="role">Surface</div>
+          <div><div class="name">Bone</div><div class="hex">#FFFFFF</div></div>
+        </div>
+        <div class="swatch light" style="background: #A7C756;">
+          <div class="role">Fresh</div>
+          <div><div class="name">Green light</div><div class="hex">#A7C756</div></div>
+        </div>
+        <div class="swatch dark" style="background: #74A953;">
+          <div class="role">Accent · primary</div>
+          <div><div class="name">Meadow green</div><div class="hex">#74A953</div></div>
+        </div>
+        <div class="swatch dark" style="background: #4D7A33;">
+          <div class="role">AA contrast</div>
+          <div><div class="name">Green dark</div><div class="hex">#4D7A33</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette-section">
+      <h3>Brights — for punch, not for filling space</h3>
+      <div class="swatch-grid-core">
+        <div class="swatch light" style="background: #F9D21E;">
+          <div class="role">Punch</div>
+          <div><div class="name">Sun yellow</div><div class="hex">#F9D21E</div></div>
+        </div>
+        <div class="swatch light" style="background: #1DB5EF;">
+          <div class="role">Punch</div>
+          <div><div class="name">Sky blue</div><div class="hex">#1DB5EF</div></div>
+        </div>
+        <div class="swatch dark" style="background: #A73916;">
+          <div class="role">Warn · festive</div>
+          <div><div class="name">Wood red</div><div class="hex">#A73916</div></div>
+        </div>
+        <div class="swatch dark" style="background: #3C3C3A;">
+          <div class="role">Night</div>
+          <div><div class="name">Building grey</div><div class="hex">#3C3C3A</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette-section">
+      <h3>Ink — text, never pure black</h3>
+      <div class="swatch-grid-core">
+        <div class="swatch dark" style="background: #28201A;">
+          <div class="role">Body text</div>
+          <div><div class="name">Ink</div><div class="hex">#28201A</div></div>
+        </div>
+        <div class="swatch dark" style="background: #5B4E42;">
+          <div class="role">Secondary</div>
+          <div><div class="name">Ink soft</div><div class="hex">#5B4E42</div></div>
+        </div>
+        <div class="swatch dark" style="background: #8B7C6E;">
+          <div class="role">Metadata</div>
+          <div><div class="name">Ink mute</div><div class="hex">#8B7C6E</div></div>
+        </div>
+        <div class="swatch outline light" style="background: #FFFBF2;">
+          <div class="role">Elevated</div>
+          <div><div class="name">Cream lift</div><div class="hex">#FFFBF2</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     COLOURS — ZONE PALETTES
+     ============================================================ -->
+<section class="bb-sect">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Zone palettes</div>
+      <h2>Each facility gets its own paint. Use one zone at a time.</h2>
+    </div>
+    <div class="zone-palettes">
+
+      <div class="zone-card" style="background: #F9D21E; color: var(--ink);">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Abril Fatface', serif;">Extravaganza</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #F9D21E;"><span>#F9D21E</span></div>
+          <div style="background: #E8BE0A;"><span>#E8BE0A</span></div>
+          <div style="background: #A73916;"><span style="color: #fff;">#A73916</span></div>
+          <div style="background: #74A953;"><span>#74A953</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #20B9DB; color: #000;">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Rexton', sans-serif; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; font-size: 1.1rem;">Dartington Pool</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #20B9DB;"><span>#20B9DB</span></div>
+          <div style="background: #1098B7;"><span style="color: #fff;">#1098B7</span></div>
+          <div style="background: #A0D8EA;"><span>#A0D8EA</span></div>
+          <div style="background: #000000;"><span style="color: #fff;">#000000</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #004D26; color: #fff;">
+        <div class="head">
+          <span class="zlabel" style="color: rgba(255,255,255,0.7);">Zone</span>
+          <p class="zname" style="font-family: 'Billiard', serif; font-size: 1.8rem;">Snooker Room</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #004D26;"><span style="color: #fff;">#004D26</span></div>
+          <div style="background: #006633;"><span style="color: #fff;">#006633</span></div>
+          <div style="background: #181C1B;"><span style="color: #fff;">#181C1B</span></div>
+          <div style="background: #F9D21E;"><span style="color: var(--ink);">#F9D21E</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #F04E23; color: #000;">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 0.01em;">Bike Track</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #F04E23;"><span>#F04E23</span></div>
+          <div style="background: #C53A14;"><span style="color: #fff;">#C53A14</span></div>
+          <div style="background: #000000;"><span style="color: #fff;">#000000</span></div>
+          <div style="background: #FFFFFF;"><span>#FFFFFF</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #228B22; color: #fff;">
+        <div class="head">
+          <span class="zlabel" style="color: rgba(255,255,255,0.7);">Zone</span>
+          <p class="zname" style="font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 1.5rem;">Playing Fields</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #228B22;"><span style="color: #fff;">#228B22</span></div>
+          <div style="background: #166916;"><span style="color: #fff;">#166916</span></div>
+          <div style="background: #2BA32B;"><span style="color: #fff;">#2BA32B</span></div>
+          <div style="background: #FFFFFF;"><span>#FFFFFF</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #FFA500; color: var(--ink);">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Nunito', sans-serif; font-weight: 900; letter-spacing: -0.02em; font-size: 1.7rem;">Playground</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #FFA500;"><span>#FFA500</span></div>
+          <div style="background: #E68A00;"><span>#E68A00</span></div>
+          <div style="background: #FF4500;"><span style="color: #fff;">#FF4500</span></div>
+          <div style="background: #1DB5EF;"><span>#1DB5EF</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #F5DEB3; color: #4A2A0A;">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Josefin Sans', sans-serif; font-weight: 300; letter-spacing: 0.04em; font-size: 1.7rem;">Studio</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #F5DEB3;"><span>#F5DEB3</span></div>
+          <div style="background: #E8C98A;"><span>#E8C98A</span></div>
+          <div style="background: #D2691E;"><span style="color: #fff;">#D2691E</span></div>
+          <div style="background: #4A2A0A;"><span style="color: #fff;">#4A2A0A</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: #401D00; color: #EEC776;">
+        <div class="head">
+          <span class="zlabel" style="color: rgba(238,199,118,0.7);">Zone</span>
+          <p class="zname" style="font-family: 'Righteous', sans-serif; font-size: 1.7rem;">Lounge</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #401D00;"><span style="color: #EEC776;">#401D00</span></div>
+          <div style="background: #2A1200;"><span style="color: #EEC776;">#2A1200</span></div>
+          <div style="background: #5A2A05;"><span style="color: #EEC776;">#5A2A05</span></div>
+          <div style="background: #EEC776;"><span style="color: var(--ink);">#EEC776</span></div>
+        </div>
+      </div>
+
+      <div class="zone-card" style="background: var(--paper); color: var(--ink);">
+        <div class="head">
+          <span class="zlabel">Zone</span>
+          <p class="zname" style="font-family: 'Lobster', cursive; font-size: 1.9rem; color: var(--green-dark);">the DRA</p>
+        </div>
+        <div class="stripes">
+          <div style="background: #FBF0DF;"><span>#FBF0DF</span></div>
+          <div style="background: #F4E4CB;"><span>#F4E4CB</span></div>
+          <div style="background: #74A953;"><span>#74A953</span></div>
+          <div style="background: #4D7A33;"><span style="color: #fff;">#4D7A33</span></div>
+        </div>
+      </div>
+
+    </div>
+    <p class="bb-note">
+      Pick one zone per piece. The Pool palette and the Bike Track palette do not go together; the
+      papery core sits between them. If you're making something cross-zone — like a homepage hero or
+      a programme cover — sit on the papery cream and let the photography do the colour work.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     TYPE
+     ============================================================ -->
+<section class="bb-sect" style="background: var(--paper-deep);">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Type</div>
+      <h2>Plus Jakarta Sans underneath everything. Each zone gets its own display face.</h2>
+    </div>
+
+    <div class="type-card">
+      <div class="meta">
+        <div class="trole">Body + UI · every zone</div>
+        <p class="family">Plus Jakarta Sans</p>
+        <p class="desc">
+          Regular 400, Medium 500, Semibold 600, Bold 700. Loaded from Google Fonts.
+          Body text is 16px, line-height 1.6. Headlines are bold or semibold, tight tracking
+          (−0.02em on display sizes).
+        </p>
+      </div>
+      <p class="specimen" style="font-weight: 700; letter-spacing: -0.02em;">
+        A place to swim, kick around, eat pizza and stay too late.
+      </p>
+    </div>
+
+    <div class="zone-type-grid">
+      <div class="zone-type zt-extravaganza">
+        <div class="top">
+          <span class="ztrole">Extravaganza</span>
+          <span class="ztfam">Abril Fatface · Google Fonts</span>
+        </div>
+        <p class="specimen">Once a year we go all in.</p>
+      </div>
+      <div class="zone-type zt-pool">
+        <div class="top">
+          <span class="ztrole">Dartington Pool</span>
+          <span class="ztfam">Rexton · brand file</span>
+        </div>
+        <p class="specimen">Bring back the pool</p>
+      </div>
+      <div class="zone-type zt-snooker">
+        <div class="top">
+          <span class="ztrole" style="color: rgba(255,255,255,0.7);">Snooker Room</span>
+          <span class="ztfam" style="color: rgba(255,255,255,0.7);">Billiard · brand file</span>
+        </div>
+        <p class="specimen">Pull up a cue.</p>
+      </div>
+      <div class="zone-type zt-bike">
+        <div class="top">
+          <span class="ztrole">Bike Track</span>
+          <span class="ztfam">Bebas Neue · Google Fonts</span>
+        </div>
+        <p class="specimen">SEND IT SIDEWAYS</p>
+      </div>
+      <div class="zone-type zt-fields">
+        <div class="top">
+          <span class="ztrole" style="color: rgba(255,255,255,0.7);">Playing Fields</span>
+          <span class="ztfam" style="color: rgba(255,255,255,0.7);">Oswald · Google Fonts</span>
+        </div>
+        <p class="specimen">On the pitch</p>
+      </div>
+      <div class="zone-type zt-playground">
+        <div class="top">
+          <span class="ztrole">Playground</span>
+          <span class="ztfam">Nunito · Google Fonts</span>
+        </div>
+        <p class="specimen">Swing high, climb higher.</p>
+      </div>
+      <div class="zone-type zt-studio">
+        <div class="top">
+          <span class="ztrole">Studio</span>
+          <span class="ztfam">Josefin Sans · Google Fonts</span>
+        </div>
+        <p class="specimen">Light wood, light breath.</p>
+      </div>
+      <div class="zone-type zt-lounge">
+        <div class="top">
+          <span class="ztrole" style="color: rgba(238,199,118,0.7);">Lounge</span>
+          <span class="ztfam" style="color: rgba(238,199,118,0.7);">Righteous · Google Fonts</span>
+        </div>
+        <p class="specimen">Stay too late.</p>
+      </div>
+      <div class="zone-type zt-dra">
+        <div class="top">
+          <span class="ztrole">the DRA</span>
+          <span class="ztfam">Lobster · brand file</span>
+        </div>
+        <p class="specimen" style="color: var(--green-dark);">Run by volunteers</p>
+      </div>
+    </div>
+
+    <p class="bb-note">
+      Three of the display faces — Rexton, Billiard, Lobster — are licensed brand files. Use the OTFs
+      from <code>fonts/</code>, not a Google substitute. The others all live on Google Fonts. For body
+      and UI, only ever Plus Jakarta Sans — no exceptions, no Inter, no system stack.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     PHOTOGRAPHY
+     ============================================================ -->
+<section class="bb-sect">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Photography</div>
+      <h2>Sunny afternoon, not Instagram filter.</h2>
+    </div>
+    <div class="photo-grid">
+      <div class="photo" style="background-image: url('/assets/photos/hero.webp');">
+        <span class="cap">Hero · summer day</span>
+      </div>
+      <div class="photo" style="background-image: url('/assets/photos/bike-track.webp');">
+        <span class="cap">Bike track · action</span>
+      </div>
+      <div class="photo" style="background-image: url('/assets/photos/extravaganza-parachute.webp');">
+        <span class="cap">Extravaganza · joy</span>
+      </div>
+      <div class="photo" style="background-image: url('/assets/photos/brook.png');">
+        <span class="cap">Brook · bluebells</span>
+      </div>
+      <div class="photo" style="background-image: url('/assets/textures/pool-tile.png');">
+        <span class="cap">Pool tile · texture</span>
+      </div>
+      <div class="photo placeholder" aria-hidden="true">
+        Drop a new<br>zone photo here<br>4:5 ratio
+      </div>
+    </div>
+    <p class="bb-note">
+      Warm highlights, slightly lifted shadows. Greens lush and true, never teal-shifted. Skin tones
+      natural — never orange, never desaturated. Mix close-up texture (cladding, ripples, dough) with
+      mid-range activity shots. Wide establishing shots are useful but shouldn't dominate.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     HOUSE RULES
+     ============================================================ -->
+<section class="bb-sect" style="background: var(--paper-deep);">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">House rules</div>
+      <h2>The few things that will make work feel like Meadowbrook, or not.</h2>
+    </div>
+    <div class="rules">
+      <div class="rule do">
+        <div class="head">Do</div>
+        <p>Sit content on papery cream <code>#FBF0DF</code> when in doubt. It's the safest, most "us" canvas.</p>
+      </div>
+      <div class="rule dont">
+        <div class="head">Don't</div>
+        <p>Don't use bluish-purple gradients, multi-stop spectrums, or any kind of generated noise texture.</p>
+      </div>
+      <div class="rule do">
+        <div class="head">Do</div>
+        <p>Use real photography where you'd otherwise reach for an icon or illustration.</p>
+      </div>
+      <div class="rule dont">
+        <div class="head">Don't</div>
+        <p>Don't add 1px borders, hairline dividers or stroke outlines. Use a background shift or more space.</p>
+      </div>
+      <div class="rule do">
+        <div class="head">Do</div>
+        <p>Pick one zone per piece. Use its colours, its display font, its motif if it has one.</p>
+      </div>
+      <div class="rule dont">
+        <div class="head">Don't</div>
+        <p>Don't redraw the hand logo as SVG, change its colour, or place it inside a circle.</p>
+      </div>
+      <div class="rule do">
+        <div class="head">Do</div>
+        <p>Use sentence case everywhere except proper nouns. "Book a table", not "Book A Table".</p>
+      </div>
+      <div class="rule dont">
+        <div class="head">Don't</div>
+        <p>Don't use emoji in formal materials. Informal social posts may use them sparingly.</p>
+      </div>
+      <div class="rule do">
+        <div class="head">Do</div>
+        <p>Always show the hand-drawn map whole. It's hand-drawn, slightly imperfect — keep it that way.</p>
+      </div>
+      <div class="rule dont">
+        <div class="head">Don't</div>
+        <p>Don't crop, zoom or recolour the map. Don't generate AI imagery for any Meadowbrook use.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ASSETS
+     ============================================================ -->
+<section class="bb-sect">
+  <div class="mw-wrap">
+    <div class="sect-head">
+      <div class="bb-eyebrow">Assets</div>
+      <h2>What's already drawn. Use these before you make new ones.</h2>
+    </div>
+    <div class="asset-list">
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/logos/hand.png'); background-size: contain; background-repeat: no-repeat;"></div>
+        <div>
+          <div class="aname">Hand mark</div>
+          <div class="apath">assets/logos/hand.png</div>
+        </div>
+        <div class="atag">Logo</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/logos/bike-track-badge.png'); background-size: contain; background-repeat: no-repeat;"></div>
+        <div>
+          <div class="aname">Bike track badge</div>
+          <div class="apath">assets/logos/bike-track-badge.png</div>
+        </div>
+        <div class="atag">Zone mark</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/illustrations/map.png'); background-size: contain; background-repeat: no-repeat;"></div>
+        <div>
+          <div class="aname">Site map (hand-drawn)</div>
+          <div class="apath">assets/illustrations/map.png</div>
+        </div>
+        <div class="atag">Always whole</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/illustrations/pool-icon.png'); background-size: contain; background-repeat: no-repeat;"></div>
+        <div>
+          <div class="aname">Pool ring icon</div>
+          <div class="apath">assets/illustrations/pool-icon.png</div>
+        </div>
+        <div class="atag">Zone mark</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/illustrations/playing-fields-motif.png'); background-size: contain; background-repeat: no-repeat; background-color: #228B22;"></div>
+        <div>
+          <div class="aname">Playing fields motif</div>
+          <div class="apath">assets/illustrations/playing-fields-motif.png</div>
+        </div>
+        <div class="atag">Zone mark</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/textures/pool-tile.png');"></div>
+        <div>
+          <div class="aname">Pool tile texture</div>
+          <div class="apath">assets/textures/pool-tile.png</div>
+        </div>
+        <div class="atag">Background</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/photos/hero.webp');"></div>
+        <div>
+          <div class="aname">Site hero photo</div>
+          <div class="apath">assets/photos/hero.webp</div>
+        </div>
+        <div class="atag">Photo</div>
+      </div>
+
+      <div class="asset">
+        <div class="thumb" style="background-image: url('/assets/photos/brook.png');"></div>
+        <div>
+          <div class="aname">Brook · bluebells</div>
+          <div class="apath">assets/photos/brook.png</div>
+        </div>
+        <div class="atag">Photo</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONTACT
+     ============================================================ -->
+<section class="bb-sect">
+  <div class="mw-wrap">
+    <div class="contact-card">
+      <div>
+        <div class="bb-eyebrow">Anything else</div>
+        <h2>If you're not sure, just ask us before you publish.</h2>
+        <p>
+          We'd rather help you get something right than fix it afterwards. We're a charity run by
+          volunteers — small batch is fine, we're happy to give a sense check on a draft.
+        </p>
+      </div>
+      <div class="actions">
+        <a href="mailto:contact@meadowbrookdartington.org">Email us</a>
+        <a class="ghost" href="/">Back to site</a>
+      </div>
+    </div>
+    <div class="colophon">
+      <span>The Dartington Recreation Association · registered charity 1168817</span>
+      <span>Brand brief v1.0 · May 2026</span>
+    </div>
+  </div>
+</section>
+
+</Layout>
