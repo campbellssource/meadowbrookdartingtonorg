@@ -1,0 +1,363 @@
+/* ============================================================
+   MEADOWBROOK + THE DRA — DESIGN TOKENS
+   Colors, type, spacing, radii, shadows.
+   Drawn from the physical site — warm, papery, natural.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   FONT IMPORTS
+   Core: Plus Jakarta Sans (UI + body across all zones).
+   Zone display fonts: brand files in /fonts where supplied,
+   Google Fonts for the rest.
+   ------------------------------------------------------------ */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Righteous&display=swap");
+
+/* Brand fonts — served from /fonts. Listed first so they win over
+   any same-named Google import. */
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-Light.otf")     format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-Regular.otf")   format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-Medium.otf")    format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-Bold.otf")      format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-ExtraBold.otf") format("opentype"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Rexton";   src: url("fonts/Rexton-Black.otf")     format("opentype"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Billiard"; src: url("fonts/Billiard.otf")         format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Lobster";  src: url("fonts/Lobster_1.3.otf")      format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+
+:root {
+  /* ==========================================================
+     CORE PALETTE — the canvas
+     Warm, papery, hints of sandy stone. Greens from the logo
+     and grassy mounds. Bright primaries for punch.
+     ========================================================== */
+  --paper:        #FBF0DF;  /* base — warm cream, like sun on stone */
+  --paper-deep:   #F4E4CB;  /* one shade darker, for tonal layering */
+  --sand:         #D1B08B;  /* sandy stone block colour */
+  --bone:         #FFFFFF;  /* clean white */
+
+  --green:        #74A953;  /* logo green / grassy mounds */
+  --green-light:  #A7C756;  /* fresh upper green */
+  --green-dark:   #4D7A33;  /* deeper grass tone for AA contrast */
+
+  --sun:          #F9D21E;  /* strong warm yellow */
+  --sky:          #1DB5EF;  /* bright blue sky */
+
+  --night:        #3C3C3A;  /* building dark grey at night */
+  --ember:        #A73916;  /* warm red — building wood, festive accent */
+
+  --ink:          #28201A;  /* body text — warm near-black, never pure */
+  --ink-soft:     #5B4E42;  /* secondary text */
+  --ink-mute:     #8B7C6E;  /* tertiary / metadata */
+
+  /* ==========================================================
+     SEMANTIC ROLES
+     Use these in components; remap per zone via .zone-* classes.
+     ========================================================== */
+  --bg:           var(--paper);
+  --bg-elevated: #FFFBF2;
+  --bg-deep:      var(--paper-deep);
+  --bg-block:     var(--sand);
+  --fg:           var(--ink);
+  --fg-soft:      var(--ink-soft);
+  --fg-mute:      var(--ink-mute);
+  --fg-on-dark:   var(--bone);
+  --accent:       var(--green);
+  --accent-2:     var(--sun);
+  --accent-3:     var(--sky);
+  --warn:         var(--ember);
+
+  /* ==========================================================
+     TYPE — SIZES + WEIGHTS
+     Plus Jakarta Sans for all body + UI.
+     Display / Headline / Body / Label scale.
+     ========================================================== */
+  --font-body:    "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif; /* overridden per zone */
+
+  --fs-display:   3.5rem;   /* 56px — billboards */
+  --fs-display-s: 2.75rem;  /* 44px — mobile billboards */
+  --fs-headline:  2rem;     /* 32px — section starts */
+  --fs-headline-s: 1.75rem; /* 28px — mobile */
+  --fs-title:     1.375rem; /* 22px — card titles */
+  --fs-body:      1rem;     /* 16px */
+  --fs-body-s:    0.875rem; /* 14px */
+  --fs-label:     0.75rem;  /* 12px — eyebrows, chips */
+  --fs-label-s:   0.6875rem;/* 11px */
+
+  --lh-display:   1.05;
+  --lh-headline:  1.15;
+  --lh-body:      1.6;
+  --lh-tight:     1.3;
+
+  --tracking-display: -0.02em;
+  --tracking-body:    0;
+  --tracking-label:   0.05em;
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --fw-black:   800;
+
+  /* ==========================================================
+     SPACING — 4px base
+     ========================================================== */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  /* ==========================================================
+     RADII
+     Soft but not bubbly. Pulled tighter after first review —
+     buttons and nav now read as confident, not playful.
+     ========================================================== */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 14px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ==========================================================
+     SHADOWS — used sparingly. Tonal layering preferred.
+     ========================================================== */
+  --shadow-float: 0 20px 40px rgba(40, 35, 32, 0.06);
+  --shadow-press: 0 2px 6px rgba(40, 35, 32, 0.08);
+  --shadow-pop:   0 30px 80px -20px rgba(40, 35, 32, 0.18);
+
+  /* ==========================================================
+     MOTION — gentle. No bouncy/playful curves outside Playground/Bike.
+     ========================================================== */
+  --ease-natural: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:     140ms;
+  --dur-base:     220ms;
+  --dur-slow:     420ms;
+
+  /* ==========================================================
+     LAYOUT
+     ========================================================== */
+  --content-max: 1200px;
+  --content-narrow: 720px;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+/* ============================================================
+   BASE TYPE STYLES
+   Apply on the document, then override via zone classes.
+   ============================================================ */
+html { color-scheme: light; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, .h-display {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--fw-bold);
+  margin: 0;
+  text-wrap: balance;
+}
+
+h2, .h-headline {
+  font-family: var(--font-display);
+  font-size: var(--fs-headline);
+  line-height: var(--lh-headline);
+  letter-spacing: -0.01em;
+  font-weight: var(--fw-medium);
+  margin: 0;
+  text-wrap: balance;
+}
+
+h3, .h-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-semibold);
+  margin: 0;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+.eyebrow, .label {
+  font-family: var(--font-body);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--fw-medium);
+  color: var(--fg-soft);
+}
+
+a { color: inherit; text-decoration: underline; text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* ============================================================
+   ZONE THEMES
+   Drop one of these classes on a section / page root.
+   Each zone overrides --bg, --fg, accent and --font-display.
+   Core layout/spacing rules stay the same.
+   ============================================================ */
+
+/* Extravaganza & events ---------------------------------------- */
+.zone-extravaganza {
+  --bg: #F9D21E;
+  --bg-elevated: #FFE352;
+  --bg-deep: #E8BE0A;
+  --fg: var(--ink);
+  --accent: #A73916;
+  --accent-2: var(--green);
+  --font-display: "Abril Fatface", "Plus Jakarta Sans", serif;
+}
+
+/* Dartington Pool ---------------------------------------------- */
+.zone-pool {
+  --bg: #20B9DB;
+  --bg-elevated: #45BFDF;
+  --bg-deep: #1098B7;
+  --tile-1: #45BFDF;
+  --tile-2: #A0D8EA;
+  --tile-3: #6DC8E4;
+  --tile-4: #9CD6E9;
+  --fg: #000000;
+  --fg-soft: rgba(0,0,0,0.7);
+  --accent: #000000;
+  --accent-2: var(--bone);
+  --font-display: "Rexton", "Plus Jakarta Sans", sans-serif;
+  /* Rexton wants light weight, generous tracking, all caps */
+  --display-weight: 300;
+  --display-tracking: 0.18em;
+  --display-transform: uppercase;
+}
+
+/* Snooker Room ------------------------------------------------- */
+.zone-snooker {
+  --bg: #004D26;
+  --bg-elevated: #006633;
+  --bg-deep: #181C1B;
+  --fg: var(--bone);
+  --fg-soft: rgba(255,255,255,0.7);
+  --accent: var(--bone);
+  --accent-2: #F9D21E;
+  --font-display: "Billiard", "Plus Jakarta Sans", serif;
+  /* Billiard needs lots of room — use it sparingly, centred, with deep padding */
+}
+
+/* Scuba Diving Club -------------------------------------------- */
+.zone-scuba {
+  --bg: #0490A4;
+  --bg-elevated: #06A6BD;
+  --bg-deep: #036B7B;
+  --fg: var(--bone);
+  --accent: var(--bone);
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}
+
+/* Playing Fields ----------------------------------------------- */
+.zone-fields {
+  --bg: #228B22;
+  --bg-elevated: #2BA32B;
+  --bg-deep: #166916;
+  --fg: var(--bone);
+  --accent: var(--bone);
+  --font-display: "Oswald", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Playground --------------------------------------------------- */
+.zone-playground {
+  --bg: #FFA500;
+  --bg-elevated: #FFB72E;
+  --bg-deep: #E68A00;
+  --fg: var(--ink);
+  --accent: #FF4500;
+  --accent-2: var(--sky);
+  --font-display: "Nunito", "Plus Jakarta Sans", sans-serif;
+}
+
+/* The DRA ------------------------------------------------------ */
+.zone-dra {
+  --bg: var(--paper);
+  --fg: var(--ink);
+  --accent: var(--green);
+  --font-display: "Lobster", "Plus Jakarta Sans", cursive;
+}
+
+/* Bike Track --------------------------------------------------- */
+.zone-bike {
+  --bg: #F04E23;
+  --bg-elevated: #FF6A40;
+  --bg-deep: #C53A14;
+  --fg: #000000;
+  --accent: #000000;
+  --font-display: "Bebas Neue", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Studio (Yoga / Martial Arts) --------------------------------- */
+.zone-studio {
+  --bg: #F5DEB3;
+  --bg-elevated: #FBEACB;
+  --bg-deep: #E8C98A;
+  --fg: #4A2A0A;
+  --accent: #8B4513;
+  --accent-2: #D2691E;
+  --font-display: "Josefin Sans", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Lounge ------------------------------------------------------- */
+.zone-lounge {
+  --bg: #401D00;
+  --bg-elevated: #5A2A05;
+  --bg-deep: #2A1200;
+  --fg: #EEC776;
+  --accent: #EEC776;
+  --font-display: "Righteous", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Sauna -------------------------------------------------------- */
+.zone-sauna {
+  --bg: #A0522D;
+  --bg-elevated: #B36340;
+  --bg-deep: #7A3F22;
+  --fg: var(--bone);
+  --accent: var(--bone);
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}
+
+/* Bar / Nightlife --------------------------------------------- */
+.zone-bar {
+  --bg: #1A1A1A;
+  --bg-elevated: #2A2A2A;
+  --fg: var(--bone);
+  --accent: #F9D21E;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}
+
+/* ============================================================
+   UTILITY HELPERS used across the system
+   ============================================================ */
+.eyebrow-row { display: flex; align-items: center; gap: var(--space-2); }
+.eyebrow-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; opacity: 0.6; flex: none;
+}
+.stack > * + * { margin-top: var(--space-4); }
+.no-border { border: 0 !important; }
