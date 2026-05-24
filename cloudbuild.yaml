@@ -21,8 +21,8 @@ steps:
       - --region=europe-west2
       - --platform=managed
       - --allow-unauthenticated
-      - --set-env-vars=NODE_ENV=production,KEYSTATIC_GITHUB_STORAGE=true,BREVO_LIST_ID=2,ORIGIN=https://meadowbrookdartington.org
-      - --set-secrets=KEYSTATIC_GITHUB_CLIENT_ID=KEYSTATIC_GITHUB_CLIENT_ID:latest,KEYSTATIC_GITHUB_CLIENT_SECRET=KEYSTATIC_GITHUB_CLIENT_SECRET:latest,KEYSTATIC_SECRET=KEYSTATIC_SECRET:latest,BREVO_API_KEY=BREVO_API_KEY:latest
+      - --set-env-vars=NODE_ENV=production,KEYSTATIC_GITHUB_STORAGE=true,BREVO_LIST_ID=2,ORIGIN=https://meadowbrookdartington.org,PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic,PUBLIC_SQUARE_APPLICATION_ID=sq0idp-SJPH8U9hBP8q9dM97RSZmA,PUBLIC_SQUARE_LOCATION_ID=LT08J54D3THKE,PUBLIC_SQUARE_ENVIRONMENT=production
+      - --set-secrets=KEYSTATIC_GITHUB_CLIENT_ID=KEYSTATIC_GITHUB_CLIENT_ID:latest,KEYSTATIC_GITHUB_CLIENT_SECRET=KEYSTATIC_GITHUB_CLIENT_SECRET:latest,KEYSTATIC_SECRET=KEYSTATIC_SECRET:latest,BREVO_API_KEY=BREVO_API_KEY:latest,SQUARE_ACCESS_TOKEN=SQUARE_ACCESS_TOKEN:latest
 
 images:
   - europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook/site:$COMMIT_SHA
