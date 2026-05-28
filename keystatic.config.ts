@@ -179,6 +179,7 @@ export default config({
         url: fields.text({ label: 'Website URL' }),
         image: fields.image({
           label: 'Logo',
+          description: 'Upload a colour logo. PNG with a transparent background is ideal — avoid white backgrounds. If the logo has white text it will disappear on the site. Higher resolution is better. Logos without text work best.',
           directory: 'public/images/partners',
           publicPath: '/images/partners/',
         }),
@@ -235,6 +236,7 @@ export default config({
         url: fields.text({ label: 'Website URL' }),
         image: fields.image({
           label: 'Logo',
+          description: 'Upload a colour logo. PNG with a transparent background is ideal — avoid white backgrounds. If the logo has white text it will disappear on the site. Higher resolution is better. Logos without text work best.',
           directory: 'public/images/supporters',
           publicPath: '/images/supporters/',
         }),
