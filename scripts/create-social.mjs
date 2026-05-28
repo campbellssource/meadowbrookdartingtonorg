@@ -115,7 +115,7 @@ All welcome. No agenda, no formalities, just good company.
 
 ---
 
-The DRA Social takes place on the **last Thursday of every month**, from 7pm upstairs at Meadowbrook.
+The DRA Social takes place on the **last Thursday of every month**, from 7pm at Meadowbrook. If you can't find us, ask at the bar.
 `;
 
 // ── Generate OG image ──────────────────────────────────────────────────────
