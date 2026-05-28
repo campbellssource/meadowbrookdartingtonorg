@@ -36,7 +36,8 @@ function lastThursdayOf(year, month0) {
 }
 
 function toDateStr(d) {
-  return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 // ── Determine target month ─────────────────────────────────────────────────
