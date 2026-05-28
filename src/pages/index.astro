@@ -223,6 +223,7 @@ const energyHubImageSrc = homepage?.energyHubImage
             return (
               <a href={entry.url} target="_blank" rel="noopener noreferrer">
                 {imageSrc && <img src={imageSrc} alt={entry.name} />}
+                <span class="mw-logo-name">{entry.name}</span>
               </a>
             );
           })}
@@ -246,6 +247,7 @@ const energyHubImageSrc = homepage?.energyHubImage
             return (
               <a href={entry.url} target="_blank" rel="noopener noreferrer">
                 {imageSrc && <img src={imageSrc} alt={entry.name} />}
+                <span class="mw-logo-name">{entry.name}</span>
               </a>
             );
           })}
