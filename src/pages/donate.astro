@@ -58,6 +58,12 @@ const squareSdkUrl = squareEnv === 'sandbox'
             </div>
           </div>
 
+          <div id="large-donation-nudge" class="large-donation-nudge" hidden>
+            <strong>Thinking of giving £200 or more? We'd love to hear from you.</strong>
+            <p>For larger donations we'd really welcome a conversation — we can make sure your contribution has the most impact and explore any recognition you'd like. Drop us a line at <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a>.</p>
+            <p class="nudge-proceed">You're still very welcome to donate online if you prefer.</p>
+          </div>
+
           <div class="form-section" id="card-section">
             <label class="form-label">Card details</label>
             <div id="card-container"></div>
@@ -98,9 +104,14 @@ const squareSdkUrl = squareEnv === 'sandbox'
   const successEl = document.getElementById('success-message');
   const configMissingEl = document.getElementById('config-missing');
   const customInput = document.getElementById('custom-amount');
+  const largeNudgeEl = document.getElementById('large-donation-nudge');
 
   // Selected amount in pence
   let selectedPence = 2500;
+
+  function updateNudge() {
+    if (largeNudgeEl) largeNudgeEl.hidden = selectedPence < 20000;
+  }
 
   function formatGBP(pence) {
     const pounds = pence / 100;
@@ -131,6 +142,7 @@ const squareSdkUrl = squareEnv === 'sandbox'
       selectedPence = Number(btn.dataset.pence);
       if (customInput) customInput.value = '';
       updateAmountDisplay();
+      updateNudge();
     });
   });
 
@@ -141,6 +153,7 @@ const squareSdkUrl = squareEnv === 'sandbox'
       document.querySelectorAll('.amount-btn').forEach((b) => b.classList.remove('selected'));
       selectedPence = Math.round(val * 100);
       updateAmountDisplay();
+      updateNudge();
     }
   });
 
@@ -377,6 +390,43 @@ const squareSdkUrl = squareEnv === 'sandbox'
     background: #fdf0ee;
     color: #a93226;
     border: 1px solid #f0b8b2;
+  }
+
+  .large-donation-nudge {
+    background: #f4f8ef;
+    border: 1.5px solid #a8d18c;
+    border-radius: var(--r-md);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--fg);
+  }
+
+  .large-donation-nudge strong {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-size: 0.9rem;
+  }
+
+  .large-donation-nudge p {
+    margin: 0 0 var(--space-2);
+    color: var(--fg-soft);
+  }
+
+  .large-donation-nudge p:last-child {
+    margin-bottom: 0;
+  }
+
+  .large-donation-nudge a {
+    color: var(--green);
+    text-decoration: underline;
+  }
+
+  .nudge-proceed {
+    font-style: italic;
+    color: var(--fg-mute) !important;
+    font-size: 0.825rem;
   }
 
   .donate-submit {
