@@ -191,18 +191,23 @@ const energyHubImageSrc = homepage?.energyHubImage
   {homepage?.banners && homepage.banners.length > 0 && (
     <section class="mw-sect">
       <div class="mw-wrap" style="display: grid; gap: 1.5rem;">
-        {homepage.banners.map((banner) => (
-          <div class="mw-banner">
-            <div>
-              <h3>{banner.title}</h3>
-              <p>{banner.body}</p>
-              {banner.link && (
-                <a href={banner.link} class="mw-btn mw-btn-primary">{banner.linkLabel || 'Find out more'}</a>
-              )}
+        {homepage.banners.map((banner) => {
+          const bannerImg = banner.image
+            ? (banner.image.startsWith('/') ? banner.image : `/images/banners/${banner.image}`)
+            : '/assets/photos/extravaganza-parachute.webp';
+          return (
+            <div class="mw-banner">
+              <div>
+                <h3>{banner.title}</h3>
+                <p>{banner.body}</p>
+                {banner.link && (
+                  <a href={banner.link} class="mw-btn mw-btn-primary">{banner.linkLabel || 'Find out more'}</a>
+                )}
+              </div>
+              <div class="visual" style={`background-image: url('${bannerImg}');`}></div>
             </div>
-            <div class="visual" style="background-image: url('/assets/photos/extravaganza-parachute.webp');"></div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   )}

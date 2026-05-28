@@ -63,6 +63,12 @@ export default config({
             body: fields.text({ label: 'Body text', multiline: true }),
             link: fields.text({ label: 'Link URL' }),
             linkLabel: fields.text({ label: 'Link label' }),
+            image: fields.image({
+              label: 'Image',
+              description: 'Photo shown on the right side of the banner. Landscape format works best.',
+              directory: 'public/images/banners',
+              publicPath: '/images/banners/',
+            }),
           }),
           {
             label: 'Banners',
