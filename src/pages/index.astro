@@ -41,24 +41,32 @@ const allFacilities = (await reader.collections.facilities.all())
   .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
 
 const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview() : null;
+const introTextNodes = homepage?.introText ? await homepage.introText() : null;
+
+const energyHubImageSrc = homepage?.energyHubImage
+  ? (homepage.energyHubImage.startsWith('/') ? homepage.energyHubImage : `/images/energy-hub/${homepage.energyHubImage}`)
+  : '/images/energy-hub/image+30.png.webp';
 ---
 
 <Layout title="Home" navOnPhoto>
   <section class="mw-hero">
     <div class="photo" style="background-image: url('/assets/photos/hero.webp');"></div>
     <div class="content mw-wrap">
-      <h1>{homepage?.heroHeading ?? 'Come as you are.'}</h1>
-      <p class="hero-sub">The recreational heart of Dartington</p>
+      <h1>{homepage?.heroHeading || 'Come as you are.'}</h1>
+      <p class="hero-sub">{homepage?.heroSubtitle || 'The recreational heart of Dartington'}</p>
       <div class="actions">
-        <a href="/facilities" class="mw-btn mw-btn-sun">Explore facilities</a>
-        <a href="/about" class="mw-btn mw-btn-ghost">About the DRA</a>
+        <a href={homepage?.heroCtaPrimaryUrl || '/facilities'} class="mw-btn mw-btn-sun">{homepage?.heroCtaPrimaryLabel || 'Explore facilities'}</a>
+        <a href={homepage?.heroCtaSecondaryUrl || '/about'} class="mw-btn mw-btn-ghost">{homepage?.heroCtaSecondaryLabel || 'About the DRA'}</a>
       </div>
     </div>
   </section>
 
   <section class="mw-sect tight">
     <div class="mw-wrap mw-intro">
-      <p>Meadowbrook is managed by <a href="/about">The Dartington Recreation Association</a>, a charity run by volunteers who manage the Meadowbrook building and surrounding facilities on behalf of the Dartington community.</p>
+      {introTextNodes
+        ? <DocumentRenderer document={introTextNodes} />
+        : <p>Meadowbrook is managed by <a href="/about">The Dartington Recreation Association</a>, a charity run by volunteers who manage the Meadowbrook building and surrounding facilities on behalf of the Dartington community.</p>
+      }
     </div>
   </section>
 
@@ -73,7 +81,7 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
     return (
       <section class="mw-sect">
         <div class="mw-wrap">
-          <span class="mw-eyebrow">What's on</span>
+          <span class="mw-eyebrow">{homepage?.eventsHeading || "What's on"}</span>
 
           {featured && (
             <div class="mw-event-featured" style="margin-top: var(--space-5);">
@@ -151,12 +159,12 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
     <div class="mw-wrap">
       <div class="mw-banner mw-banner--green">
         <div>
-          <span class="mw-eyebrow mw-eyebrow--on-green">Community initiative</span>
-          <h3>Meadowbrook Energy Hub</h3>
-          <p>We're working with our neighbours to build shared solar and clean heating infrastructure - cutting costs, cutting carbon, and keeping the benefits in the community.</p>
-          <a href="/energy-hub" class="mw-btn mw-btn-sun">Find out more</a>
+          <span class="mw-eyebrow mw-eyebrow--on-green">{homepage?.energyHubEyebrow || 'Community initiative'}</span>
+          <h3>{homepage?.energyHubTitle || 'Meadowbrook Energy Hub'}</h3>
+          <p>{homepage?.energyHubBody || "We're working with our neighbours to build shared solar and clean heating infrastructure - cutting costs, cutting carbon, and keeping the benefits in the community."}</p>
+          <a href={homepage?.energyHubCtaUrl || '/energy-hub'} class="mw-btn mw-btn-sun">{homepage?.energyHubCtaLabel || 'Find out more'}</a>
         </div>
-        <div class="visual" style="background-image: url('/images/energy-hub/image+30.png.webp');"></div>
+        <div class="visual" style={`background-image: url('${energyHubImageSrc}');`}></div>
       </div>
     </div>
   </section>
@@ -169,7 +177,7 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
             <img src="/assets/illustrations/map.png" alt="Hand-drawn map of Meadowbrook" />
           </div>
           <div class="copy">
-            <span class="mw-eyebrow">About Meadowbrook</span>
+            <span class="mw-eyebrow">{homepage?.aboutSectionEyebrow || 'About Meadowbrook'}</span>
             <div class="mw-article" style="padding: 0;">
               <DocumentRenderer document={aboutPreviewNodes} />
             </div>
@@ -203,8 +211,8 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
     <div class="mw-wrap">
       <div class="mw-sect-head">
         <div>
-          <span class="mw-eyebrow">Partners</span>
-          <h2>In partnership with</h2>
+          <span class="mw-eyebrow">{homepage?.partnersEyebrow || 'Partners'}</span>
+          <h2>{homepage?.partnersHeading || 'In partnership with'}</h2>
         </div>
         {homepage?.partnersIntro && <div class="right">{homepage.partnersIntro}</div>}
       </div>
@@ -228,8 +236,8 @@ const aboutPreviewNodes = homepage?.aboutPreview ? await homepage.aboutPreview()
       <div class="mw-wrap">
         <div class="mw-sect-head">
           <div>
-            <span class="mw-eyebrow">Supporters</span>
-            <h2>With thanks to</h2>
+            <span class="mw-eyebrow">{homepage?.supportersEyebrow || 'Supporters'}</span>
+            <h2>{homepage?.supportersHeading || 'With thanks to'}</h2>
           </div>
         </div>
         <div class="mw-supporters">
