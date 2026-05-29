@@ -1,6 +1,6 @@
-name: Snooker
+name: Snooker Room
 order: 5
-shortDescription: Snooker tables available for booking
+shortDescription: Full-size snooker table available to hire in Dartington, near Totnes. Book by the hour — cues and equipment included.
 image: /images/facilities/snooker-room/image.png
 facilityType:
   discriminant: bookable
