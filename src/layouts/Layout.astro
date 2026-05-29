@@ -10,6 +10,7 @@ interface Props {
   navOnPhoto?: boolean;
   bodyClass?: string;
   noindex?: boolean;
+  structuredData?: Record<string, unknown>;
 }
 
 const {
@@ -19,6 +20,7 @@ const {
   navOnPhoto = false,
   bodyClass = "",
   noindex = false,
+  structuredData,
 } = Astro.props;
 
 const siteUrl = 'https://meadowbrookdartington.org';
@@ -53,6 +55,9 @@ const navFacilities = (await reader.collections.facilities.all())
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={ogImageUrl} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {structuredData && (
+      <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    )}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | Meadowbrook Dartington</title>
     <link rel="stylesheet" href="/styles/global.css" />

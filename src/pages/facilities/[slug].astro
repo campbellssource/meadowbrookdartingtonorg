@@ -36,6 +36,61 @@ const secondImage: string | null = discriminant === 'bookable' ? ((value as any)
 const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
 
 const zone = zoneFor(slug);
+
+const address = {
+  "@type": "PostalAddress",
+  streetAddress: "Shinners Bridge",
+  addressLocality: "Dartington",
+  addressRegion: "Devon",
+  postalCode: "TQ9 6JD",
+  addressCountry: "GB",
+};
+
+const structuredDataMap: Record<string, Record<string, unknown>> = {
+  'snooker-room': {
+    "@context": "https://schema.org",
+    "@type": "SportsActivityLocation",
+    name: "Snooker Room — Meadowbrook Dartington",
+    description: "Full-size snooker table available to hire by the hour in Dartington, near Totnes. Cues and equipment included. Drinks available from the bar downstairs when open.",
+    url: "https://meadowbrookdartington.org/facilities/snooker-room",
+    address,
+    sport: "Snooker",
+    containedInPlace: {
+      "@type": "CivicStructure",
+      name: "Meadowbrook",
+      address,
+    },
+  },
+  'large-room': {
+    "@context": "https://schema.org",
+    "@type": "SportsActivityLocation",
+    name: "Studio — Meadowbrook Dartington",
+    description: "Versatile 75 m² studio and events space with high vaulted ceiling in Dartington, near Totnes. Ideal for yoga, martial arts, dance, meetings and events. Parquet floor section and full-length wall-mounted barre included.",
+    url: "https://meadowbrookdartington.org/facilities/large-room",
+    address,
+    sport: ["Yoga", "Martial Arts", "Dance"],
+    containedInPlace: {
+      "@type": "CivicStructure",
+      name: "Meadowbrook",
+      address,
+    },
+  },
+  'small-room': {
+    "@context": "https://schema.org",
+    "@type": "MeetingRoom",
+    name: "Lounge — Meadowbrook Dartington",
+    description: "Comfortable lounge space available to hire in Dartington, near Totnes. Ideal for small presentations, meetings, and private gatherings. Kitchen access included.",
+    url: "https://meadowbrookdartington.org/facilities/small-room",
+    address,
+    containedInPlace: {
+      "@type": "CivicStructure",
+      name: "Meadowbrook",
+      address,
+    },
+  },
+};
+
+const structuredData = structuredDataMap[slug] ?? undefined;
 ---
 
 <Layout
@@ -43,6 +98,7 @@ const zone = zoneFor(slug);
   description={facility.shortDescription ?? undefined}
   ogImage={`/images/facilities/${slug}-og.jpg`}
   bodyClass={`zone-${zone}`}
+  structuredData={structuredData}
 >
   <section class="mw-zone-hero">
     <div class="mw-wrap">
