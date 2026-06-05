@@ -77,6 +77,41 @@ export default config({
         ),
       },
     }),
+
+    projectsPage: singleton({
+      label: 'Projects & Ideas page',
+      path: 'src/content/projects-page',
+      format: { data: 'yaml' },
+      schema: {
+        eyebrow: fields.text({ label: 'Eyebrow label', defaultValue: 'Look after Meadowbrook' }),
+        heading: fields.text({ label: 'Page heading', defaultValue: 'Projects & Ideas' }),
+        intro: fields.text({
+          label: 'Intro paragraph',
+          multiline: true,
+          description: 'Sets the tone. Frame it as an invitation to get involved, not a list of problems.',
+        }),
+        howItWorks: fields.text({
+          label: '"How it works" text',
+          multiline: true,
+          description: 'Short explanation of how someone can put their hand up or contribute.',
+        }),
+        contactEmail: fields.text({
+          label: 'Email for "I want to help" enquiries',
+          description: 'Where the "Get involved" buttons send people when a project has no named lead. e.g. contact@meadowbrookdartington.org',
+        }),
+        ideasHeading: fields.text({ label: 'Ideas section heading', defaultValue: 'Got an idea?' }),
+        ideasBody: fields.text({
+          label: 'Ideas section text',
+          multiline: true,
+          description: 'Encourage people to share ideas for the space, however unformed.',
+        }),
+        ideasButtonLabel: fields.text({ label: 'Ideas button label', defaultValue: 'Share an idea' }),
+        ideasEmail: fields.text({
+          label: 'Email for idea submissions',
+          description: 'Where the "Share an idea" button sends people. e.g. ideas@meadowbrookdartington.org',
+        }),
+      },
+    }),
   },
 
   collections: {
@@ -250,6 +285,117 @@ export default config({
           label: 'Display order',
           description: 'Lower numbers appear first.',
         }),
+      },
+    }),
+
+    projects: collection({
+      label: 'Projects & Ideas',
+      slugField: 'title',
+      path: 'src/content/projects/*',
+      format: { data: 'yaml' },
+      columns: ['category', 'status'],
+      schema: {
+        title: fields.slug({ name: { label: 'Title' } }),
+        category: fields.select({
+          label: 'Type',
+          description: 'Jobs are practical tasks. Bigger projects need funding, expertise or planning. Ideas are early thoughts.',
+          options: [
+            { label: 'Job — a practical task someone can take on', value: 'job' },
+            { label: 'Bigger project — needs funding, expertise or planning', value: 'project' },
+            { label: 'Idea — an early thought, not yet a plan', value: 'idea' },
+          ],
+          defaultValue: 'job',
+        }),
+        status: fields.select({
+          label: 'Status',
+          options: [
+            { label: 'Open — looking for people', value: 'open' },
+            { label: 'Lead found — someone is coordinating', value: 'lead' },
+            { label: 'In progress', value: 'progress' },
+            { label: 'Done — completed', value: 'done' },
+          ],
+          defaultValue: 'open',
+        }),
+        order: fields.number({
+          label: 'Display order',
+          description: 'Within its group, lower numbers appear first. Use this to surface priorities.',
+          defaultValue: 50,
+        }),
+        scope: fields.select({
+          label: 'Rough effort',
+          description: 'Helps people judge what they are signing up for.',
+          options: [
+            { label: 'Quick win — a couple of hours', value: 'quick' },
+            { label: 'Half a day', value: 'half-day' },
+            { label: 'A full workday', value: 'day' },
+            { label: 'Major — multi-day or specialist', value: 'major' },
+            { label: 'Not sure yet', value: 'unknown' },
+          ],
+          defaultValue: 'unknown',
+        }),
+        summary: fields.text({
+          label: 'Summary',
+          multiline: true,
+          description: 'One or two sentences shown on the listing. Frame it as an opportunity.',
+        }),
+        image: fields.image({
+          label: 'Main image (optional)',
+          description: 'The first image shown on the listing card and project page. Landscape works best. Keep under 1MB.',
+          directory: 'public/images/projects',
+          publicPath: '/images/projects/',
+        }),
+        gallery: fields.array(
+          fields.image({
+            label: 'Image',
+            directory: 'public/images/projects',
+            publicPath: '/images/projects/',
+          }),
+          {
+            label: 'More images',
+            description: 'Extra photos people can flick through on the card and the project page, without opening it.',
+            itemLabel: props => props.value || 'Image',
+          }
+        ),
+        body: richTextWithImages('Full description'),
+        helpNeeded: fields.array(
+          fields.text({ label: 'Item' }),
+          {
+            label: 'Help, skills or materials needed',
+            description: 'e.g. "A plumber", "Concrete and a mixer", "Two people for a morning".',
+            itemLabel: props => props.value || 'Item',
+          }
+        ),
+        lead: fields.object(
+          {
+            name: fields.text({ label: 'Lead name' }),
+            contact: fields.text({
+              label: 'Lead contact',
+              description: 'Email address or mailto: link. Leave blank to use the page default.',
+            }),
+          },
+          { label: 'Project lead (optional)' }
+        ),
+        completedDate: fields.date({
+          label: 'Completed date',
+          description: 'Set this when the project is done. Used on the thank-you version of the page.',
+        }),
+        contributors: fields.array(
+          fields.object({
+            name: fields.text({ label: 'Name' }),
+            business: fields.text({ label: 'Business or organisation (optional)' }),
+            url: fields.text({ label: 'Website (optional)' }),
+            logo: fields.image({
+              label: 'Business logo (optional)',
+              description: 'PNG with a transparent background is ideal. Shown in the thank-you strip.',
+              directory: 'public/images/projects/contributors',
+              publicPath: '/images/projects/contributors/',
+            }),
+          }),
+          {
+            label: 'Contributors (shown when the project is done)',
+            itemLabel: props => props.fields.name.value || 'Contributor',
+          }
+        ),
       },
     }),
   },

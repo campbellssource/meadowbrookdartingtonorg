@@ -1,0 +1,133 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+const page = await reader.singletons.projectsPage.read();
+const all = await reader.collections.projects.all();
+
+type Row = (typeof all)[number];
+const byOrder = (a: Row, b: Row) => (a.entry.order ?? 50) - (b.entry.order ?? 50);
+
+const active = all.filter(({ entry }) => entry.status !== 'done');
+const jobs = active.filter(({ entry }) => entry.category === 'job').sort(byOrder);
+const projects = active.filter(({ entry }) => entry.category === 'project').sort(byOrder);
+const ideas = active.filter(({ entry }) => entry.category === 'idea').sort(byOrder);
+const done = all
+  .filter(({ entry }) => entry.status === 'done')
+  .sort((a, b) => {
+    const da = a.entry.completedDate ?? '';
+    const db = b.entry.completedDate ?? '';
+    return db.localeCompare(da);
+  });
+
+function shortDate(dateStr?: string | null) {
+  if (!dateStr) return '';
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+const ideasMailto = page?.ideasEmail
+  ? `mailto:${page.ideasEmail}?subject=${encodeURIComponent('An idea for Meadowbrook')}`
+  : null;
+---
+
+<Layout title={page?.heading || 'Projects & Ideas'} description={page?.intro ?? undefined} noindex={true}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-6);">
+    <div class="mw-wrap" style="max-width: var(--content-narrow); margin: 0 auto;">
+      <span class="mw-eyebrow">{page?.eyebrow || 'Look after Meadowbrook'}</span>
+      <h1>{page?.heading || 'Projects & Ideas'}</h1>
+      {page?.intro && (
+        <p style="font-size: 1.2rem; line-height: 1.6; color: var(--ink-soft); margin-top: var(--space-4); max-width: 60ch;">
+          {page.intro}
+        </p>
+      )}
+      {page?.howItWorks && (
+        <p style="font-size: 1rem; line-height: 1.6; color: var(--ink-soft); margin-top: var(--space-3); max-width: 60ch;">
+          {page.howItWorks}
+        </p>
+      )}
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: var(--space-5);">
+    <div class="mw-wrap">
+
+      {jobs.length > 0 && (
+        <div class="mw-proj-group">
+          <div class="mw-sect-head"><div>
+            <span class="mw-eyebrow">Roll up your sleeves</span>
+            <h2>Jobs to do</h2>
+          </div></div>
+          <div class="mw-projects">
+            {jobs.map(({ slug, entry }) => <ProjectCard slug={slug} entry={entry} />)}
+          </div>
+        </div>
+      )}
+
+      {projects.length > 0 && (
+        <div class="mw-proj-group">
+          <div class="mw-sect-head"><div>
+            <span class="mw-eyebrow">Working towards</span>
+            <h2>Bigger projects</h2>
+          </div></div>
+          <div class="mw-projects">
+            {projects.map(({ slug, entry }) => <ProjectCard slug={slug} entry={entry} />)}
+          </div>
+        </div>
+      )}
+
+      {ideas.length > 0 && (
+        <div class="mw-proj-group">
+          <div class="mw-sect-head"><div>
+            <span class="mw-eyebrow">Early thoughts</span>
+            <h2>Ideas we're exploring</h2>
+          </div></div>
+          <div class="mw-projects">
+            {ideas.map(({ slug, entry }) => <ProjectCard slug={slug} entry={entry} />)}
+          </div>
+        </div>
+      )}
+
+      <div class="mw-idea-cta">
+        <span class="mw-eyebrow">{page?.ideasHeading || 'Got an idea?'}</span>
+        <h2>{page?.ideasHeading || 'Got an idea?'}</h2>
+        {page?.ideasBody && <p>{page.ideasBody}</p>}
+        {ideasMailto && (
+          <a href={ideasMailto} class="mw-btn mw-btn-primary">{page?.ideasButtonLabel || 'Share an idea'}</a>
+        )}
+      </div>
+
+      {done.length > 0 && (
+        <div class="mw-proj-group mw-done-group">
+          <div class="mw-sect-head"><div>
+            <span class="mw-eyebrow">A growing list</span>
+            <h2>Done &mdash; with thanks</h2>
+          </div></div>
+          <div class="mw-done-list">
+            {done.map(({ slug, entry }) => {
+              const names = (entry.contributors ?? [])
+                .map(c => c.name || c.business)
+                .filter(Boolean);
+              return (
+                <a href={`/projects/${slug}`} class="mw-done-item">
+                  <span class="mw-done-check" aria-hidden="true">&#10003;</span>
+                  <span class="mw-done-text">
+                    <strong>{entry.title}</strong>
+                    {entry.completedDate && <span class="mw-done-date">{shortDate(entry.completedDate)}</span>}
+                    {names.length > 0 && <span class="mw-done-thanks">With thanks to {names.join(', ')}</span>}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+    </div>
+  </section>
+</Layout>
