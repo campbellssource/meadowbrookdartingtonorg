@@ -12,6 +12,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Righteous&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap");
 
 /* Brand fonts - served from /fonts. */
 @font-face { font-family: "Rexton";   src: url("/fonts/Rexton-Light.otf")     format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
@@ -186,9 +187,12 @@ img { max-width: 100%; display: block; }
    ZONE THEMES
    ============================================================ */
 .zone-extravaganza {
-  --bg: #F9D21E; --bg-elevated: #FFE352; --bg-deep: #E8BE0A;
-  --fg: var(--ink); --accent: #A73916; --accent-2: var(--green);
-  --font-display: "Abril Fatface", "Plus Jakarta Sans", serif;
+  /* v2.0 — festival orange field, Poppins caps, bunting brights. */
+  --bg: #F47B1F; --bg-elevated: #F78C39; --bg-deep: #DD680F;
+  --fg: var(--bone); --accent: #F9D21E; --accent-2: var(--sky);
+  --font-display: "Poppins", "Helvetica Neue", Arial, sans-serif;
+  --bunt-orange: #F47B1F; --bunt-sun: #F9D21E; --bunt-sky: #1DB5EF;
+  --bunt-green: #74A953; --bunt-pink: #E84C7A; --bunt-teal: #1E9E8E;
 }
 .zone-pool {
   --bg: #20B9DB; --bg-elevated: #45BFDF; --bg-deep: #1098B7;

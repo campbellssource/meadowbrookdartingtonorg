@@ -1,0 +1,484 @@
+---
+export const prerender = true;
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Extravaganza — sub-brand"
+  description="The Meadowbrook Extravaganza sub-brand: festival orange, Poppins capitals, bunting and polaroid scenes — the one day a year the brand turns the volume up."
+  noindex={true}
+>
+
+<style>
+  /* ----------------------------------------------------------------
+     EXTRAVAGANZA SUB-BRAND GUIDE — page-local layout
+     Built on the core tokens. Documents the one zone where the brand
+     turns the volume up: festival orange, Poppins caps, bunting,
+     polaroid scenes, and text in white / black / colour.
+     Tokens (--bg, --bunt-*, --font-display) come from .zone-extravaganza.
+  ---------------------------------------------------------------- */
+
+  .ext { background: var(--paper); color: var(--ink); }
+
+  .wrap        { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter); box-sizing: border-box; }
+  .wrap-narrow { width: 100%; max-width: 760px;  margin: 0 auto; padding: 0 var(--gutter); box-sizing: border-box; }
+
+  .ext section { padding: var(--space-8) 0; }
+  .ext section.tight { padding: var(--space-6) 0; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase;
+    font-weight: 700; color: var(--green-dark);
+  }
+  .eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; flex: none; }
+
+  .sect-head { margin-bottom: var(--space-6); display: grid; gap: 14px; }
+  .sect-head h2 {
+    font-family: var(--font-body);
+    font-weight: 700; font-size: clamp(1.7rem, 3vw, 2.4rem); line-height: 1.06;
+    letter-spacing: -0.02em; margin: 0; max-width: 24ch;
+  }
+  .sect-head p { font-size: 1.05rem; line-height: 1.6; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+  /* back link */
+  .backlink { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255,255,255,0.92); text-decoration: none; margin: var(--space-6) 0 0; }
+  .backlink:hover { color: #fff; }
+
+  /* ============ POLAROID — the image treatment ============ */
+  .polaroid {
+    background: #fff; padding: 12px; border-radius: 3px;
+    box-shadow: 0 16px 38px rgba(40,35,32,0.22); display: inline-block;
+  }
+  .polaroid .pic { overflow: hidden; background: #1DB5EF; display: block; }
+  .polaroid .pic.sq { aspect-ratio: 1 / 1; }
+  .polaroid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .polaroid figcaption {
+    font-family: "Lobster", cursive; font-weight: 400; font-size: 1.15rem;
+    color: var(--ink-soft); text-align: center; padding: 12px 6px 2px; line-height: 1.1;
+  }
+  .tilt-l { transform: rotate(-2.2deg); }
+  .tilt-r { transform: rotate(1.9deg); }
+
+  /* ============ BUNTING — the signature motif ============ */
+  .bunting { position: relative; height: 30px; display: flex; }
+  .bunting::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 2px; background: currentColor; opacity: 0.5; border-radius: 2px; }
+  .bunting i { flex: 1 1 0; clip-path: polygon(0 0, 100% 0, 50% 100%); margin-top: 4px; }
+  .bunt-band { display: flex; height: 56px; }
+  .bunt-band i { flex: 1 1 0; }
+  .bunt-band.down i { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+  .bunt-band.up i { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+
+  /* ============ HERO ============ */
+  .hero { background: var(--bg); color: #fff; position: relative; overflow: hidden; padding-bottom: var(--space-8); }
+  .hero .stamp { display: inline-flex; align-items: center; gap: 14px; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; color: rgba(255,255,255,0.9); margin: var(--space-7) 0 26px; }
+  .hero .stamp img { height: 46px; width: auto; }
+  .hero .kicker { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.22em; font-size: clamp(0.85rem, 1.6vw, 1.05rem); color: rgba(255,255,255,0.92); margin: 0 0 6px; }
+  .hero .wordmark { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.005em; line-height: 0.86; font-size: clamp(1.9rem, 7.4vw, 6rem); color: #fff; margin: 0; }
+  .hero .lede { margin: 28px 0 0; max-width: 50ch; font-size: clamp(1.1rem, 1.7vw, 1.3rem); line-height: 1.55; color: rgba(255,255,255,0.94); }
+  .hero .lede b { color: #fff; font-weight: 700; }
+  .hero .lede .ink-chip { background: #221c17; color: #fff; padding: 1px 9px; border-radius: 5px; font-weight: 700; }
+
+  .po-strip { display: flex; gap: 26px; flex-wrap: wrap; margin-top: var(--space-7); }
+  .po-strip .polaroid { width: 248px; }
+
+  /* ============ STORY ============ */
+  .story p { font-size: 1.08rem; line-height: 1.7; color: var(--ink); margin: 0 0 1.1em; max-width: 64ch; }
+  .story p.lead { font-size: 1.3rem; line-height: 1.5; font-weight: 500; margin-bottom: 1.3em; }
+  .story strong { font-weight: 700; }
+  .arrow-note { margin-top: var(--space-6); padding: var(--space-5) var(--space-6); background: #FFFBF2; border-radius: var(--r-lg); font-size: 1.05rem; line-height: 1.6; color: var(--ink); }
+  .arrow-note b { color: var(--ember); }
+
+  /* ============ COLOUR ============ */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .swatch { border-radius: var(--r-md); padding: 16px; height: 120px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+  .swatch .role { font-size: 13px; font-weight: 700; }
+  .swatch .hex { font-family: ui-monospace, monospace; font-size: 12px; opacity: 0.8; }
+  .swatch.outline { box-shadow: inset 0 0 0 1.5px rgba(40,35,32,0.12); }
+  .sub-label { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); font-weight: 700; margin: var(--space-6) 0 12px; }
+  .colour-note { font-size: 1.02rem; line-height: 1.6; color: var(--ink-soft); max-width: 62ch; margin: 0 0 16px; }
+
+  /* colours used AS text */
+  .text-as-colour { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-top: 6px; }
+  .tac-card { border-radius: var(--r-lg); padding: 26px 28px; }
+  .tac-card.on-orange { background: var(--bg); }
+  .tac-card.on-cream { background: #FFFBF2; box-shadow: inset 0 0 0 1.5px rgba(40,35,32,0.07); }
+  .tac-card .lab2 { font-family: var(--font-body); font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; }
+  .on-orange .lab2 { color: rgba(255,255,255,0.75); }
+  .on-cream .lab2 { color: var(--ink-mute); }
+  .tac-words { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: 1.5rem; letter-spacing: -0.01em; }
+
+  /* ============ TYPE ============ */
+  .three-ways { display: grid; gap: 14px; }
+  .kw-demo { border-radius: var(--r-lg); padding: 26px 30px; background: var(--bg); }
+  .kw-demo .lab2 { font-family: var(--font-body); font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; color: rgba(255,255,255,0.7); }
+  .kw-line { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: -0.012em; line-height: 1.05; font-size: clamp(1.5rem, 4.2vw, 2.5rem); }
+
+  .type-rows { margin-top: var(--space-6); display: grid; gap: 0; }
+  .type-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 18px 0; align-items: baseline; }
+  .type-row:nth-child(even) { background: var(--paper-deep); border-radius: var(--r-md); padding: 18px; margin: 0 -18px; }
+  .type-row .lab { font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); font-weight: 700; }
+  .type-row .lab small { display: block; text-transform: none; letter-spacing: 0; color: var(--ink-mute); font-weight: 500; margin-top: 4px; font-size: 11px; }
+  .specimen-wordmark { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; font-size: 2rem; color: var(--ink); }
+  .specimen-body { font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6; color: var(--ink); max-width: 52ch; }
+
+  /* ============ POLAROID TREATMENT SECTION ============ */
+  .poly-how { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); align-items: center; }
+  .poly-how .demo { display: flex; justify-content: center; }
+  .poly-how .demo .polaroid { width: 340px; }
+  .poly-how .notes h3 { font-weight: 700; font-size: 1.12rem; margin: 0 0 8px; }
+  .poly-how .notes p { font-size: 1.02rem; line-height: 1.65; color: var(--ink); margin: 0 0 1em; max-width: 50ch; }
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .pill { font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: var(--r-pill); background: var(--paper-deep); color: var(--ink-soft); }
+
+  /* ============ LOGO LOCKUP ============ */
+  .lockups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+  .lockup-card { border-radius: var(--r-lg); padding: clamp(28px, 4vw, 44px); display: flex; align-items: center; justify-content: center; min-height: 220px; min-width: 0; }
+  .lockup-card.on-orange { background: var(--bg); }
+  .lockup-card.on-cream { background: #FFFBF2; box-shadow: inset 0 0 0 1.5px rgba(40,35,32,0.07); }
+  .lockup { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+  .lockup img { height: 60px; width: auto; }
+  .lockup .mb { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.01em; font-size: 1rem; text-transform: uppercase; }
+  .lockup .ex { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; line-height: 0.9; font-size: clamp(1.4rem, 3vw, 2.2rem); max-width: 100%; overflow-wrap: break-word; }
+  .on-orange .mb, .on-orange .ex { color: #fff; }
+  .on-cream .mb { color: var(--ink-soft); }
+  .on-cream .ex { color: var(--bg); }
+
+  /* ============ IN USE ============ */
+  .inuse { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-5); align-items: start; }
+  .inuse .frame { border-radius: var(--r-lg); overflow: hidden; background: var(--bg); display: block; aspect-ratio: 4 / 3; }
+  .inuse .frame img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .inuse .cap { margin-top: 12px; }
+  .inuse .cap .t { font-weight: 700; font-size: 14px; }
+  .inuse .cap .s { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+
+  /* ============ DO / DON'T ============ */
+  .dd { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+  .dd .col h3 { font-weight: 700; font-size: 1.05rem; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+  .dd .tick { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; flex: none; }
+  .dd .do .tick { background: var(--green-dark); }
+  .dd .dont .tick { background: var(--ember); }
+  .dd ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .dd li { font-size: 1.0rem; line-height: 1.5; color: var(--ink); padding-left: 18px; position: relative; }
+  .dd li::before { content: ""; position: absolute; left: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-mute); opacity: 0.4; }
+
+  /* ============ SPEC REFERENCE ============ */
+  .spec { background: var(--night); color: rgba(255,255,255,0.78); padding: var(--space-7) 0; }
+  .spec .bunting { color: var(--sun); margin-bottom: var(--space-6); }
+  .spec .frow { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+  .spec .ftitle { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #fff; font-size: 1.4rem; }
+  .spec code { font-family: ui-monospace, monospace; font-size: 12px; color: var(--sun); }
+  .asset-list { margin-top: var(--space-5); display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .asset-list .a { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .asset-list .a code { display: block; margin-top: 2px; }
+
+  @media (max-width: 820px) {
+    .text-as-colour, .poly-how, .lockups, .dd { grid-template-columns: 1fr; }
+    .type-row { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+
+<div class="ext zone-extravaganza">
+
+  <!-- ====================================================== HERO -->
+  <header class="hero">
+    <div class="bunt-band down">
+      <i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+      <i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+      <i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+    </div>
+    <div class="wrap">
+      <div class="stamp">
+        <img src="/assets/logos/hand.png" alt="Meadowbrook + DRA hand mark">
+        <span>Extravaganza sub-brand · v2.0 · June 2026</span>
+      </div>
+      <p class="kicker">Meadowbrook</p>
+      <h1 class="wordmark">Extravaganza</h1>
+      <p class="lede">Our one loud day of the year. Festival orange, <b>Poppins</b> capitals, bunting strung everywhere, and our own place in a <b>polaroid</b>. Text rings out in white, <span class="ink-chip">black</span>, or the bunting brights — and it stays unmistakably Meadowbrook.</p>
+      <a class="backlink" href="/brand">← Back to the brand brief</a>
+
+      <div class="po-strip">
+        <figure class="polaroid tilt-l">
+          <div class="pic sq"><img src="/assets/illustrations/extravaganza-scene.png" alt="Illustrated pool, building and bunting" style="object-position:center 38%"></div>
+          <figcaption>by the pool</figcaption>
+        </figure>
+        <figure class="polaroid tilt-r">
+          <div class="pic sq"><img src="/assets/photos/extravaganza-banner-2025.png" alt="Last year's orange banner"></div>
+          <figcaption>the banner, years running</figcaption>
+        </figure>
+        <figure class="polaroid tilt-l">
+          <div class="pic sq"><img src="/assets/photos/extravaganza-post-2025.png" alt="Last summer's social post"></div>
+          <figcaption>last summer's post</figcaption>
+        </figure>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====================================================== THE IDEA -->
+  <section class="tight">
+    <div class="wrap-narrow">
+      <div class="eyebrow">The idea</div>
+      <div class="story" style="margin-top:18px;">
+        <p class="lead">You already know this brand. It's been on a banner over the field for years, and on our socials last summer. We're not inventing it — we're making it official.</p>
+        <p>The core Meadowbrook palette is calm and papery. The Extravaganza takes its two <strong>warmest</strong> core colours — <strong>sun yellow</strong> and <strong>ember red</strong>, the wood of the building — and meets them in the middle at a single, joyful <strong>festival orange</strong>. It's the loudest the brand ever gets, and it's still made entirely of Meadowbrook.</p>
+        <p>On that orange we set <strong>EXTRAVAGANZA</strong> in Poppins capitals, string up <strong>bunting</strong>, frame our illustrated place in a <strong>white-bordered polaroid</strong>, and let the keyword headlines ring out in white, black or the brights.</p>
+      </div>
+      <div class="arrow-note">
+        What changed in v2: the hero face is now <b>Poppins</b> (Rexton stays with the Pool), images get the <b>polaroid</b> treatment, and <b>black</b> joins white as an everyday text colour — with the brights available for playful keyword bursts.
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== COLOUR -->
+  <section style="background: var(--paper-deep);">
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">Colour</div>
+        <h2>Orange leads. The core palette, warmed up.</h2>
+        <p>Festival orange is the field for everything. The core brights sit on top for type and detail, and string up as bunting. They double as <strong>text colours</strong> too — see below.</p>
+      </div>
+
+      <div class="sub-label">The field &amp; core accents</div>
+      <div class="swatch-grid">
+        <div class="swatch" style="background:#F47B1F; color:#fff"><div class="role">Festival orange · field</div><div class="hex">#F47B1F</div></div>
+        <div class="swatch" style="background:#F9D21E; color:#28201A"><div class="role">Sun</div><div class="hex">#F9D21E</div></div>
+        <div class="swatch" style="background:#1DB5EF; color:#fff"><div class="role">Sky</div><div class="hex">#1DB5EF</div></div>
+        <div class="swatch" style="background:#74A953; color:#fff"><div class="role">Green</div><div class="hex">#74A953</div></div>
+        <div class="swatch" style="background:#E84C7A; color:#fff"><div class="role">Pink</div><div class="hex">#E84C7A</div></div>
+        <div class="swatch" style="background:#1E9E8E; color:#fff"><div class="role">Teal</div><div class="hex">#1E9E8E</div></div>
+        <div class="swatch" style="background:#A73916; color:#fff"><div class="role">Ember</div><div class="hex">#A73916</div></div>
+        <div class="swatch outline" style="background:#FFFFFF; color:#28201A"><div class="role">White</div><div class="hex">#FFFFFF</div></div>
+        <div class="swatch" style="background:#221c17; color:#fff"><div class="role">Black · in the mix</div><div class="hex">#221C17</div></div>
+      </div>
+
+      <div class="sub-label">The brights, used as text</div>
+      <p class="colour-note">White is the hero voice; black is the confident, graphic voice; the brights are the playful voice — best in short keyword bursts. On orange, lean on the punchier tones (white, black, sky, ember). On white or cream, the whole set sings. <strong>Sun yellow is an accent only</strong> — never a body or headline colour on its own.</p>
+      <div class="text-as-colour">
+        <div class="tac-card on-orange">
+          <div class="lab2">On festival orange</div>
+          <div class="tac-words">
+            <span style="color:#FFFFFF">Music.</span>
+            <span style="color:#221c17">Food.</span>
+            <span style="color:#1DB5EF">Family&nbsp;fun.</span>
+            <span style="color:#E84C7A">Fête.</span>
+          </div>
+        </div>
+        <div class="tac-card on-cream">
+          <div class="lab2">On white / cream</div>
+          <div class="tac-words">
+            <span style="color:#F47B1F">Music.</span>
+            <span style="color:#1E9E8E">Food.</span>
+            <span style="color:#E84C7A">Family&nbsp;fun.</span>
+            <span style="color:#74A953">Fête.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== TYPE -->
+  <section>
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">Type &amp; voice</div>
+        <h2>Three ways to set the keywords.</h2>
+        <p>The wordmark and the keyword headlines — <strong>Music. Food. Family fun. Fête.</strong> — are set in <strong>Poppins</strong>, heavy, all caps. Choose one voice per piece: white to shout, black to feel graphic and confident, or the brights for a playful burst.</p>
+      </div>
+
+      <div class="three-ways">
+        <div class="kw-demo">
+          <div class="lab2">1 · White — the loudest</div>
+          <div class="kw-line" style="color:#fff">Music. Food. Family fun. Fête.</div>
+        </div>
+        <div class="kw-demo">
+          <div class="lab2">2 · Black — confident &amp; graphic</div>
+          <div class="kw-line" style="color:#221c17">Music. Food. Family fun. Fête.</div>
+        </div>
+        <div class="kw-demo">
+          <div class="lab2">3 · In the colours — playful</div>
+          <div class="kw-line"><span style="color:#fff">Music.</span> <span style="color:#221c17">Food.</span> <span style="color:#1DB5EF">Family fun.</span> <span style="color:#E84C7A">Fête.</span></div>
+        </div>
+      </div>
+
+      <div class="type-rows">
+        <div class="type-row">
+          <div class="lab">Wordmark<small>Poppins ExtraBold, uppercase</small></div>
+          <div class="specimen-wordmark">Extravaganza</div>
+        </div>
+        <div class="type-row">
+          <div class="lab">Headline<small>Poppins ExtraBold, uppercase</small></div>
+          <div class="specimen-wordmark" style="font-size:1.4rem;">Sunday 11 July · noon–6pm</div>
+        </div>
+        <div class="type-row">
+          <div class="lab">Body &amp; UI<small>Plus Jakarta Sans</small></div>
+          <div class="specimen-body">A whole day of stalls, performances, a raffle and the famous dog show — right by the pool we're working to bring back. Come as you are.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== POLAROID -->
+  <section style="background: var(--paper-deep);">
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">Imagery</div>
+        <h2>Our place, in a polaroid.</h2>
+        <p>Photography leads the rest of Meadowbrook. The Extravaganza is the sanctioned exception — a flat, sunny illustration of <em>our</em> site — and we give it the <strong>polaroid</strong> treatment: a thick white border and a roughly square crop, like a snap pinned to the village hall board.</p>
+      </div>
+      <div class="poly-how">
+        <div class="demo">
+          <figure class="polaroid tilt-r" style="width:340px">
+            <div class="pic sq"><img src="/assets/illustrations/extravaganza-scene.png" alt="Polaroid of the pool, building and bunting" style="object-position:center 38%"></div>
+            <figcaption>Meadowbrook pool · July</figcaption>
+          </figure>
+        </div>
+        <div class="notes">
+          <h3>How to build it</h3>
+          <p>Even white border (roughly 4–6% of the image width), square or near-square crop, a soft drop shadow, and a gentle tilt of a degree or two. An optional handwritten caption in <strong>Lobster</strong> sits in the lower border.</p>
+          <h3>Keep it honest</h3>
+          <p>The photo inside is always our flat illustration — hand-made, a little imperfect, never glossy 3-D, gradients or AI render. One polaroid as the hero of a piece; a small cluster only for a scrapbook feel.</p>
+          <div class="pill-row">
+            <span class="pill">Thick white border</span>
+            <span class="pill">Square-ish crop</span>
+            <span class="pill">Soft shadow</span>
+            <span class="pill">Slight tilt</span>
+            <span class="pill">Lobster caption</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== LOGO LOCKUP -->
+  <section>
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">Logo lockup</div>
+        <h2>The hand mark, then Meadowbrook, then the wordmark.</h2>
+        <p>The Extravaganza signs off with the standard DRA <strong>hand mark</strong> — its sun rays already do the celebrating — over the Meadowbrook name, with EXTRAVAGANZA as the headline. Don't recolour or redraw the hand.</p>
+      </div>
+      <div class="lockups">
+        <div class="lockup-card on-orange">
+          <div class="lockup">
+            <img src="/assets/logos/hand.png" alt="DRA hand mark">
+            <div class="mb">Meadowbrook</div>
+            <div class="ex">Extravaganza</div>
+          </div>
+        </div>
+        <div class="lockup-card on-cream">
+          <div class="lockup">
+            <img src="/assets/logos/hand.png" alt="DRA hand mark">
+            <div class="mb">Meadowbrook</div>
+            <div class="ex">Extravaganza</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== BUNTING MOTIF -->
+  <section style="background: var(--paper-deep);">
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">Motif</div>
+        <h2>Bunting is the one device we string everywhere.</h2>
+        <p>Simple triangular pennants on a line — the universal shorthand for a fête. Use the bunting set, mix the colours freely, and let it cross the top and bottom of a layout as a full-bleed band, or dip gently between elements.</p>
+      </div>
+      <div style="background:var(--bg); border-radius:var(--r-lg); padding:0; overflow:hidden;">
+        <div class="bunt-band down">
+          <i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+          <i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+          <i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-orange)"></i>
+        </div>
+        <div style="height:96px; display:grid; place-items:center; color:#fff; font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:0.06em; font-size:1.1rem;">Top &amp; tail any layout</div>
+        <div class="bunt-band up">
+          <i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-orange)"></i><i style="background:var(--bunt-teal)"></i>
+          <i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-orange)"></i><i style="background:var(--bunt-teal)"></i>
+          <i style="background:var(--bunt-green)"></i><i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-orange)"></i><i style="background:var(--bunt-teal)"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== IN USE -->
+  <section>
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">In use</div>
+        <h2>The brand, applied.</h2>
+        <p>One field colour, one wordmark, one motif, one polaroid — flexed across the day's collateral.</p>
+      </div>
+      <div class="inuse">
+        <div>
+          <div class="frame"><img src="/assets/photos/extravaganza-poster-thumb.png" alt="Extravaganza event poster"></div>
+          <div class="cap"><div class="t">Event poster</div><div class="s">Portrait · stalls, dog show, raffle</div></div>
+        </div>
+        <div>
+          <div class="frame"><img src="/assets/photos/extravaganza-banner-2025.png" alt="Wide Extravaganza banner"></div>
+          <div class="cap"><div class="t">Web / field banner</div><div class="s">Wide · strung over the field</div></div>
+        </div>
+        <div>
+          <div class="frame"><img src="/assets/photos/extravaganza-post-2025.png" alt="Extravaganza social post"></div>
+          <div class="cap"><div class="t">Social post</div><div class="s">Square · last summer's announcement</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== DO / DON'T -->
+  <section style="background: var(--paper-deep);">
+    <div class="wrap">
+      <div class="sect-head">
+        <div class="eyebrow">In short</div>
+        <h2>Do &amp; don't.</h2>
+      </div>
+      <div class="dd">
+        <div class="col do">
+          <h3><span class="tick">✓</span> Do</h3>
+          <ul>
+            <li>Lead with festival orange and Poppins capitals.</li>
+            <li>Set keywords in white, black, or a bright burst.</li>
+            <li>Frame the illustrated scene as a white-bordered polaroid.</li>
+            <li>Top and tail layouts with a full-bleed bunting band.</li>
+            <li>Sign off with the hand mark + Meadowbrook lockup.</li>
+            <li>Keep body copy in Plus Jakarta Sans, sentence case.</li>
+          </ul>
+        </div>
+        <div class="col dont">
+          <h3><span class="tick">✕</span> Don't</h3>
+          <ul>
+            <li>Don't use Rexton here — that's the Pool's face.</li>
+            <li>Don't set sun yellow as a headline or body colour.</li>
+            <li>Don't use the bunting colours as flat blocks of UI.</li>
+            <li>Don't recolour, outline or redraw the hand mark.</li>
+            <li>Don't add gradients, 3-D or AI renders to the scene.</li>
+            <li>Don't skip the white border — a bare image isn't the look.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== SPEC REFERENCE -->
+  <section class="spec">
+    <div class="wrap">
+      <div class="bunting">
+        <i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i>
+        <i style="background:var(--bunt-sun)"></i><i style="background:var(--bunt-sky)"></i><i style="background:var(--bunt-pink)"></i><i style="background:var(--bunt-teal)"></i><i style="background:var(--bunt-green)"></i>
+      </div>
+      <div class="frow">
+        <div class="ftitle">Meadowbrook Extravaganza</div>
+        <div>A sub-brand of Meadowbrook + the DRA · <code>.zone-extravaganza</code></div>
+      </div>
+      <div class="asset-list">
+        <div class="a">Field colour<code>#F47B1F · --bg in .zone-extravaganza</code></div>
+        <div class="a">Wordmark<code>Poppins ExtraBold → Helvetica Neue / Arial</code></div>
+        <div class="a">Text colours<code>#FFFFFF · #221C17 · the brights</code></div>
+        <div class="a">Hero scene<code>/assets/illustrations/extravaganza-scene.png</code></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</Layout>
