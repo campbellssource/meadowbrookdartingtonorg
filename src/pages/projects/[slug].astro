@@ -1,0 +1,181 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProjectGallery from '../../components/ProjectGallery.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+const { slug } = Astro.params;
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.projects.read(slug as string);
+
+if (!entry) {
+  return Astro.redirect('/projects');
+}
+
+const page = await reader.singletons.projectsPage.read();
+const bodyNodes = await entry.body();
+
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Open',
+  lead: 'Lead found',
+  progress: 'In progress',
+  done: 'Done',
+};
+const SCOPE_LABEL: Record<string, string> = {
+  quick: 'Quick win — a couple of hours',
+  'half-day': 'Half a day',
+  day: 'A full workday',
+  major: 'Major — multi-day or specialist',
+  unknown: '',
+};
+const CATEGORY_LABEL: Record<string, string> = {
+  job: 'Job',
+  project: 'Bigger project',
+  idea: 'Idea',
+};
+
+const isDone = entry.status === 'done';
+const contributors = (entry.contributors ?? []).filter(c => c.name || c.business);
+
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return '';
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+const resolveImg = (img: string) => (img.startsWith('/') ? img : `/images/projects/${img}`);
+const images: string[] = [entry.image, ...(entry.gallery ?? [])]
+  .filter((i): i is string => Boolean(i))
+  .map(resolveImg);
+const imageSrc = images[0] ?? null;
+
+const helpEmail = entry.lead?.contact?.trim() || page?.contactEmail || 'contact@meadowbrookdartington.org';
+const helpAddress = helpEmail.startsWith('mailto:') ? helpEmail.slice(7) : helpEmail;
+const helpMailto = `mailto:${helpAddress}?subject=${encodeURIComponent(`I'd like to help: ${entry.title}`)}`;
+const eyebrowText = isDone ? 'Done — with thanks' : CATEGORY_LABEL[entry.category];
+---
+
+<Layout title={entry.title} description={entry.summary ?? undefined} ogImage={imageSrc ?? undefined} noindex={true}>
+  {images.length > 0 ? (
+    <section class="mw-event-hero mw-proj-hero">
+      <ProjectGallery images={images} alt={entry.title} variant="hero" />
+      <div class="overlay mw-wrap">
+        <span class="mw-eyebrow" style="color: rgba(255,255,255,0.85);">{eyebrowText}</span>
+      </div>
+    </section>
+  ) : (
+    <section class="mw-zone-hero" style="padding-bottom: var(--space-6);">
+      <div class="mw-wrap">
+        <span class="mw-eyebrow">{eyebrowText}</span>
+      </div>
+    </section>
+  )}
+
+  <section class="mw-sect" style={imageSrc ? "padding-top: var(--space-7);" : "padding-top: 0;"}>
+    <div class="mw-wrap" style="max-width: var(--content-narrow); margin: 0 auto;">
+
+      <div class="mw-proj-tags" style="margin-bottom: var(--space-3);">
+        <span class={`mw-status mw-status--${entry.status}`}>{STATUS_LABEL[entry.status]}</span>
+        {!isDone && SCOPE_LABEL[entry.scope] && <span class="mw-chip">{SCOPE_LABEL[entry.scope]}</span>}
+      </div>
+
+      <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.02em; line-height: 1.05; margin-bottom: var(--space-5);">
+        {entry.title}
+      </h1>
+
+      {entry.summary && (
+        <p style="font-size: 1.2rem; line-height: 1.6; color: var(--ink-soft); margin-bottom: var(--space-6);">
+          {entry.summary}
+        </p>
+      )}
+
+      {!isDone && (
+        <div class="mw-event-meta">
+          <div class="mw-event-meta-row">
+            <span class="label">Type</span>
+            <span>{CATEGORY_LABEL[entry.category]}</span>
+          </div>
+          {SCOPE_LABEL[entry.scope] && (
+            <div class="mw-event-meta-row">
+              <span class="label">Effort</span>
+              <span>{SCOPE_LABEL[entry.scope]}</span>
+            </div>
+          )}
+          {entry.lead?.name && (
+            <div class="mw-event-meta-row">
+              <span class="label">Lead</span>
+              <span>{entry.lead.name}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {bodyNodes && bodyNodes.length > 0 && (
+        <article class="mw-article" style="padding: 0; margin: 0;">
+          <DocumentRenderer document={bodyNodes} />
+        </article>
+      )}
+
+      {!isDone && entry.helpNeeded && entry.helpNeeded.length > 0 && (
+        <div class="mw-help-needed">
+          <h3>What would help</h3>
+          <ul>
+            {entry.helpNeeded.map(item => item && <li>{item}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {!isDone && (
+        <div class="mw-getinvolved-cta">
+          <h3>{entry.lead?.name ? `Get in touch with ${entry.lead.name}` : 'Want to help with this?'}</h3>
+          <p>
+            {entry.lead?.name
+              ? 'Drop a line and let them know how you’d like to get involved — whether that’s lending a hand, a skill, or some materials.'
+              : 'Put your hand up — to lend a hand, take the lead, or donate time or materials. We’d love to hear from you.'}
+          </p>
+          <a href={helpMailto} class="mw-btn mw-btn-primary">I&rsquo;d like to help</a>
+        </div>
+      )}
+
+      {isDone && (
+        <div class="mw-thanks-block">
+          {entry.completedDate && (
+            <p class="mw-thanks-date">Completed {formatDate(entry.completedDate)}</p>
+          )}
+          {contributors.length > 0 && (
+            <>
+              <span class="mw-eyebrow">With thanks to</span>
+              <div class="mw-supporters mw-thanks-supporters">
+                {contributors.map(c => {
+                  const logoSrc = c.logo
+                    ? (c.logo.startsWith('/') ? c.logo : `/images/projects/contributors/${c.logo}`)
+                    : null;
+                  const label = c.business || c.name;
+                  const inner = (
+                    <>
+                      {logoSrc && <img src={logoSrc} alt={label} />}
+                      <span class="mw-logo-name">{c.name}{c.business && c.name ? ` · ${c.business}` : c.business || ''}</span>
+                    </>
+                  );
+                  return c.url ? (
+                    <a href={c.url} target="_blank" rel="noopener noreferrer">{inner}</a>
+                  ) : (
+                    <span class="mw-thanks-nolink">{inner}</span>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      <div style="margin-top: var(--space-7);">
+        <a href="/projects" class="mw-back">All projects &amp; ideas</a>
+      </div>
+    </div>
+  </section>
+</Layout>

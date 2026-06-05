@@ -1,0 +1,79 @@
+---
+interface Props {
+  images: string[];
+  alt: string;
+  variant?: 'card' | 'hero';
+}
+const { images, alt, variant = 'card' } = Astro.props;
+const multiple = images.length > 1;
+---
+
+<div class={`mw-gallery mw-gallery--${variant}`} data-gallery>
+  <div class="mw-gallery-slides">
+    {images.map((src, i) => (
+      <div
+        class={`mw-gallery-slide ${i === 0 ? 'is-active' : ''}`}
+        data-slide={i}
+        role="img"
+        aria-label={images.length > 1 ? `${alt} (image ${i + 1} of ${images.length})` : alt}
+        aria-hidden={i === 0 ? 'false' : 'true'}
+        style={`background-image: url('${src}')`}
+      ></div>
+    ))}
+  </div>
+
+  {multiple && (
+    <>
+      <button type="button" class="mw-gallery-nav prev" data-prev aria-label="Previous image">
+        <span aria-hidden="true">&#8249;</span>
+      </button>
+      <button type="button" class="mw-gallery-nav next" data-next aria-label="Next image">
+        <span aria-hidden="true">&#8250;</span>
+      </button>
+      <div class="mw-gallery-dots">
+        {images.map((_, i) => (
+          <button type="button" class={`mw-gallery-dot ${i === 0 ? 'is-active' : ''}`} data-dot={i} aria-label={`Show image ${i + 1}`}></button>
+        ))}
+      </div>
+    </>
+  )}
+</div>
+
+<script>
+  function initGalleries() {
+    document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
+      if (gallery.dataset.ready === 'true') return;
+      gallery.dataset.ready = 'true';
+
+      const slides = Array.from(gallery.querySelectorAll<HTMLElement>('.mw-gallery-slide'));
+      const dots = Array.from(gallery.querySelectorAll<HTMLElement>('.mw-gallery-dot'));
+      if (slides.length < 2) return;
+
+      let current = 0;
+      const show = (next: number) => {
+        const i = (next + slides.length) % slides.length;
+        slides[current].classList.remove('is-active');
+        slides[current].setAttribute('aria-hidden', 'true');
+        dots[current]?.classList.remove('is-active');
+        current = i;
+        slides[current].classList.add('is-active');
+        slides[current].setAttribute('aria-hidden', 'false');
+        dots[current]?.classList.add('is-active');
+      };
+
+      // Stop clicks on the controls from following a card link.
+      const guard = (handler: () => void) => (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handler();
+      };
+
+      gallery.querySelector('[data-prev]')?.addEventListener('click', guard(() => show(current - 1)));
+      gallery.querySelector('[data-next]')?.addEventListener('click', guard(() => show(current + 1)));
+      dots.forEach((dot, i) => dot.addEventListener('click', guard(() => show(i))));
+    });
+  }
+
+  initGalleries();
+  document.addEventListener('astro:page-load', initGalleries);
+</script>

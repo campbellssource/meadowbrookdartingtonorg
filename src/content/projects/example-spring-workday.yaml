@@ -1,0 +1,22 @@
+title: Spring workday site tidy-up (example)
+category: job
+status: done
+order: 50
+scope: day
+summary: >-
+  EXAMPLE ENTRY - replace with your real workday. A great turnout gave the site
+  a thorough spring tidy-up.
+completedDate: '2026-05-10'
+helpNeeded: []
+lead:
+  name: ''
+  contact: ''
+contributors:
+  - name: The Saturday volunteers
+    business: ''
+    url: ''
+    logo: ''
+  - name: ''
+    business: A local business (add logo)
+    url: ''
+    logo: ''
