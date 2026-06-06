@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 
 export const POST: APIRoute = async ({ request }) => {
-  const apiKey = import.meta.env.BREVO_API_KEY;
-  const listId = Number(import.meta.env.BREVO_LIST_ID);
+  const apiKey = process.env.BREVO_API_KEY ?? import.meta.env.BREVO_API_KEY;
+  const listId = Number(process.env.BREVO_LIST_ID ?? import.meta.env.BREVO_LIST_ID);
 
   if (!apiKey || !listId) {
     return new Response(
