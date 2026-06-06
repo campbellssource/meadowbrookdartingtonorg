@@ -1,0 +1,256 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+import { existsSync } from 'node:fs';
+
+// The Extravaganza is a special event type with a full micro-brand (festival
+// orange, Poppins caps, bunting, polaroid scene). This static route overrides
+// the generic calendar/[slug].astro template for this one slug. Content is read
+// from the events collection so Keystatic stays the source of truth; the
+// festival layout is bespoke (like a facility zone page).
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.events.read('extravaganza');
+
+if (!entry) {
+  return Astro.redirect('/calendar');
+}
+
+const bodyNodes = await entry.body();
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+const dateLabel = entry.date ? formatDate(entry.date) : 'Saturday 11 July';
+const timeLabel = entry.startTime
+  ? (entry.endTime ? `${entry.startTime}–${entry.endTime}` : entry.startTime)
+  : null;
+
+// Share image fallback chain: a hand-made PNG wins, else the generated branded
+// card, else the page-level default in Layout.
+const providedShare = ['extravaganza-share.png', 'extravaganza-share.jpg']
+  .find((f) => existsSync(`public/images/events/${f}`));
+const ogImage = providedShare
+  ? `/images/events/${providedShare}`
+  : '/images/events/extravaganza-og.jpg';
+
+// Bunting — pennant brights, repeated to fill the band. Never sun-yellow as a
+// keyword colour, but fine on the pennants.
+const bunt = ['sky', 'pink', 'sun', 'teal', 'green', 'orange'];
+const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt.length]);
+
+// Activities, each tinted in a legible bright (sun excluded — accent only).
+const activities = [
+  { word: 'Music', c: '#ffffff' },
+  { word: 'BBQ', c: '#1DB5EF' },
+  { word: 'Games', c: '#E84C7A' },
+  { word: 'Stalls', c: '#221c17' },
+  { word: 'Football tournament', c: '#1E9E8E' },
+  { word: 'Dog show', c: '#74A953' },
+  { word: 'Bouncy castles', c: '#ffffff' },
+];
+
+const sceneSrc = '/assets/illustrations/extravaganza-scene.webp';
+---
+
+<Layout
+  title="Extravaganza"
+  description="Meadowbrook's annual fête and fundraiser — music, food and family fun on Saturday 11 July, noon till 5pm. Raising money for the community pool. Volunteers and stallholders wanted."
+  ogImage={ogImage}
+  bodyClass="zone-extravaganza"
+>
+  <!-- bunting, top -->
+  <div class="ex-bunt-band down" aria-hidden="true">
+    {buntRow(24).map((c) => <i style={`background: var(--bunt-${c})`}></i>)}
+  </div>
+
+  <!-- HERO -->
+  <section class="mw-sect ex-hero">
+    <div class="mw-wrap ex-hero-grid">
+      <div class="ex-hero-copy">
+        <div class="ex-stamp">
+          <img src="/assets/logos/hand.png" alt="Meadowbrook + DRA hand mark" />
+          <span>Meadowbrook</span>
+        </div>
+        <h1 class="ex-wordmark">Extravaganza</h1>
+        <p class="ex-sub">Our annual fête and fundraiser</p>
+        <p class="ex-keys">
+          <span style="color:#ffffff">Music.</span>
+          <span style="color:#221c17">Food.</span>
+          <span style="color:#1DB5EF">Family fun.</span>
+        </p>
+        {timeLabel && (
+          <p class="ex-when">{dateLabel} <span class="dot">&middot;</span> <span class="ex-time">{timeLabel}</span></p>
+        )}
+      </div>
+
+      <figure class="ex-polaroid">
+        <div class="pic"><img src={sceneSrc} alt="The Meadowbrook pool, community building and bunting" /></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- WHAT'S ON -->
+  <section class="mw-sect tight ex-acts-sect">
+    <div class="mw-wrap">
+      <h2 class="ex-h2">What&rsquo;s on</h2>
+      <ul class="ex-acts">
+        {activities.map((a) => (
+          <li style={`color:${a.c}`}>{a.word}</li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- DETAILS / BODY -->
+  <section class="mw-sect tight">
+    <div class="mw-wrap ex-detail-grid">
+      <div class="ex-meta">
+        <div class="ex-meta-row"><span class="k">Date</span><span class="v">{dateLabel}</span></div>
+        {timeLabel && <div class="ex-meta-row"><span class="k">Time</span><span class="v">{timeLabel}</span></div>}
+        {entry.location && <div class="ex-meta-row"><span class="k">Where</span><span class="v">{entry.location}</span></div>}
+        {entry.ctaLabel && entry.ctaUrl && (
+          <a href={entry.ctaUrl} class="mw-btn ex-btn">{entry.ctaLabel}</a>
+        )}
+      </div>
+      <div class="ex-body">
+        {entry.summary && <p class="ex-lead">{entry.summary}</p>}
+        {bodyNodes && bodyNodes.length > 0 && (
+          <article class="ex-article"><DocumentRenderer document={bodyNodes} /></article>
+        )}
+        <a href="/calendar" class="ex-back">All events</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- bunting, bottom -->
+  <div class="ex-bunt-band up" aria-hidden="true">
+    {buntRow(24).map((c) => <i style={`background: var(--bunt-${c})`}></i>)}
+  </div>
+</Layout>
+
+<style>
+  /* The whole page rides on .zone-extravaganza (orange --bg, white --fg)
+     applied to .mw-app by Layout. These styles add the festival fixtures. */
+
+  /* ---- Bunting bands (full bleed) ---- */
+  .ex-bunt-band { display: flex; height: 46px; width: 100%; }
+  .ex-bunt-band i { flex: 1 1 0; display: block; }
+  .ex-bunt-band.down i { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+  .ex-bunt-band.up i { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+
+  /* ---- Hero ---- */
+  .ex-hero { padding-top: var(--space-7); }
+  .ex-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 0.95fr;
+    gap: var(--space-7);
+    align-items: center;
+  }
+  .ex-stamp {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-family: "Poppins", sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; font-size: 1rem; color: #fff; margin-bottom: var(--space-5);
+  }
+  .ex-stamp img { height: 42px; width: auto; }
+  .ex-wordmark {
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.02em; line-height: 0.9;
+    font-size: clamp(2.4rem, 6.5vw, 5rem); color: #fff; margin: 0;
+  }
+  .ex-sub {
+    font-family: "Poppins", sans-serif; font-weight: 600;
+    font-size: clamp(1.1rem, 2.2vw, 1.6rem); color: #fff; margin: 14px 0 0;
+  }
+  .ex-keys {
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; line-height: 1.05;
+    font-size: clamp(1.3rem, 3.4vw, 2.3rem); margin: 18px 0 0;
+    display: flex; flex-wrap: wrap; gap: 0 0.4em;
+  }
+  .ex-when {
+    font-family: "Poppins", sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.01em; font-size: clamp(1.05rem, 2vw, 1.5rem);
+    color: #fff; margin: 22px 0 0;
+  }
+  .ex-when .dot { opacity: 0.6; margin: 0 4px; }
+  .ex-when .ex-time { color: var(--sun); }
+
+  /* ---- Polaroid ---- */
+  .ex-polaroid {
+    background: #fff; padding: 16px 16px 30px; border-radius: 4px; margin: 0;
+    box-shadow: 0 20px 50px rgba(40,35,32,0.30);
+    transform: rotate(1.8deg); justify-self: center; max-width: 520px; width: 100%;
+  }
+  .ex-polaroid .pic {
+    aspect-ratio: 1 / 0.9; overflow: hidden; background: #1DB5EF; display: block;
+  }
+  .ex-polaroid img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 40%; display: block;
+  }
+
+  /* ---- What's on ---- */
+  .ex-h2 {
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; font-size: clamp(1.6rem, 4vw, 2.6rem);
+    color: #fff; margin: 0 0 var(--space-5);
+  }
+  .ex-acts {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 10px 28px;
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; font-size: clamp(1.4rem, 3.6vw, 2.6rem); line-height: 1.1;
+  }
+
+  /* ---- Details / body ---- */
+  .ex-detail-grid {
+    display: grid; grid-template-columns: 300px 1fr; gap: var(--space-7);
+    align-items: start;
+  }
+  .ex-meta {
+    background: var(--bg-deep); border-radius: var(--r-lg);
+    padding: var(--space-5) var(--space-6); display: grid; gap: 14px;
+  }
+  .ex-meta-row { display: grid; gap: 2px; }
+  .ex-meta-row .k {
+    font-family: "Poppins", sans-serif; font-weight: 700; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.72);
+  }
+  .ex-meta-row .v { font-weight: 600; font-size: 1.05rem; color: #fff; line-height: 1.3; }
+  .ex-btn {
+    background: var(--sun); color: var(--ink); margin-top: 6px; justify-content: center;
+  }
+  .ex-btn:hover { background: #ffdf3d; }
+
+  .ex-lead {
+    font-size: 1.25rem; line-height: 1.55; font-weight: 500; color: #fff;
+    margin: 0 0 1em; max-width: 60ch;
+  }
+  .ex-article { color: rgba(255,255,255,0.94); line-height: 1.7; }
+  .ex-article :global(p) { margin: 0 0 1em; max-width: 62ch; }
+  .ex-article :global(a) { color: var(--sun); text-decoration: underline; text-underline-offset: 0.2em; }
+  .ex-article :global(strong) { color: #fff; font-weight: 700; }
+  .ex-article :global(h2) {
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; font-size: clamp(1.2rem, 2.6vw, 1.6rem);
+    color: #fff; margin: 1.5em 0 0.5em; line-height: 1.1;
+  }
+  .ex-article :global(ul) { margin: 0 0 1em; padding-left: 1.2em; max-width: 62ch; }
+  .ex-article :global(li) { margin: 0.3em 0; }
+  .ex-article :global(li::marker) { color: var(--sun); }
+  .ex-back {
+    display: inline-block; margin-top: var(--space-5);
+    font-family: "Poppins", sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; font-size: 13px; color: #fff;
+    text-decoration: underline; text-underline-offset: 0.3em;
+  }
+
+  @media (max-width: 820px) {
+    .ex-hero-grid { grid-template-columns: 1fr; gap: var(--space-6); }
+    .ex-polaroid { order: -1; max-width: 400px; }
+    .ex-detail-grid { grid-template-columns: 1fr; }
+  }
+</style>

@@ -10,7 +10,8 @@
     "crawl": "node scripts/crawl-site.mjs",
     "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose",
     "og:facilities": "node scripts/generate-facility-og-images.mjs",
-    "og:events": "node scripts/generate-social-image.mjs"
+    "og:events": "node scripts/generate-social-image.mjs",
+    "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon–5pm\""
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.8",
+    "@fontsource/poppins": "^5.2.7",
     "@resvg/resvg-js": "^2.6.2",
     "satori": "^0.26.0"
   }

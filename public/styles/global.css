@@ -395,8 +395,8 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-zone-tile.lounge { background: #401D00; color: #EEC776; }
 .mw-zone-tile.lounge h3 { font-family: "Righteous", sans-serif; font-size: 34px; }
 
-.mw-zone-tile.extravaganza { background: #F9D21E; color: var(--ink); }
-.mw-zone-tile.extravaganza h3 { font-family: "Abril Fatface", serif; font-size: 38px; line-height: 0.95; }
+.mw-zone-tile.extravaganza { background: #F47B1F; color: #fff; }
+.mw-zone-tile.extravaganza h3 { font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase; font-size: 34px; letter-spacing: -0.01em; line-height: 0.95; }
 
 .mw-zone-tile.bar { background: #1A1A1A; color: #fff; }
 .mw-zone-tile.bar h3 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 36px; }

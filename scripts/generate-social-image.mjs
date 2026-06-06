@@ -34,8 +34,10 @@ const repoRoot   = join(__dirname, '..');
 // Plus Jakarta Sans comes from the @fontsource/plus-jakarta-sans npm package.
 // Using the Latin subset keeps the base64 payload small.
 const FONTSOURCE_DIR = join(repoRoot, 'node_modules', '@fontsource', 'plus-jakarta-sans', 'files');
+const POPPINS_DIR   = join(repoRoot, 'node_modules', '@fontsource', 'poppins', 'files');
 const MOOD_DIR      = join(repoRoot, 'mood-photos');
 const LOBSTER_PATH  = join(repoRoot, 'public', 'fonts', 'Lobster_1.3.otf');
+const SCENE_PATH    = join(repoRoot, 'public', 'assets', 'illustrations', 'extravaganza-scene.png');
 const OUT_DIR       = join(repoRoot, 'public', 'images', 'events');
 
 // ── Design tokens (mirrors global.css) ─────────────────────────────────────
@@ -44,6 +46,12 @@ const SUN   = '#F9D21E';
 const INK   = '#28201A';
 const EMBER = '#A73916';
 const WHITE = '#FFFFFF';
+
+// Extravaganza sub-brand (design-system/Extravaganza Brand.html)
+const FESTIVAL = '#F47B1F';   // festival orange — the field
+const FEST_INK = '#221C17';   // the "black in the mix"
+// Bunting / keyword brights (sun excluded as a text colour — accent only)
+const BUNT = ['#1DB5EF', '#E84C7A', '#F9D21E', '#1E9E8E', '#74A953', '#F47B1F'];
 
 // ── Font loading ───────────────────────────────────────────────────────────
 
@@ -70,6 +78,18 @@ function loadFonts() {
     {
       name: 'Plus Jakarta Sans',
       data: readFileSync(join(FONTSOURCE_DIR, 'plus-jakarta-sans-latin-800-normal.woff')),
+      weight: 800,
+      style: 'normal',
+    },
+    {
+      name: 'Poppins',
+      data: readFileSync(join(POPPINS_DIR, 'poppins-latin-700-normal.woff')),
+      weight: 700,
+      style: 'normal',
+    },
+    {
+      name: 'Poppins',
+      data: readFileSync(join(POPPINS_DIR, 'poppins-latin-800-normal.woff')),
       weight: 800,
       style: 'normal',
     },
@@ -112,6 +132,39 @@ function formatDate(dateStr) {
   const day = d.toLocaleDateString('en-GB', { day: 'numeric' });   // 26
   const mon = d.toLocaleDateString('en-GB', { month: 'short' });   // Feb
   return `${dow} ${day} ${mon}`;
+}
+
+// Long, festival-style date: "SATURDAY 11 JULY"
+function formatDateLong(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
+}
+
+// ── Bunting (Satori can't do clip-path — render as an inline SVG image) ──────
+
+function buntingDataUri({ width = 1200, height = 46, dir = 'down', count = 26 } = {}) {
+  const w = width / count;
+  let tris = '';
+  for (let i = 0; i < count; i++) {
+    const x = i * w;
+    const c = BUNT[i % BUNT.length];
+    const pts = dir === 'down'
+      ? `${x},0 ${x + w},0 ${x + w / 2},${height}`
+      : `${x},${height} ${x + w},${height} ${x + w / 2},0`;
+    tris += `<polygon points="${pts}" fill="${c}"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${tris}</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
+// The illustrated scene, cropped near-square for the polaroid.
+async function sceneToDataUri() {
+  if (!existsSync(SCENE_PATH)) return null;
+  const buf = await sharp(SCENE_PATH)
+    .resize(520, 460, { fit: 'cover', position: 'top' })
+    .jpeg({ quality: 86 })
+    .toBuffer();
+  return `data:image/jpeg;base64,${buf.toString('base64')}`;
 }
 
 // ── Element helpers ────────────────────────────────────────────────────────
@@ -252,12 +305,123 @@ function buildCard({ title, date, time, photoDataUri }) {
   );
 }
 
+// ── Extravaganza card — the festival sub-brand ──────────────────────────────
+
+function buildExtravaganzaCard({ date, time, sceneDataUri }) {
+  const PAD = 56;
+  const poppins = '"Poppins"';
+
+  // Bunting bands, full bleed top + bottom
+  const buntTop = el('img', {
+    position: 'absolute', top: 0, left: 0, width: 1200, height: 46, display: 'flex',
+  }, undefined, { src: buntingDataUri({ dir: 'down' }) });
+  const buntBottom = el('img', {
+    position: 'absolute', bottom: 0, left: 0, width: 1200, height: 46, display: 'flex',
+  }, undefined, { src: buntingDataUri({ dir: 'up' }) });
+
+  // Polaroid — white border around the scene
+  const polaroid = div(
+    {
+      display: 'flex', flexDirection: 'column',
+      backgroundColor: WHITE, padding: 16, borderRadius: 6,
+      transform: 'rotate(-2.5deg)',
+      boxShadow: '0 18px 40px rgba(40,35,32,0.28)',
+    },
+    [
+      div({
+        width: 360, height: 320, display: 'flex',
+        backgroundColor: '#1DB5EF',
+        backgroundImage: sceneDataUri ? `url(${sceneDataUri})` : undefined,
+        backgroundSize: 'cover', backgroundPosition: 'center',
+      }),
+    ],
+  );
+
+  // Stamp: hand mark name (text only — keep it light)
+  const stamp = span(
+    { fontFamily: poppins, fontWeight: 700, fontSize: 22, letterSpacing: '0.04em',
+      textTransform: 'uppercase', color: WHITE },
+    'MEADOWBROOK',
+  );
+
+  const wordmark = span(
+    { fontFamily: poppins, fontWeight: 800, fontSize: 82, lineHeight: 0.92,
+      letterSpacing: '-0.02em', textTransform: 'uppercase', color: WHITE },
+    'EXTRAVAGANZA',
+  );
+
+  const sub = span(
+    { fontFamily: poppins, fontWeight: 700, fontSize: 27, color: WHITE, marginTop: 6 },
+    'Our annual fête and fundraiser',
+  );
+
+  // Keyword line — white / black / sky (brand "playful" option)
+  const keys = div(
+    { display: 'flex', flexDirection: 'row', gap: 12, marginTop: 12 },
+    [
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 32, textTransform: 'uppercase', color: WHITE }, 'Music.'),
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 32, textTransform: 'uppercase', color: FEST_INK }, 'Food.'),
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 32, textTransform: 'uppercase', color: '#1DB5EF' }, 'Family fun.'),
+    ],
+  );
+
+  // Date + time
+  const when = div(
+    { display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 16, marginTop: 22 },
+    [
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 40, letterSpacing: '-0.01em', color: WHITE },
+        date ? formatDateLong(date) : 'SATURDAY 11 JULY'),
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 30, textTransform: 'uppercase', color: SUN },
+        (time ?? 'Noon–6pm').toUpperCase()),
+    ],
+  );
+
+  // Activities — words in the brights (sun excluded as a text colour)
+  const ACTS = [
+    ['Music', WHITE], ['BBQ', '#1DB5EF'], ['Games', '#E84C7A'], ['Stalls', FEST_INK],
+    ['Football tournament', '#1E9E8E'], ['Dog show', '#74A953'], ['Bouncy castles', WHITE],
+  ];
+  const acts = div(
+    { display: 'flex', flexWrap: 'wrap', gap: '8px 22px', marginTop: 18, width: 640 },
+    ACTS.map(([w, c]) =>
+      span({ fontFamily: poppins, fontWeight: 800, fontSize: 24, textTransform: 'uppercase', color: c }, w),
+    ),
+  );
+
+  const url = span(
+    { fontFamily: poppins, fontWeight: 700, fontSize: 22, color: WHITE, marginTop: 26 },
+    'meadowbrookdartington.org',
+  );
+
+  const textCol = div(
+    { display: 'flex', flexDirection: 'column', flex: 1 },
+    [stamp, wordmark, sub, keys, when, acts, url],
+  );
+
+  const content = div(
+    { position: 'absolute', top: 46, bottom: 46, left: PAD, right: PAD,
+      display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 44 },
+    [polaroid, textCol],
+  );
+
+  return div(
+    { width: 1200, height: 630, position: 'relative', display: 'flex', backgroundColor: FESTIVAL },
+    [buntTop, buntBottom, content],
+  );
+}
+
 // ── Main export ─────────────────────────────────────────────────────────────
 
 export async function generateSocialImage({ slug, title, date, time }) {
-  const photoPath    = pickPhoto(slug);
-  const photoDataUri = await photoToDataUri(photoPath);
-  const card        = buildCard({ title, date, time, photoDataUri });
+  let card;
+  if (slug === 'extravaganza') {
+    const sceneDataUri = await sceneToDataUri();
+    card = buildExtravaganzaCard({ date, time, sceneDataUri });
+  } else {
+    const photoPath    = pickPhoto(slug);
+    const photoDataUri = await photoToDataUri(photoPath);
+    card               = buildCard({ title, date, time, photoDataUri });
+  }
 
   const svg = await satori(card, {
     width: 1200,
