@@ -11,7 +11,7 @@ import { existsSync } from 'node:fs';
 // from the events collection so Keystatic stays the source of truth; the
 // festival layout is bespoke (like a facility zone page).
 const reader = createReader(process.cwd(), keystaticConfig);
-const entry = await reader.collections.events.read('extravaganza');
+const entry = await reader.collections.events.read('extravaganza2026');
 
 if (!entry) {
   return Astro.redirect('/calendar');
