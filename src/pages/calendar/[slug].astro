@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
+import KeepInTouch from '../../components/KeepInTouch.astro';
 
 const { slug } = Astro.params;
 const reader = createReader(process.cwd(), keystaticConfig);
@@ -82,6 +83,8 @@ const timeStr = entry.startTime
           <DocumentRenderer document={bodyNodes} />
         </article>
       )}
+
+      <KeepInTouch text="Don't miss the next one - subscribe by email, or follow along on social." />
 
       <div style="margin-top: var(--space-7);">
         <a href="/calendar" class="mw-back">All events</a>

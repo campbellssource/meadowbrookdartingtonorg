@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
+import SocialLinks from '../../components/SocialLinks.astro';
 
 const reader = createReader(process.cwd(), keystaticConfig);
 
@@ -43,8 +44,7 @@ function shortDate(dateStr: string) {
     <div class="mw-wrap">
       {allEvents.length === 0 ? (
         <p style="color: var(--ink-soft); font-size: 1.1rem;">
-          Nothing coming up right now - check back soon, or{' '}
-          <a href="/subscribe-to-updates">subscribe to updates</a> to hear first.
+          Nothing coming up right now - check back soon.
         </p>
       ) : (
         <div class="mw-event-cards">
@@ -75,6 +75,27 @@ function shortDate(dateStr: string) {
           })}
         </div>
       )}
+
+      <div class="mw-calendar-keepintouch">
+        <span class="mw-eyebrow">Stay in the loop</span>
+        <p>Don't miss what's coming up - <a href="/subscribe-to-updates">subscribe to updates</a> by email, or follow along on social.</p>
+        <SocialLinks variant="inline" />
+      </div>
     </div>
   </section>
 </Layout>
+
+<style>
+  .mw-calendar-keepintouch {
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--paper-deep);
+  }
+  .mw-calendar-keepintouch p {
+    font-size: 1.05rem;
+    color: var(--fg-soft);
+    margin: var(--space-2) 0 var(--space-4);
+    max-width: 46ch;
+  }
+  .mw-calendar-keepintouch a { color: var(--green-dark); }
+</style>

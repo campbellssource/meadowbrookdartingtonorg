@@ -1,0 +1,52 @@
+---
+// Reusable "keep in touch" call-to-action: subscribe-by-email button plus
+// social links. Drop it into event pages, the calendar, or any content page
+// where we want a consistent prompt to stay connected.
+import SocialLinks from './SocialLinks.astro';
+
+interface Props {
+  // Optional override for the lead-in copy.
+  heading?: string;
+  text?: string;
+  class?: string;
+}
+const {
+  heading = 'Stay in the loop',
+  text = "Don't miss what's coming up - subscribe by email, or follow along on social.",
+  class: className = '',
+} = Astro.props;
+---
+
+<div class:list={['mw-keepintouch', className]}>
+  <span class="mw-eyebrow">{heading}</span>
+  <p>{text}</p>
+  <div class="mw-keepintouch-actions">
+    <a href="/subscribe-to-updates" class="mw-btn mw-btn-primary">Subscribe to updates</a>
+    <span class="mw-keepintouch-or">or follow along</span>
+    <SocialLinks variant="inline" />
+  </div>
+</div>
+
+<style>
+  .mw-keepintouch {
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--paper-deep);
+  }
+  .mw-keepintouch p {
+    font-size: 1.05rem;
+    color: var(--fg-soft);
+    margin: var(--space-2) 0 var(--space-5);
+    max-width: 46ch;
+  }
+  .mw-keepintouch-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .mw-keepintouch-or {
+    font-size: 14px;
+    color: var(--fg-mute);
+  }
+</style>

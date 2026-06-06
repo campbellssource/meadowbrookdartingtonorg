@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import SocialLinks from '../components/SocialLinks.astro';
 ---
 
 <Layout
@@ -68,6 +69,11 @@ import Layout from '../layouts/Layout.astro';
           <div class="success-icon">✓</div>
           <h2>You're subscribed!</h2>
           <p>Thanks for signing up. We'll be in touch when there's something worth sharing.</p>
+        </div>
+
+        <div class="subscribe-social">
+          <span class="subscribe-social-label">Prefer social? Follow along</span>
+          <SocialLinks variant="inline" class="mw-socials-lg" />
         </div>
 
       </div>
@@ -267,5 +273,19 @@ import Layout from '../layouts/Layout.astro';
   .success-wrap p {
     color: var(--fg-soft);
     margin: 0;
+  }
+
+  .subscribe-social {
+    margin-top: var(--space-7);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--paper-deep);
+  }
+
+  .subscribe-social-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: var(--space-4);
   }
 </style>

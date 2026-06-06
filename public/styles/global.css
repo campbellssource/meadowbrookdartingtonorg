@@ -357,6 +357,8 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-socials-lg { gap: 20px; }
 .mw-socials-lg svg { width: 30px; height: 30px; }
 .mw-follow-block { text-align: center; }
+.mw-follow-block .mw-btn { margin-top: var(--space-4); }
+.mw-follow-block .mw-follow-or { margin: var(--space-5) 0 0; font-size: 14px; color: var(--fg-mute); }
 .mw-follow-block .mw-socials { justify-content: center; margin-top: var(--space-3); }
 
 /* ---------- Zone tiles ---------- */
