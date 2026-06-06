@@ -2,6 +2,7 @@
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../keystatic.config';
 import { zoneFor } from '../lib/zones';
+import SocialLinks from '../components/SocialLinks.astro';
 
 interface Props {
   title: string;
@@ -171,6 +172,8 @@ const navFacilities = (await reader.collections.facilities.all())
             <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a>
             <a href="/donate">Donate</a>
             <a href="/privacy">Privacy policy</a>
+            <h4 style="margin-top: var(--space-5);">Follow us</h4>
+            <SocialLinks variant="footer" />
           </div>
         </div>
         <div class="footer-bottom">

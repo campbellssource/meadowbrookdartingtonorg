@@ -344,6 +344,21 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-footer .footer-bottom { margin-top: var(--space-6); padding-top: var(--space-4); font-size: 12px; color: rgba(255,255,255,0.45); }
 .mw-footer .footer-bottom a { display: inline; color: rgba(255,255,255,0.65); }
 
+/* ---------- Social links ---------- */
+.mw-socials { display: flex; align-items: center; gap: 14px; }
+.mw-socials a { display: inline-flex; align-items: center; justify-content: center; padding: 0; color: inherit; transition: color var(--dur-base) var(--ease-natural), transform var(--dur-base) var(--ease-natural); }
+.mw-socials a:hover { transform: translateY(-2px); text-decoration: none; }
+.mw-socials svg { display: block; }
+.mw-socials-footer { margin-top: 6px; }
+.mw-socials-footer a { color: rgba(255,255,255,0.7); }
+.mw-socials-footer a:hover { color: #fff; }
+.mw-socials-inline a { color: var(--green); }
+.mw-socials-inline a:hover { color: var(--ink); }
+.mw-socials-lg { gap: 20px; }
+.mw-socials-lg svg { width: 30px; height: 30px; }
+.mw-follow-block { text-align: center; }
+.mw-follow-block .mw-socials { justify-content: center; margin-top: var(--space-3); }
+
 /* ---------- Zone tiles ---------- */
 .mw-zone-tile { aspect-ratio: 4/5; border-radius: var(--r-lg); padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; cursor: pointer; position: relative; overflow: hidden; transition: transform var(--dur-base) var(--ease-natural); border: 0; text-align: left; font: inherit; text-decoration: none; }
 .mw-zone-tile:hover { transform: translateY(-3px); text-decoration: none; }

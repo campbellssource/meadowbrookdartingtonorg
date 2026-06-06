@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import SocialLinks from '../components/SocialLinks.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
@@ -260,4 +261,15 @@ const energyHubImageSrc = homepage?.energyHubImage
       </div>
     </section>
   )}
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      <div class="mw-follow-block">
+        <span class="mw-eyebrow">Stay in the loop</span>
+        <h2>Follow Meadowbrook.</h2>
+        <p>News, events and goings-on - find us on social.</p>
+        <SocialLinks variant="inline" class="mw-socials-lg" />
+      </div>
+    </div>
+  </section>
 </Layout>
