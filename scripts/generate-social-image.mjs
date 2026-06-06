@@ -157,11 +157,14 @@ function buntingDataUri({ width = 1200, height = 46, dir = 'down', count = 26 } 
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
-// The illustrated scene, cropped near-square for the polaroid.
+// The illustrated scene, cropped near-square for the polaroid. The source asset
+// is already a margin-free square framing of the building + bunting + pool, so a
+// centred cover keeps the whole composition (an old 'top' crop showed only sky
+// and roof).
 async function sceneToDataUri() {
   if (!existsSync(SCENE_PATH)) return null;
   const buf = await sharp(SCENE_PATH)
-    .resize(520, 460, { fit: 'cover', position: 'top' })
+    .resize(720, 640, { fit: 'cover', position: 'centre' })
     .jpeg({ quality: 86 })
     .toBuffer();
   return `data:image/jpeg;base64,${buf.toString('base64')}`;
@@ -328,12 +331,15 @@ function buildExtravaganzaCard({ date, time, sceneDataUri }) {
       boxShadow: '0 18px 40px rgba(40,35,32,0.28)',
     },
     [
-      div({
-        width: 360, height: 320, display: 'flex',
-        backgroundColor: '#1DB5EF',
-        backgroundImage: sceneDataUri ? `url(${sceneDataUri})` : undefined,
-        backgroundSize: 'cover', backgroundPosition: 'center',
-      }),
+      // Render as an <img> rather than a CSS backgroundImage — satori tiles
+      // background images (cover is unreliable), which left a visible seam
+      // through the scene.
+      sceneDataUri
+        ? el('img',
+            { width: 360, height: 320, objectFit: 'cover', display: 'flex' },
+            undefined,
+            { src: sceneDataUri })
+        : div({ width: 360, height: 320, backgroundColor: '#1DB5EF', display: 'flex' }),
     ],
   );
 
