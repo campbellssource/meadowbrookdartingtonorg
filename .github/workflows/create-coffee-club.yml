@@ -1,0 +1,58 @@
+name: Create Coffee Club events
+
+# Runs every Monday at 9am UTC. Ensures the next few Wednesday Coffee Clubs
+# exist, then commits and pushes any new ones.
+#
+# Can also be triggered manually from the Actions tab (useful for backfilling
+# more weeks or testing).
+#
+# To SKIP a week, do NOT delete the event in the CMS — this job would just
+# recreate it. Instead set that event's Status to "Cancelled" or "Hidden".
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      weeks:
+        description: 'How many upcoming Wednesdays to ensure exist (default 3)'
+        required: false
+
+jobs:
+  create-event:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Create Coffee Club event files
+        run: |
+          EXTRA_ARGS=""
+          if [ -n "${{ github.event.inputs.weeks }}" ]; then
+            EXTRA_ARGS="--weeks ${{ github.event.inputs.weeks }}"
+          fi
+          node scripts/create-coffee-club.mjs $EXTRA_ARGS
+
+      - name: Commit and push if new events were created
+        run: |
+          git config user.name  "Meadowbrook Bot"
+          git config user.email "bot@meadowbrookdartington.org"
+          git add src/content/events/
+          if git diff --staged --quiet; then
+            echo "Nothing to commit - events already existed."
+          else
+            git commit -m "chore: add upcoming Coffee Club events"
+            git push
+          fi

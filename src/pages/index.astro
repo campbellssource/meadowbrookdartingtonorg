@@ -12,12 +12,28 @@ const homepage = await reader.singletons.homepage.read();
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
-const upcomingEvents = (await reader.collections.events.all())
-  .filter(({ entry }) => entry.date && new Date(entry.date + 'T12:00:00') >= today)
+const allUpcoming = (await reader.collections.events.all())
+  .filter(({ entry }) =>
+    entry.date &&
+    entry.status !== 'hidden' &&
+    entry.status !== 'cancelled' &&
+    new Date(entry.date + 'T12:00:00') >= today
+  )
   .sort((a, b) =>
     new Date(a.entry.date! + 'T12:00:00').getTime() -
     new Date(b.entry.date! + 'T12:00:00').getTime()
-  )
+  );
+
+// Collapse the weekly Coffee Club to just its next occurrence so it doesn't
+// fill the homepage. The full run is still listed on the Calendar page.
+let coffeeShown = false;
+const upcomingEvents = allUpcoming
+  .filter(({ slug }) => {
+    if (!slug.startsWith('coffee-club-')) return true;
+    if (coffeeShown) return false;
+    coffeeShown = true;
+    return true;
+  })
   .slice(0, 4);
 
 function formatEventDate(dateStr: string) {
@@ -74,7 +90,7 @@ const energyHubImageSrc = homepage?.energyHubImage
   {upcomingEvents.length > 0 && (() => {
     // DRA Socials are never the hero - find the first non-social event for that slot.
     // Socials (and any events before the hero) stay in the compact list.
-    const featured = upcomingEvents.find(({ slug }) => !slug.startsWith('dra-social-')) ?? null;
+    const featured = upcomingEvents.find(({ slug }) => !slug.startsWith('dra-social-') && !slug.startsWith('coffee-club-')) ?? null;
     const rest = upcomingEvents.filter(({ slug }) => slug !== featured?.slug);
     const featuredImage = featured?.entry.image
       ? (featured.entry.image.startsWith('/') ? featured.entry.image : `/images/events/${featured.entry.image}`)

@@ -183,7 +183,13 @@ const span = (style, children)        => el('span', style, children);
 
 // ── Card layout ───────────────────────────────────────────────────────────
 
-function buildCard({ title, date, time, photoDataUri }) {
+function buildCard({
+  title, date, time, photoDataUri,
+  pillText = 'OPEN DOOR · MONTHLY',
+  eyebrowText = 'COMMUNITY · DARTINGTON · MEADOWBROOK',
+  whereText = 'Meadowbrook\nDartington',
+  whenFallback = 'Last Thursday\nevery month',
+}) {
   const titleFontSize = title.length > 18 ? 108 : 132;
 
   // Fallback when no photo - solid dark background
@@ -226,7 +232,7 @@ function buildCard({ title, date, time, photoDataUri }) {
     },
     [
       div({ width: 8, height: 8, borderRadius: 999, backgroundColor: EMBER, display: 'flex' }),
-      span({ fontFamily: '"Plus Jakarta Sans"', fontWeight: 800, fontSize: 14 }, 'OPEN DOOR · MONTHLY'),
+      span({ fontFamily: '"Plus Jakarta Sans"', fontWeight: 800, fontSize: 14 }, pillText),
     ]
   );
 
@@ -237,7 +243,7 @@ function buildCard({ title, date, time, photoDataUri }) {
       fontSize: 15, letterSpacing: '0.22em', color: SUN,
       textTransform: 'uppercase',
     },
-    'COMMUNITY · DARTINGTON · MEADOWBROOK',
+    eyebrowText,
   );
 
   // Headline
@@ -251,11 +257,11 @@ function buildCard({ title, date, time, photoDataUri }) {
   );
 
   // Meta items: WHEN / FROM / WHERE
-  const whenValue = date ? formatDate(date) : 'Last Thursday\nevery month';
+  const whenValue = date ? formatDate(date) : whenFallback;
   const metaItems = [
     { k: 'WHEN',  v: whenValue },
     { k: 'FROM',  v: time ?? '7pm' },
-    { k: 'WHERE', v: 'Meadowbrook\nDartington' },
+    { k: 'WHERE', v: whereText },
   ];
 
   const metaDivider = div({
@@ -418,7 +424,7 @@ function buildExtravaganzaCard({ date, time, sceneDataUri }) {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 
-export async function generateSocialImage({ slug, title, date, time }) {
+export async function generateSocialImage({ slug, title, date, time, cardOpts = {} }) {
   let card;
   if (slug === 'extravaganza') {
     const sceneDataUri = await sceneToDataUri();
@@ -426,7 +432,13 @@ export async function generateSocialImage({ slug, title, date, time }) {
   } else {
     const photoPath    = pickPhoto(slug);
     const photoDataUri = await photoToDataUri(photoPath);
-    card               = buildCard({ title, date, time, photoDataUri });
+    card               = buildCard({
+      title, date, time, photoDataUri,
+      pillText:     cardOpts.pill,
+      eyebrowText:  cardOpts.eyebrow,
+      whereText:    cardOpts.where,
+      whenFallback: cardOpts.whenFallback,
+    });
   }
 
   const svg = await satori(card, {

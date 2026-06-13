@@ -208,6 +208,18 @@ export default config({
         startTime: fields.text({ label: 'Start time', description: 'e.g. 12pm' }),
         endTime: fields.text({ label: 'End time (optional)', description: 'e.g. 2pm' }),
         location: fields.text({ label: 'Location' }),
+        status: fields.select({
+          label: 'Status',
+          description:
+            'Cancelled / Postponed show a notice on the event and strike it through in listings. Hidden removes it from listings entirely. Use this instead of deleting auto-generated events (e.g. Coffee Club, DRA Social) — deleting them just gets them recreated by the scheduled job.',
+          options: [
+            { label: 'Active', value: 'active' },
+            { label: 'Cancelled', value: 'cancelled' },
+            { label: 'Postponed', value: 'postponed' },
+            { label: 'Hidden', value: 'hidden' },
+          ],
+          defaultValue: 'active',
+        }),
         summary: fields.text({
           label: 'Summary',
           multiline: true,

@@ -12,6 +12,7 @@ today.setHours(0, 0, 0, 0);
 const allEvents = (await reader.collections.events.all())
   .filter(({ entry }) => {
     if (!entry.date) return false;
+    if (entry.status === 'hidden') return false;
     return new Date(entry.date + 'T12:00:00') >= today;
   })
   .sort((a, b) =>
@@ -53,13 +54,19 @@ function shortDate(dateStr: string) {
             const imageSrc = entry.image
               ? (entry.image.startsWith('/') ? entry.image : `/images/events/${entry.image}`)
               : null;
+            const isOff = entry.status === 'cancelled' || entry.status === 'postponed';
             return (
-              <a href={`/calendar/${slug}`} class="mw-card mw-event-card-item">
+              <a href={`/calendar/${slug}`} class={`mw-card mw-event-card-item${isOff ? ' is-off' : ''}`}>
                 <div class="img" style={imageSrc ? `background-image: url('${imageSrc}')` : 'background: var(--paper-deep);'}>
                   <div class="mw-event-date-badge">
                     <span class="day">{d.day}</span>
                     <span class="mon">{d.mon}</span>
                   </div>
+                  {isOff && (
+                    <span class="mw-event-status" data-status={entry.status}>
+                      {entry.status === 'cancelled' ? 'Cancelled' : 'Postponed'}
+                    </span>
+                  )}
                 </div>
                 <div class="body">
                   <h3>{entry.title}</h3>
@@ -98,4 +105,22 @@ function shortDate(dateStr: string) {
     max-width: 46ch;
   }
   .mw-calendar-keepintouch a { color: var(--green-dark); }
+
+  .mw-event-card-item .img { position: relative; }
+  .mw-event-card-item.is-off { opacity: 0.9; }
+  .mw-event-card-item.is-off .body h3 { text-decoration: line-through; }
+  .mw-event-status {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #A73916;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 11px;
+    border-radius: 999px;
+  }
+  .mw-event-status[data-status="postponed"] { background: #A8730F; }
 </style>
