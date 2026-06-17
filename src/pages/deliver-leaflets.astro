@@ -63,6 +63,7 @@ const MAP_EMBED =
           </p>
 
           <form id="leaflet-form" novalidate>
+            <p id="zones-summary" class="zones-summary" hidden></p>
             <div id="zones" class="zones" aria-busy="true">
               <p class="zones-loading">Loading zones…</p>
             </div>
@@ -122,6 +123,8 @@ const MAP_EMBED =
   interface ZoneStatus {
     id: string;
     name: string;
+    houses?: string;
+    houseCount?: number;
     taken: boolean;
     backupCount: number;
     delivered: boolean;
@@ -201,16 +204,25 @@ const MAP_EMBED =
     const label = document.createElement('label');
     label.className = 'zone-main';
 
+    const text = document.createElement('span');
+    text.className = 'zone-text';
     const name = document.createElement('span');
     name.className = 'zone-name';
     name.textContent = z.name;
+    text.appendChild(name);
+    if (z.houses) {
+      const meta = document.createElement('span');
+      meta.className = 'zone-meta';
+      meta.textContent = `${z.houses} homes`;
+      text.appendChild(meta);
+    }
 
     const status = document.createElement('span');
     status.className = 'zone-status';
 
     // 1) Already delivered - locked, no action.
     if (z.delivered) {
-      label.appendChild(name);
+      label.appendChild(text);
       status.appendChild(badge('badge-delivered', 'Delivered ✓'));
       row.append(label, status);
       return row;
@@ -218,7 +230,7 @@ const MAP_EMBED =
 
     // 2) One of my own zones (claimed on this device) - offer to mark delivered.
     if (mine) {
-      label.appendChild(name);
+      label.appendChild(text);
       status.appendChild(badge('badge-mine', 'Your zone'));
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -254,7 +266,7 @@ const MAP_EMBED =
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = z.name;
-    label.append(cb, name);
+    label.append(cb, text);
     cb.addEventListener('change', () => {
       if (cb.checked) {
         selected.set(z.name, z.taken ? 'backup' : 'primary');
@@ -305,6 +317,16 @@ const MAP_EMBED =
       const frag = document.createDocumentFragment();
       for (const z of zones) frag.appendChild(zoneRow(z));
       zonesEl.appendChild(frag);
+
+      // Totals summary (house counts are approximate).
+      const summaryEl = document.getElementById('zones-summary') as HTMLParagraphElement;
+      if (summaryEl) {
+        const totalHomes = zones.reduce((sum, z) => sum + (z.houseCount ?? 0), 0);
+        summaryEl.textContent = totalHomes
+          ? `${zones.length} zones · roughly ${totalHomes} homes in total (counts are approximate).`
+          : `${zones.length} zones.`;
+        summaryEl.hidden = false;
+      }
     } catch (e) {
       zonesEl.innerHTML =
         '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
@@ -450,6 +472,11 @@ const MAP_EMBED =
     margin: 0;
     color: var(--fg-mute);
     font-size: 0.9rem;
+  }
+  .zones-summary {
+    margin: 0 0 var(--space-3);
+    font-size: 0.82rem;
+    color: var(--fg-mute);
   }
   /* NB: zone rows + success list items are built in client JS, so their styles
      live in the is:global block below (scoped styles don't match JS-created
@@ -619,6 +646,11 @@ const MAP_EMBED =
     accent-color: var(--green);
     cursor: pointer;
   }
+  #zones .zone-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
   #zones .zone-name {
     font-size: 0.95rem;
     font-weight: 600;
@@ -626,6 +658,11 @@ const MAP_EMBED =
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  #zones .zone-meta {
+    font-size: 0.72rem;
+    color: var(--fg-mute);
+    margin-top: 1px;
   }
   #zones .zone-row.is-taken .zone-name {
     color: var(--fg-soft);

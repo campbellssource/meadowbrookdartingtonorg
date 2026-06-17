@@ -17,6 +17,8 @@ const BREVO_BASE = 'https://api.brevo.com/v3';
 export interface Zone {
   id: string; // slug, for DOM ids only
   name: string; // canonical key - matches the map label and the sheet
+  houses?: string; // approx house count, from the map's description field (e.g. "30", "7+1")
+  houseCount?: number; // numeric total parsed from `houses`, for summing
 }
 
 export interface ZoneStatus extends Zone {
@@ -71,7 +73,25 @@ export function parseZones(xml: string): Zone[] {
     const dupes = seen.get(id) ?? 0;
     seen.set(id, dupes + 1);
     if (dupes > 0) id = `${id}-${dupes + 1}`;
-    zones.push({ id, name });
+
+    // The map's description field holds the approx house count (e.g. "30", "7+1").
+    const descMatch = block.match(
+      /<description>\s*(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?\s*<\/description>/
+    );
+    let houses: string | undefined;
+    let houseCount: number | undefined;
+    if (descMatch) {
+      const cleaned = decodeXml(descMatch[1].replace(/<[^>]*>/g, ' '))
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleaned) {
+        houses = cleaned;
+        const nums = cleaned.match(/\d+/g);
+        if (nums) houseCount = nums.reduce((a, n) => a + parseInt(n, 10), 0);
+      }
+    }
+
+    zones.push({ id, name, houses, houseCount });
   }
   return zones;
 }
