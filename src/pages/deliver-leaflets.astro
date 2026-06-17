@@ -29,15 +29,15 @@ import KeepInTouch from '../components/KeepInTouch.astro';
         <div class="step-head">
           <h2 class="step-title">Choose your zones</h2>
           <div class="view-toggle" role="tablist" aria-label="Map or list view">
-            <button type="button" id="tab-map" class="vt-btn active" role="tab" aria-selected="true">Map</button>
-            <button type="button" id="tab-list" class="vt-btn" role="tab" aria-selected="false">List</button>
+            <button type="button" id="tab-map" class="vt-btn" role="tab" aria-selected="false">Map</button>
+            <button type="button" id="tab-list" class="vt-btn active" role="tab" aria-selected="true">List</button>
           </div>
         </div>
 
         <p id="zones-summary" class="zones-summary" hidden></p>
 
         <!-- Map view -->
-        <div id="map-view" class="map-view">
+        <div id="map-view" class="map-view" hidden>
           <div id="map" class="map" role="application" aria-label="Map of delivery zones"></div>
           <div class="map-legend" aria-hidden="true">
             <span class="lg"><i class="sw sw-free"></i>Available</span>
@@ -50,8 +50,13 @@ import KeepInTouch from '../components/KeepInTouch.astro';
           <p class="map-hint">Tap a zone to select it. Pins show where to put up posters (and take them down afterwards).</p>
         </div>
 
-        <!-- List view -->
-        <div id="list-view" class="list-view" hidden>
+        <!-- List view (default). Includes a small non-interactive map preview
+             whose only action is to open the full map view. -->
+        <div id="list-view" class="list-view">
+          <div id="mini-map-wrap" class="mini-map-wrap" role="button" tabindex="0" aria-label="Open the full map">
+            <div id="mini-map" class="mini-map"></div>
+            <span class="mini-map-overlay"><span class="mini-map-hint">View full map →</span></span>
+          </div>
           <div id="zones" class="zones" aria-busy="true">
             <p class="zones-loading">Loading zones…</p>
           </div>
@@ -149,10 +154,22 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   let zones: ZoneStatus[] = [];
   let posters: Poster[] = [];
   const selected = new Set<string>();
-  const layers = new Map<string, L.Polygon>();
+  // Each zone can have a polygon on both the full map and the mini preview.
+  const layers = new Map<string, L.Polygon[]>();
   const listRows = new Map<string, { row: HTMLElement; checkbox?: HTMLInputElement }>();
   let map: L.Map | null = null;
+  let miniMap: L.Map | null = null;
+  let mapBuilt = false;
   let posterLayer: L.LayerGroup | null = null;
+
+  const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const CARTO_ATTR = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+  function registerLayer(name: string, poly: L.Polygon) {
+    const arr = layers.get(name) ?? [];
+    arr.push(poly);
+    layers.set(name, arr);
+  }
 
   // Who this volunteer is on this device (set on sign-up), for mark-delivered.
   const ME_KEY = 'mbLeafletMe';
@@ -206,12 +223,15 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   };
   function zoneStyle(z: ZoneStatus): L.PathOptions {
     const s = statusOf(z);
-    const isSel = selected.has(z.name);
+    if (selected.has(z.name)) {
+      // Deliberately bold so a selection is unmistakable.
+      return { color: '#0b3d91', weight: 4, fillColor: '#2f86ff', fillOpacity: 0.72 };
+    }
     return {
-      color: isSel ? '#1f6feb' : STROKE[s],
-      weight: isSel ? 3.5 : 1.5,
+      color: STROKE[s],
+      weight: 1.5,
       fillColor: FILL[s],
-      fillOpacity: isSel ? 0.6 : s === 'delivered' ? 0.45 : 0.32,
+      fillOpacity: s === 'delivered' ? 0.45 : 0.3,
     };
   }
   function selectable(z: ZoneStatus): boolean {
@@ -230,8 +250,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   function refreshZone(name: string) {
     const z = zones.find((x) => x.name === name);
     if (!z) return;
-    const layer = layers.get(name);
-    if (layer) layer.setStyle(zoneStyle(z));
+    const style = zoneStyle(z);
+    for (const poly of layers.get(name) ?? []) poly.setStyle(style);
     const lr = listRows.get(name);
     if (lr) {
       lr.row.classList.toggle('is-selected', selected.has(name));
@@ -240,27 +260,25 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   }
   function refreshSelectBar() {
     const n = selected.size;
-    const homes = [...selected].reduce((sum, name) => {
-      const z = zones.find((x) => x.name === name);
-      return sum + (z?.houseCount ?? 0);
-    }, 0);
-    selectCount.textContent = n === 0
-      ? 'No zones selected'
-      : `${n} zone${n > 1 ? 's' : ''} selected${homes ? ` · ~${homes} homes` : ''}`;
     nextBtn.disabled = n === 0;
+    if (n > 0) {
+      const homes = [...selected].reduce((sum, name) => {
+        const z = zones.find((x) => x.name === name);
+        return sum + (z?.houseCount ?? 0);
+      }, 0);
+      selectCount.textContent = `${n} zone${n > 1 ? 's' : ''} selected${homes ? ` · ~${homes} homes` : ''}`;
+    }
+    // Only show the bar in step 1, and only once at least one zone is chosen.
+    selectBar.hidden = stepZones.hidden || n === 0;
   }
 
   // --- map -----------------------------------------------------------------
-  function buildMap() {
+  function buildFullMap() {
     map = L.map('map', { scrollWheelZoom: false }).setView([50.4449, -3.7091], 14);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
     map.on('click', () => map!.scrollWheelZoom.enable());
 
-    const bounds: L.LatLngBoundsExpression = [];
+    const bounds: number[][] = [];
     for (const z of zones) {
       if (!z.polygon || z.polygon.length < 3) continue;
       const poly = L.polygon(z.polygon, zoneStyle(z)).addTo(map);
@@ -271,10 +289,10 @@ import KeepInTouch from '../components/KeepInTouch.astro';
         if (myZones.has(z.name) && !z.delivered) openDeliverPopup(z, poly);
         else toggleSelect(z.name);
       });
-      layers.set(z.name, poly);
-      z.polygon.forEach((p) => (bounds as number[][]).push(p));
+      registerLayer(z.name, poly);
+      z.polygon.forEach((p) => bounds.push(p));
     }
-    if ((bounds as number[][]).length) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [16, 16] });
+    if (bounds.length) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [16, 16] });
 
     posterLayer = L.layerGroup(
       posters.map((p) =>
@@ -282,6 +300,25 @@ import KeepInTouch from '../components/KeepInTouch.astro';
           .bindTooltip(`📌 ${p.name}`)
       )
     );
+  }
+
+  // Small, non-interactive preview shown in the list view. Its only action is
+  // a click anywhere, which opens the full map (handled on the wrapper).
+  function buildMiniMap() {
+    // Fixed centre/zoom rather than fitBounds: the preview is a wide, short
+    // strip, so fitBounds would zoom right out. A fixed zoom frames the village
+    // and lets it fill the strip (cropping the edges).
+    miniMap = L.map('mini-map', {
+      dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+      boxZoom: false, keyboard: false, touchZoom: false, zoomControl: false,
+    }).setView([50.4449, -3.7091], 14);
+    L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(miniMap);
+    for (const z of zones) {
+      if (!z.polygon || z.polygon.length < 3) continue;
+      const poly = L.polygon(z.polygon, { ...zoneStyle(z), interactive: false }).addTo(miniMap);
+      registerLayer(z.name, poly);
+    }
+    setTimeout(() => miniMap?.invalidateSize(), 0);
   }
 
   function statusLabel(z: ZoneStatus): string {
@@ -406,7 +443,10 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     tabMap.classList.add('active'); tabList.classList.remove('active');
     tabMap.setAttribute('aria-selected', 'true'); tabList.setAttribute('aria-selected', 'false');
     mapView.hidden = false; listView.hidden = true;
-    setTimeout(() => map?.invalidateSize(), 0);
+    // Build the full map lazily, the first time it's shown (so the container
+    // has a real size for fitBounds).
+    if (!mapBuilt) { mapBuilt = true; setTimeout(buildFullMap, 0); }
+    else setTimeout(() => map?.invalidateSize(), 0);
   }
   function showList() {
     tabList.classList.add('active'); tabMap.classList.remove('active');
@@ -415,6 +455,12 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   }
   tabMap.addEventListener('click', showMap);
   tabList.addEventListener('click', showList);
+  const miniWrap = el('mini-map-wrap');
+  miniWrap.addEventListener('click', showMap);
+  miniWrap.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); showMap(); }
+  });
   el('poster-toggle').addEventListener('change', (e) => {
     const on = (e.target as HTMLInputElement).checked;
     if (!posterLayer || !map) return;
@@ -534,9 +580,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
         : `${zones.length} zones.`;
       summary.hidden = false;
 
-      buildMap();
+      buildMiniMap();
       rebuildList();
-      selectBar.hidden = false;
       refreshSelectBar();
     } catch {
       zonesEl.innerHTML = '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
@@ -625,19 +670,44 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     overflow: hidden;
   }
   .zones-loading { padding: var(--space-5); margin: 0; color: var(--fg-mute); font-size: 0.9rem; }
+  .list-view .zones { border-radius: 0 0 var(--r-md) var(--r-md); border-top: 0; }
+
+  /* Mini map preview (list view) */
+  .mini-map-wrap {
+    position: relative;
+    height: 200px;
+    border: 1.5px solid var(--paper-deep);
+    border-bottom: 0;
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .mini-map { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .mini-map-overlay {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 10px; transition: background 0.15s ease;
+  }
+  .mini-map-wrap:hover .mini-map-overlay,
+  .mini-map-wrap:focus-visible .mini-map-overlay { background: rgba(0,0,0,0.06); }
+  .mini-map-hint {
+    background: var(--green); color: #fff;
+    font-size: 0.78rem; font-weight: 700;
+    padding: 5px 12px; border-radius: var(--r-pill);
+    box-shadow: var(--shadow-float);
+  }
 
   /* Selection bar */
   .select-bar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
-    background: var(--paper, #fff);
-    border-top: 1.5px solid var(--paper-deep);
-    box-shadow: 0 -6px 20px rgba(0,0,0,0.08);
+    background: #5A3F38;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.2);
     z-index: 500;
     padding: var(--space-3) 0;
   }
   .select-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
-  .select-count { font-weight: 600; font-size: 0.95rem; color: var(--fg); }
+  .select-count { font-weight: 600; font-size: 0.95rem; color: #fff; }
   /* keep content clear of the fixed bar */
   #step-zones { padding-bottom: 84px; }
 
@@ -701,7 +771,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
 <style is:global>
   #zones .zone-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px 14px; border-bottom: 1px solid var(--paper-deep); }
   #zones .zone-row:last-child { border-bottom: 0; }
-  #zones .zone-row.is-selected { background: rgba(31,111,235,0.1); }
+  #zones .zone-row.is-selected { background: rgba(31,111,235,0.14); box-shadow: inset 3px 0 0 #1f6feb; }
   #zones .zone-main { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; flex: 1; min-width: 0; }
   #zones .zone-main input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--green); cursor: pointer; }
   #zones .zone-text { display: flex; flex-direction: column; min-width: 0; }
