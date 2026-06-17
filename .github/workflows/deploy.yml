@@ -42,6 +42,6 @@ jobs:
             --image=${{ env.IMAGE }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
-            --update-env-vars="PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic,PUBLIC_SQUARE_APPLICATION_ID=sq0idp-SJPH8U9hBP8q9dM97RSZmA,PUBLIC_SQUARE_LOCATION_ID=LT08J54D3THKE,PUBLIC_SQUARE_ENVIRONMENT=production" \
+            --update-env-vars="PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic,PUBLIC_SQUARE_APPLICATION_ID=sq0idp-SJPH8U9hBP8q9dM97RSZmA,PUBLIC_SQUARE_LOCATION_ID=LT08J54D3THKE,PUBLIC_SQUARE_ENVIRONMENT=production,BREVO_LEAFLET_LIST_ID=3" \
             --update-secrets="SQUARE_ACCESS_TOKEN=SQUARE_ACCESS_TOKEN:latest" \
             --quiet

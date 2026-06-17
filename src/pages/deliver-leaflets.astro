@@ -1,0 +1,613 @@
+---
+import Layout from '../layouts/Layout.astro';
+import KeepInTouch from '../components/KeepInTouch.astro';
+
+// Unlisted for now (no nav link, kept out of search) - share by URL.
+// Note: the public embed URL must NOT contain "/u/1/" - that's an account-
+// specific context that only renders for the signed-in owner. Plain
+// "/maps/d/embed" works for everyone (the map must be shared "anyone with the
+// link can view").
+const MAP_EMBED =
+  'https://www.google.com/maps/d/embed?mid=1mI15lkSHXE2W_HikzgmSkwl5bDckbdM&ehbc=2E312F&noprof=1';
+---
+
+<Layout
+  title="Deliver leaflets"
+  description="Help deliver leaflets around Dartington. Pick a zone near you on the map and let us know you'll cover it."
+  noindex={true}
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Lend a hand</span>
+      <h1>Help deliver our leaflets</h1>
+      <p>
+        We've split the village into delivery zones. Find one near you on the
+        map, then sign up below to cover it. It only takes an hour or two, and
+        every zone helps us reach more neighbours.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <div class="leaflet-layout">
+        <!-- The Google "My Maps" map - the source of truth for the zones. -->
+        <div class="map-col">
+          <h2 class="col-h">1. Find your zone</h2>
+          <p class="col-lead">
+            Browse the map to see the zones and where the boundaries fall. Then
+            tick the matching zone in the list.
+          </p>
+          <div class="map-frame">
+            <iframe
+              src={MAP_EMBED}
+              title="Leaflet delivery zones map"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+          </div>
+          <p class="map-note">
+            <span class="pin" aria-hidden="true">📌</span>
+            The pins mark spots for putting up posters. If you take a zone,
+            please also put a poster up at any pins within it — and pop back to
+            take them down once the event has passed.
+          </p>
+        </div>
+
+        <!-- Zone checklist + sign-up, rendered live from the map's KML. -->
+        <div class="signup-col">
+          <h2 class="col-h">2. Sign up to deliver</h2>
+          <p class="col-lead">
+            Choose any zones you can take. If a zone's already spoken for, you
+            can still offer to be a backup.
+          </p>
+
+          <form id="leaflet-form" novalidate>
+            <div id="zones" class="zones" aria-busy="true">
+              <p class="zones-loading">Loading zones…</p>
+            </div>
+
+            <div class="contact-fields">
+              <div class="field">
+                <label for="firstName">First name <span class="optional">(optional)</span></label>
+                <input type="text" id="firstName" name="firstName" autocomplete="given-name" placeholder="Your first name" />
+              </div>
+              <div class="field">
+                <label for="email">Email address <span class="required">*</span></label>
+                <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+              </div>
+              <div class="field">
+                <label for="phone">Phone for WhatsApp <span class="optional">(optional)</span></label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="07…" />
+                <span class="field-hint">Handy for quick coordination — we'll only use it about the leaflet drop.</span>
+              </div>
+              <label class="checkbox-label">
+                <input type="checkbox" id="consent" name="consent" required />
+                <span>
+                  I'm happy to be contacted about delivering these leaflets, and
+                  to receive occasional updates from Meadowbrook and the DRA. You
+                  can unsubscribe at any time. Read our
+                  <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+                </span>
+              </label>
+            </div>
+
+            <div id="form-error" class="form-message form-message--error" hidden></div>
+
+            <button type="submit" class="mw-btn mw-btn-primary" id="submit-btn" disabled>
+              Sign up to deliver
+            </button>
+            <p id="selection-hint" class="selection-hint">Pick at least one zone above to continue.</p>
+          </form>
+
+          <div id="success-message" class="success-wrap" hidden>
+            <div class="success-icon">✓</div>
+            <h2>Thank you!</h2>
+            <p>You're all set for:</p>
+            <ul id="success-zones" class="success-zones"></ul>
+            <p class="success-foot">We'll be in touch with the leaflets and any details. Thanks for helping out.</p>
+          </div>
+        </div>
+      </div>
+
+      <KeepInTouch
+        heading="Not up for delivering?"
+        text="No problem - you can still keep up with what's happening at Meadowbrook."
+      />
+    </div>
+  </section>
+</Layout>
+
+<script>
+  interface ZoneStatus {
+    id: string;
+    name: string;
+    taken: boolean;
+    backupCount: number;
+  }
+
+  const zonesEl = document.getElementById('zones') as HTMLDivElement;
+  const form = document.getElementById('leaflet-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const errorEl = document.getElementById('form-error') as HTMLDivElement;
+  const successEl = document.getElementById('success-message') as HTMLDivElement;
+  const successZonesEl = document.getElementById('success-zones') as HTMLUListElement;
+  const hintEl = document.getElementById('selection-hint') as HTMLParagraphElement;
+
+  // zone name -> intended role
+  const selected = new Map<string, 'primary' | 'backup'>();
+
+  function showError(msg: string) {
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+  function clearError() {
+    errorEl.textContent = '';
+    errorEl.hidden = true;
+  }
+
+  function refreshSubmitState() {
+    const has = selected.size > 0;
+    submitBtn.disabled = !has;
+    hintEl.hidden = has;
+  }
+
+  function zoneRow(z: ZoneStatus): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'zone-row' + (z.taken ? ' is-taken' : '');
+
+    const label = document.createElement('label');
+    label.className = 'zone-main';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = z.name;
+
+    const name = document.createElement('span');
+    name.className = 'zone-name';
+    name.textContent = z.name;
+
+    label.append(cb, name);
+
+    const status = document.createElement('span');
+    status.className = 'zone-status';
+
+    if (z.taken) {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-taken';
+      badge.textContent =
+        z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken';
+      status.appendChild(badge);
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          selected.set(z.name, 'backup');
+          row.classList.add('is-selected');
+        } else {
+          selected.delete(z.name);
+          row.classList.remove('is-selected');
+        }
+        refreshSubmitState();
+      });
+      // Hint that ticking means "offer as backup".
+      const help = document.createElement('span');
+      help.className = 'zone-help';
+      help.textContent = 'Offer as backup';
+      status.appendChild(help);
+    } else {
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          selected.set(z.name, 'primary');
+          row.classList.add('is-selected');
+        } else {
+          selected.delete(z.name);
+          row.classList.remove('is-selected');
+        }
+        refreshSubmitState();
+      });
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-free';
+      badge.textContent = 'Available';
+      status.appendChild(badge);
+    }
+
+    row.append(label, status);
+    return row;
+  }
+
+  async function loadZones() {
+    try {
+      const res = await fetch('/api/leaflet-zones');
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.zones)) {
+        throw new Error(data.error ?? 'Failed to load zones');
+      }
+      // Keep the map's own order (manually sorted north-to-south in My Maps).
+      const zones = data.zones as ZoneStatus[];
+      zonesEl.innerHTML = '';
+      zonesEl.removeAttribute('aria-busy');
+      if (zones.length === 0) {
+        zonesEl.innerHTML = '<p class="zones-loading">No zones found yet.</p>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const z of zones) frag.appendChild(zoneRow(z));
+      zonesEl.appendChild(frag);
+    } catch (e) {
+      zonesEl.innerHTML =
+        '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const email = (form.querySelector('#email') as HTMLInputElement).value.trim();
+    const firstName = (form.querySelector('#firstName') as HTMLInputElement).value.trim();
+    const phone = (form.querySelector('#phone') as HTMLInputElement).value.trim();
+    const consent = (form.querySelector('#consent') as HTMLInputElement).checked;
+
+    if (selected.size === 0) {
+      showError('Please choose at least one zone.');
+      return;
+    }
+    if (!email) {
+      showError('Please enter your email address.');
+      return;
+    }
+    if (!consent) {
+      showError('Please tick the box to confirm we can contact you.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing up…';
+
+    try {
+      const res = await fetch('/api/leaflet-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, firstName, phone, zones: [...selected.keys()] }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        successZonesEl.innerHTML = '';
+        for (const o of data.outcomes as { zone: string; role: string }[]) {
+          const li = document.createElement('li');
+          const role = document.createElement('span');
+          role.className = 'role role-' + o.role;
+          role.textContent = o.role === 'primary' ? 'Lead deliverer' : 'Backup';
+          li.append(document.createTextNode(o.zone + ' '), role);
+          successZonesEl.appendChild(li);
+        }
+        form.hidden = true;
+        successEl.hidden = false;
+        successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        showError(data.error ?? 'Something went wrong. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign up to deliver';
+      }
+    } catch {
+      showError('Could not connect. Please check your connection and try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign up to deliver';
+    }
+  });
+
+  loadZones();
+</script>
+
+<style>
+  .leaflet-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-7);
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .leaflet-layout {
+      grid-template-columns: 1fr;
+      gap: var(--space-8);
+    }
+  }
+
+  .col-h {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--space-2);
+  }
+  .col-lead {
+    color: var(--fg-soft);
+    margin: 0 0 var(--space-5);
+    font-size: 0.95rem;
+  }
+
+  .map-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    border: 1.5px solid var(--paper-deep);
+    box-shadow: var(--shadow-float);
+  }
+  .map-frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .map-note {
+    display: flex;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--fg-soft);
+  }
+  .map-note .pin {
+    flex-shrink: 0;
+  }
+  @media (min-width: 861px) {
+    .map-col {
+      position: sticky;
+      top: var(--space-5);
+    }
+  }
+
+  /* Zone checklist */
+  .zones {
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    background: var(--bone);
+    max-height: 360px;
+    overflow-y: auto;
+    margin-bottom: var(--space-6);
+  }
+  .zones-loading {
+    padding: var(--space-5);
+    margin: 0;
+    color: var(--fg-mute);
+    font-size: 0.9rem;
+  }
+  /* NB: zone rows + success list items are built in client JS, so their styles
+     live in the is:global block below (scoped styles don't match JS-created
+     elements). They're namespaced under #zones / #success-zones to avoid leaks. */
+
+  /* Contact fields */
+  .contact-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .optional {
+    font-weight: 400;
+    color: var(--fg-mute);
+  }
+  .field-hint {
+    font-size: 0.78rem;
+    color: var(--fg-mute);
+    line-height: 1.4;
+  }
+  .required {
+    color: #c0392b;
+  }
+  input[type='email'],
+  input[type='text'] {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bone);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+    outline: none;
+  }
+  input[type='email']:focus,
+  input[type='text']:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
+  }
+  input::placeholder {
+    color: var(--ink-mute);
+  }
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: var(--fg-soft);
+    cursor: pointer;
+    line-height: 1.5;
+  }
+  .checkbox-label input[type='checkbox'] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+  .checkbox-label a {
+    color: var(--green-dark);
+  }
+
+  .form-message {
+    font-size: 0.875rem;
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: var(--space-5);
+  }
+  .form-message--error {
+    background: #fdf0ee;
+    color: #a93226;
+    border: 1px solid #f0b8b2;
+  }
+  #submit-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .selection-hint {
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+    margin: var(--space-3) 0 0;
+  }
+
+  /* Success */
+  .success-wrap {
+    text-align: center;
+    padding: var(--space-6) 0;
+  }
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: var(--space-4);
+  }
+  .success-wrap h2 {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+  .success-zones {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-4) auto;
+    max-width: 320px;
+    text-align: left;
+  }
+  .success-foot {
+    color: var(--fg-soft);
+    font-size: 0.95rem;
+  }
+</style>
+
+<!-- Styles for elements created in client JS (zone rows + success list items).
+     Scoped styles don't apply to JS-created DOM, so these are global but
+     namespaced under #zones / #success-zones so they can't leak elsewhere. -->
+<style is:global>
+  #zones .zone-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--paper-deep);
+  }
+  #zones .zone-row:last-child {
+    border-bottom: 0;
+  }
+  #zones .zone-row.is-selected {
+    background: rgba(116, 169, 83, 0.1);
+  }
+  #zones .zone-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+  }
+  #zones .zone-main input[type='checkbox'] {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+  #zones .zone-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #zones .zone-row.is-taken .zone-name {
+    color: var(--fg-soft);
+  }
+  #zones .zone-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+  }
+  #zones .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+  #zones .badge-free {
+    background: rgba(116, 169, 83, 0.16);
+    color: var(--green-dark);
+  }
+  #zones .badge-taken {
+    background: var(--paper-deep);
+    color: var(--fg-mute);
+  }
+  #zones .zone-help {
+    font-size: 0.72rem;
+    color: var(--fg-mute);
+  }
+  #success-zones li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 8px 12px;
+    border: 1px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    margin-bottom: var(--space-2);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  #success-zones .role {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+  #success-zones .role-primary {
+    background: rgba(116, 169, 83, 0.16);
+    color: var(--green-dark);
+  }
+  #success-zones .role-backup {
+    background: var(--paper-deep);
+    color: var(--fg-mute);
+  }
+</style>
