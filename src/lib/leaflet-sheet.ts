@@ -106,12 +106,20 @@ function a1(tab: string, ref: string): string {
 
 // --- low-level sheet ops ---------------------------------------------------
 
-async function readRows(): Promise<string[][]> {
-  const range = encodeURIComponent(a1(await getTab(), 'A2:G'));
+// Read from row 1 (always valid, even on a 1-row grid) and drop the header,
+// returning each data row with its real sheet row number.
+async function readRows(): Promise<{ sheetRow: number; data: string[] }[]> {
+  const range = encodeURIComponent(a1(await getTab(), 'A1:G'));
   const res = await authedFetch(`${SHEETS_BASE}/${sheetId()}/values/${range}`);
   if (!res.ok) throw new Error(`Sheet read failed: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  return (data.values ?? []) as string[][];
+  const json = await res.json();
+  const values = (json.values ?? []) as string[][];
+  const out: { sheetRow: number; data: string[] }[] = [];
+  values.forEach((data, i) => {
+    if (i === 0) return; // header row
+    out.push({ sheetRow: i + 1, data });
+  });
+  return out;
 }
 
 async function ensureHeader(): Promise<void> {
@@ -181,15 +189,19 @@ interface RowRef {
   data: string[];
 }
 
+function indexRows(rows: { sheetRow: number; data: string[] }[]): Map<string, RowRef> {
+  const byName = new Map<string, RowRef>();
+  for (const { sheetRow, data } of rows) {
+    const name = (data[COL.ZONE] ?? '').trim();
+    if (name) byName.set(name, { sheetRow, data });
+  }
+  return byName;
+}
+
 // Build a lookup of zone name -> row, seeding rows for any map zones that don't
 // exist in the sheet yet (keeps the sheet in sync with the map).
 async function loadRows(zones: Zone[]): Promise<Map<string, RowRef>> {
-  const rows = await readRows();
-  const byName = new Map<string, RowRef>();
-  rows.forEach((data, i) => {
-    const name = (data[COL.ZONE] ?? '').trim();
-    if (name) byName.set(name, { sheetRow: i + 2, data });
-  });
+  let byName = indexRows(await readRows());
 
   const missing = zones.filter((z) => !byName.has(z.name));
   if (missing.length > 0) {
@@ -201,13 +213,7 @@ async function loadRows(zones: Zone[]): Promise<Map<string, RowRef>> {
       if (ref.sheetRow > lastRow) lastRow = ref.sheetRow;
     }
     await seedZoneNames(lastRow + 1, missing.map((z) => z.name));
-    // Re-read so we have correct row numbers for the freshly seeded rows.
-    const rows2 = await readRows();
-    byName.clear();
-    rows2.forEach((data, i) => {
-      const name = (data[COL.ZONE] ?? '').trim();
-      if (name) byName.set(name, { sheetRow: i + 2, data });
-    });
+    byName = indexRows(await readRows()); // re-read for fresh row numbers
   }
   return byName;
 }
