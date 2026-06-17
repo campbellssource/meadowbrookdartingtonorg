@@ -103,6 +103,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
         <p>You're all set for:</p>
         <ul id="success-zones" class="success-zones"></ul>
         <p class="success-foot">We'll be in touch with the leaflets and any details. Once you've delivered, come back to this page and you'll be able to mark your zones as done. Thanks for helping out!</p>
+        <button type="button" id="success-back" class="back-btn success-back">← Back to zones</button>
       </div>
 
       <KeepInTouch
@@ -474,7 +475,9 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     document.body.classList.remove('modal-open');
   }
   el('open-map-btn').addEventListener('click', openMapModal);
-  el('map-done').addEventListener('click', closeMapModal);
+  // "Done" mirrors the list page's "Next": close the map and, if any zones are
+  // chosen, advance to the details step. "×" just closes the map.
+  el('map-done').addEventListener('click', () => { closeMapModal(); goToDetails(); });
   el('map-close').addEventListener('click', closeMapModal);
   const miniWrap = el('mini-map-wrap');
   miniWrap.addEventListener('click', openMapModal);
@@ -533,7 +536,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     selectBar.hidden = true;
     stepDetails.hidden = false;
     renderChips();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    stepDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function goToZones() {
     stepDetails.hidden = true;
@@ -542,6 +545,20 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   }
   nextBtn.addEventListener('click', goToDetails);
   backBtn.addEventListener('click', goToZones);
+  // From the thank-you screen, return to the first view. Clear the (now
+  // claimed) selection and refresh statuses so the just-signed-up zones show
+  // as "yours" (maps are already built, so don't re-run init()).
+  el('success-back').addEventListener('click', () => {
+    selected.clear();
+    const me = readMe();
+    myZones = new Set(me?.zones ?? []);
+    rebuildList();
+    for (const z of zones) refreshZone(z.name);
+    refreshSelectBar();
+    successEl.hidden = true;
+    stepZones.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   // --- submit --------------------------------------------------------------
   function showError(m: string) { errorEl.textContent = m; errorEl.hidden = false; }
@@ -826,6 +843,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   .success-wrap h2 { font-family: var(--font-body); font-size: 1.5rem; font-weight: 700; margin: 0 0 var(--space-3); letter-spacing: -0.02em; }
   .success-zones { list-style: none; padding: 0; margin: var(--space-4) auto; max-width: 340px; text-align: left; }
   .success-foot { color: var(--fg-soft); font-size: 0.95rem; max-width: 48ch; margin: var(--space-4) auto 0; }
+  .success-back { margin: var(--space-5) 0 0; }
 </style>
 
 <!-- Styles for JS-created list rows + Leaflet popups; namespaced so they don't leak. -->
