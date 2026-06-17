@@ -3,112 +3,106 @@ import Layout from '../layouts/Layout.astro';
 import KeepInTouch from '../components/KeepInTouch.astro';
 
 // Unlisted for now (no nav link, kept out of search) - share by URL.
-// Note: the public embed URL must NOT contain "/u/1/" - that's an account-
-// specific context that only renders for the signed-in owner. Plain
-// "/maps/d/embed" works for everyone (the map must be shared "anyone with the
-// link can view").
-const MAP_EMBED =
-  'https://www.google.com/maps/d/embed?mid=1mI15lkSHXE2W_HikzgmSkwl5bDckbdM&ehbc=2E312F&noprof=1';
 ---
 
 <Layout
   title="Deliver leaflets"
-  description="Help deliver leaflets around Dartington. Pick a zone near you on the map and let us know you'll cover it."
+  description="Help deliver leaflets around Dartington. Pick a zone near you on the map and sign up to cover it."
   noindex={true}
 >
-  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+  <section class="mw-zone-hero hero-compact">
     <div class="mw-wrap">
       <span class="mw-eyebrow">Lend a hand</span>
       <h1>Help deliver our leaflets</h1>
       <p>
-        We've split the village into delivery zones. Find one near you on the
-        map, then sign up below to cover it. It only takes an hour or two, and
-        every zone helps us reach more neighbours.
+        We've split the village into delivery zones. Pick one or more, then tell
+        us where to send you. An hour or two covers most zones.
       </p>
     </div>
   </section>
 
-  <section class="mw-sect" style="padding-top: 0;">
+  <section class="mw-sect leaflet-sect">
     <div class="mw-wrap">
-      <div class="leaflet-layout">
-        <!-- The Google "My Maps" map - the source of truth for the zones. -->
-        <div class="map-col">
-          <h2 class="col-h">1. Find your zone</h2>
-          <p class="col-lead">
-            Browse the map to see the zones and where the boundaries fall. Then
-            tick the matching zone in the list.
-          </p>
-          <div class="map-frame">
-            <iframe
-              src={MAP_EMBED}
-              title="Leaflet delivery zones map"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
-          </div>
-          <p class="map-note">
-            <span class="pin" aria-hidden="true">📌</span>
-            The pins mark spots for putting up posters. If you take a zone,
-            please also put a poster up at any pins within it — and pop back to
-            take them down once the event has passed.
-          </p>
+
+      <!-- STEP 1 — choose zones -->
+      <div id="step-zones" class="step">
+        <div class="step-head">
+          <h2 class="step-title">Choose your zones</h2>
+          <button type="button" id="open-map-btn" class="open-map-btn">⤢ Open full map</button>
         </div>
 
-        <!-- Zone checklist + sign-up, rendered live from the map's KML. -->
-        <div class="signup-col">
-          <h2 class="col-h">2. Sign up to deliver</h2>
-          <p class="col-lead">
-            Choose any zones you can take. If a zone's already spoken for, you
-            can still offer to be a backup.
-          </p>
+        <p id="zones-summary" class="zones-summary" hidden></p>
 
-          <form id="leaflet-form" novalidate>
-            <p id="zones-summary" class="zones-summary" hidden></p>
+        <div class="zone-picker">
+          <div class="list-col">
             <div id="zones" class="zones" aria-busy="true">
               <p class="zones-loading">Loading zones…</p>
             </div>
-
-            <div class="contact-fields">
-              <div class="field">
-                <label for="firstName">First name <span class="optional">(optional)</span></label>
-                <input type="text" id="firstName" name="firstName" autocomplete="given-name" placeholder="Your first name" />
-              </div>
-              <div class="field">
-                <label for="email">Email address <span class="required">*</span></label>
-                <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required />
-              </div>
-              <div class="field">
-                <label for="phone">Phone for WhatsApp <span class="optional">(optional)</span></label>
-                <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="07…" />
-                <span class="field-hint">Handy for quick coordination — we'll only use it about the leaflet drop.</span>
-              </div>
-              <label class="checkbox-label">
-                <input type="checkbox" id="consent" name="consent" required />
-                <span>
-                  I'm happy to be contacted about delivering these leaflets, and
-                  to receive occasional updates from Meadowbrook and the DRA. You
-                  can unsubscribe at any time. Read our
-                  <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
-                </span>
-              </label>
+          </div>
+          <div class="map-col">
+            <!-- Non-interactive preview; clicking it (or the button above) opens
+                 the full-screen map. Hovering a list item highlights it here. -->
+            <div id="mini-map-wrap" class="mini-map-wrap" role="button" tabindex="0" aria-label="Open the full map">
+              <div id="mini-map" class="mini-map"></div>
+              <span class="mini-map-overlay"><span class="mini-map-hint">Open full map →</span></span>
             </div>
-
-            <div id="form-error" class="form-message form-message--error" hidden></div>
-
-            <button type="submit" class="mw-btn mw-btn-primary" id="submit-btn" disabled>
-              Sign up to deliver
-            </button>
-            <p id="selection-hint" class="selection-hint">Pick at least one zone above to continue.</p>
-          </form>
-
-          <div id="success-message" class="success-wrap" hidden>
-            <div class="success-icon">✓</div>
-            <h2>Thank you!</h2>
-            <p>You're all set for:</p>
-            <ul id="success-zones" class="success-zones"></ul>
-            <p class="success-foot">We'll be in touch with the leaflets and any details. Once you've delivered, pop back to this page and you'll be able to mark your zone as done. Thanks for helping out!</p>
           </div>
         </div>
+      </div>
+
+      <!-- STEP 2 — your details -->
+      <div id="step-details" class="step" hidden>
+        <button type="button" id="back-btn" class="back-btn">← Back to zones</button>
+        <h2 class="step-title">Your details</h2>
+
+        <div class="chosen">
+          <span class="chosen-label">Delivering:</span>
+          <div id="chosen-chips" class="chosen-chips"></div>
+        </div>
+
+        <form id="leaflet-form" novalidate>
+          <div class="field-grid">
+            <div class="field">
+              <label for="firstName">First name <span class="required">*</span></label>
+              <input type="text" id="firstName" name="firstName" autocomplete="given-name" placeholder="Your first name" required />
+            </div>
+            <div class="field">
+              <label for="lastName">Last name <span class="optional">(optional)</span></label>
+              <input type="text" id="lastName" name="lastName" autocomplete="family-name" placeholder="Your last name" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="email">Email address <span class="required">*</span></label>
+            <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+          </div>
+          <div class="field">
+            <label for="phone">Phone for WhatsApp <span class="optional">(optional)</span></label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="07…" />
+            <span class="field-hint">Handy for quick coordination — only used about the leaflet drop.</span>
+          </div>
+          <label class="checkbox-label">
+            <input type="checkbox" id="consent" name="consent" required />
+            <span>
+              I'm happy to be contacted about delivering these leaflets, and to
+              receive occasional updates from Meadowbrook and the DRA. You can
+              unsubscribe at any time. Read our
+              <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+            </span>
+          </label>
+
+          <div id="form-error" class="form-message form-message--error" hidden></div>
+
+          <button type="submit" class="mw-btn mw-btn-primary" id="submit-btn">Sign up to deliver</button>
+        </form>
+      </div>
+
+      <!-- Success -->
+      <div id="success-message" class="success-wrap" hidden>
+        <div class="success-icon">✓</div>
+        <h2>Thank you!</h2>
+        <p>You're all set for:</p>
+        <ul id="success-zones" class="success-zones"></ul>
+        <p class="success-foot">We'll be in touch with the leaflets and any details. Once you've delivered, come back to this page and you'll be able to mark your zones as done. Thanks for helping out!</p>
       </div>
 
       <KeepInTouch
@@ -117,32 +111,79 @@ const MAP_EMBED =
       />
     </div>
   </section>
+
+  <!-- Sticky selection bar (step 1 only) -->
+  <div id="select-bar" class="select-bar" hidden>
+    <div class="mw-wrap select-bar-inner">
+      <span id="select-count" class="select-count">No zones selected</span>
+      <button type="button" id="next-btn" class="mw-btn mw-btn-primary" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- Full-screen map modal -->
+  <div id="map-modal" class="map-modal" hidden role="dialog" aria-modal="true" aria-label="Delivery zone map">
+    <div class="map-modal-head">
+      <div class="mm-head-left">
+        <strong class="mm-title">Tap zones to select</strong>
+        <span id="mm-count" class="mm-count">No zones selected</span>
+      </div>
+      <label class="poster-toggle"><input type="checkbox" id="sat-toggle" /> Satellite</label>
+      <label class="poster-toggle"><input type="checkbox" id="poster-toggle" /> Poster spots</label>
+      <button type="button" id="map-done" class="mw-btn mw-btn-primary mw-btn-sm">Done</button>
+      <button type="button" id="map-close" class="mm-close" aria-label="Close map">×</button>
+    </div>
+    <div class="map-modal-body">
+      <div id="map" class="map-full" role="application" aria-label="Map of delivery zones"></div>
+      <div class="map-legend" aria-hidden="true">
+        <span class="lg"><i class="sw sw-free"></i>Available</span>
+        <span class="lg"><i class="sw sw-taken"></i>Taken (backup ok)</span>
+        <span class="lg"><i class="sw sw-mine"></i>Yours</span>
+        <span class="lg"><i class="sw sw-done"></i>Delivered</span>
+        <span class="lg"><i class="sw sw-sel"></i>Selected</span>
+      </div>
+    </div>
+  </div>
 </Layout>
 
 <script>
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
   interface ZoneStatus {
     id: string;
     name: string;
     houses?: string;
     houseCount?: number;
+    polygon?: [number, number][];
     taken: boolean;
     backupCount: number;
     delivered: boolean;
   }
+  interface Poster { name: string; lat: number; lng: number; }
 
-  const zonesEl = document.getElementById('zones') as HTMLDivElement;
-  const form = document.getElementById('leaflet-form') as HTMLFormElement;
-  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-  const errorEl = document.getElementById('form-error') as HTMLDivElement;
-  const successEl = document.getElementById('success-message') as HTMLDivElement;
-  const successZonesEl = document.getElementById('success-zones') as HTMLUListElement;
-  const hintEl = document.getElementById('selection-hint') as HTMLParagraphElement;
+  // --- state ---------------------------------------------------------------
+  let zones: ZoneStatus[] = [];
+  let posters: Poster[] = [];
+  const selected = new Set<string>();
+  // Zone polygons on the full (modal) map and the mini preview, kept apart so
+  // the full map can use a satellite-friendly style independently of the mini.
+  const fullPolys = new Map<string, L.Polygon>();
+  const miniPolys = new Map<string, L.Polygon>();
+  let satMode = false;
+  const listRows = new Map<string, { row: HTMLElement; checkbox?: HTMLInputElement }>();
+  let map: L.Map | null = null;
+  let miniMap: L.Map | null = null;
+  let mapBuilt = false;
+  let posterLayer: L.LayerGroup | null = null;
 
-  // zone name -> intended role
-  const selected = new Map<string, 'primary' | 'backup'>();
+  const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const CARTO_ATTR = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  const ESRI_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const ESRI_ATTR = 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+  let streetLayer: L.TileLayer | null = null;
+  let satLayer: L.TileLayer | null = null;
 
-  // Remember (on this device) who this volunteer is and which zones they've
-  // claimed, so on a return visit we can offer them a "Mark delivered" button.
+  // Who this volunteer is on this device (set on sign-up), for mark-delivered.
   const ME_KEY = 'mbLeafletMe';
   function readMe(): { email: string; zones: string[] } | null {
     try {
@@ -153,57 +194,216 @@ const MAP_EMBED =
     } catch {}
     return null;
   }
-  function saveMe(email: string, zones: string[]) {
+  function saveMe(email: string, zs: string[]) {
     const cur = readMe();
-    const merged = new Set([...(cur?.zones ?? []), ...zones]);
-    try {
-      localStorage.setItem(ME_KEY, JSON.stringify({ email, zones: [...merged] }));
-    } catch {}
+    const merged = new Set([...(cur?.zones ?? []), ...zs]);
+    try { localStorage.setItem(ME_KEY, JSON.stringify({ email, zones: [...merged] })); } catch {}
   }
   let myEmail = '';
   let myZones = new Set<string>();
 
-  function showError(msg: string) {
-    errorEl.textContent = msg;
-    errorEl.hidden = false;
+  // --- element refs --------------------------------------------------------
+  const el = (id: string) => document.getElementById(id)!;
+  const stepZones = el('step-zones');
+  const stepDetails = el('step-details');
+  const successEl = el('success-message');
+  const selectBar = el('select-bar');
+  const selectCount = el('select-count');
+  const nextBtn = el('next-btn') as HTMLButtonElement;
+  const backBtn = el('back-btn');
+  const zonesEl = el('zones');
+  const mapModal = el('map-modal');
+  const mmCount = el('mm-count');
+  const form = el('leaflet-form') as HTMLFormElement;
+  const submitBtn = el('submit-btn') as HTMLButtonElement;
+  const errorEl = el('form-error');
+
+  // --- status helpers ------------------------------------------------------
+  function statusOf(z: ZoneStatus): 'delivered' | 'mine' | 'taken' | 'free' {
+    if (z.delivered) return 'delivered';
+    if (myZones.has(z.name)) return 'mine';
+    if (z.taken) return 'taken';
+    return 'free';
   }
-  function clearError() {
-    errorEl.textContent = '';
-    errorEl.hidden = true;
+  const FILL: Record<string, string> = {
+    free: '#74a953', taken: '#e09b3b', mine: '#6f7bd6', delivered: '#9aa0a6',
+  };
+  const STROKE: Record<string, string> = {
+    free: '#4d7a33', taken: '#b4791f', mine: '#4854b5', delivered: '#6b7177',
+  };
+  function zoneStyle(z: ZoneStatus, sat = false): L.PathOptions {
+    const s = statusOf(z);
+    if (selected.has(z.name)) {
+      // Deliberately bold so a selection is unmistakable.
+      return { color: sat ? '#ffffff' : '#0b3d91', weight: sat ? 3 : 4, fillColor: '#2f86ff', fillOpacity: sat ? 0.78 : 0.72 };
+    }
+    // On satellite imagery, use white borders + denser fill so zones stay legible.
+    return {
+      color: sat ? '#ffffff' : STROKE[s],
+      weight: sat ? 2 : 1.5,
+      fillColor: FILL[s],
+      fillOpacity: sat ? (s === 'delivered' ? 0.6 : 0.55) : (s === 'delivered' ? 0.45 : 0.3),
+    };
+  }
+  function selectable(z: ZoneStatus): boolean {
+    return !z.delivered && !myZones.has(z.name);
   }
 
-  function refreshSubmitState() {
-    const has = selected.size > 0;
-    submitBtn.disabled = !has;
-    hintEl.hidden = has;
+  // --- selection -----------------------------------------------------------
+  function toggleSelect(name: string) {
+    const z = zones.find((x) => x.name === name);
+    if (!z || !selectable(z)) return;
+    if (selected.has(name)) selected.delete(name);
+    else selected.add(name);
+    refreshZone(name);
+    refreshSelectBar();
+  }
+  function refreshZone(name: string) {
+    const z = zones.find((x) => x.name === name);
+    if (!z) return;
+    miniPolys.get(name)?.setStyle(zoneStyle(z, false));
+    fullPolys.get(name)?.setStyle(zoneStyle(z, satMode));
+    const lr = listRows.get(name);
+    if (lr) {
+      lr.row.classList.toggle('is-selected', selected.has(name));
+      if (lr.checkbox) lr.checkbox.checked = selected.has(name);
+    }
+  }
+  // Transient highlight when hovering a list row (does not change selection).
+  function hoverZone(name: string, on: boolean) {
+    const z = zones.find((x) => x.name === name);
+    if (!z) return;
+    const apply = (poly: L.Polygon | undefined, sat: boolean) => {
+      if (!poly) return;
+      if (on) { poly.setStyle({ weight: 4, color: sat ? '#ffffff' : '#1f2937' }); poly.bringToFront(); }
+      else poly.setStyle(zoneStyle(z, sat));
+    };
+    apply(miniPolys.get(name), false);
+    apply(fullPolys.get(name), satMode);
+  }
+  function refreshSelectBar() {
+    const n = selected.size;
+    nextBtn.disabled = n === 0;
+    const homes = [...selected].reduce((sum, name) => {
+      const z = zones.find((x) => x.name === name);
+      return sum + (z?.houseCount ?? 0);
+    }, 0);
+    const label = n === 0
+      ? 'No zones selected'
+      : `${n} zone${n > 1 ? 's' : ''} selected${homes ? ` · ~${homes} homes` : ''}`;
+    selectCount.textContent = label;
+    mmCount.textContent = label;
+    // Bar shows only in step 1, once at least one zone is chosen.
+    selectBar.hidden = stepZones.hidden || n === 0;
   }
 
+  // --- maps ----------------------------------------------------------------
+  function buildFullMap() {
+    map = L.map('map', { scrollWheelZoom: true }).setView([50.4449, -3.7091], 14);
+    streetLayer = L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 });
+    satLayer = L.tileLayer(ESRI_URL, { attribution: ESRI_ATTR, maxZoom: 19 });
+    ((el('sat-toggle') as HTMLInputElement).checked ? satLayer : streetLayer).addTo(map);
+
+    const bounds: number[][] = [];
+    for (const z of zones) {
+      if (!z.polygon || z.polygon.length < 3) continue;
+      const poly = L.polygon(z.polygon, zoneStyle(z, satMode)).addTo(map);
+      const homes = z.houses ? ` · ~${z.houses} homes` : '';
+      poly.bindTooltip(`<strong>${z.name}</strong>${homes}<br><span class="tt-status tt-${statusOf(z)}">${statusLabel(z)}</span>`, { sticky: true });
+      poly.on('click', (e) => {
+        L.DomEvent.stop(e);
+        if (myZones.has(z.name) && !z.delivered) openDeliverPopup(z, poly);
+        else toggleSelect(z.name);
+      });
+      fullPolys.set(z.name, poly);
+      z.polygon.forEach((p) => bounds.push(p));
+    }
+    if (bounds.length) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [24, 24] });
+
+    posterLayer = L.layerGroup(
+      posters.map((p) =>
+        L.circleMarker([p.lat, p.lng], { radius: 5, color: '#fff', weight: 2, fillColor: '#c0392b', fillOpacity: 1 })
+          .bindTooltip(`📌 ${p.name}`)
+      )
+    );
+  }
+
+  function buildMiniMap() {
+    // Fixed centre/zoom: a fitBounds on this small box would zoom right out.
+    miniMap = L.map('mini-map', {
+      dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+      boxZoom: false, keyboard: false, touchZoom: false, zoomControl: false,
+    }).setView([50.4449, -3.7091], 14);
+    L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(miniMap);
+    for (const z of zones) {
+      if (!z.polygon || z.polygon.length < 3) continue;
+      const poly = L.polygon(z.polygon, { ...zoneStyle(z, false), interactive: false }).addTo(miniMap);
+      miniPolys.set(z.name, poly);
+    }
+    setTimeout(() => miniMap?.invalidateSize(), 0);
+  }
+
+  function statusLabel(z: ZoneStatus): string {
+    if (z.delivered) return 'Delivered';
+    if (myZones.has(z.name)) return 'Your zone';
+    if (z.taken) return z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken — offer as backup';
+    return 'Available';
+  }
+
+  function openDeliverPopup(z: ZoneStatus, layer: L.Polygon) {
+    const wrap = document.createElement('div');
+    wrap.className = 'deliver-pop';
+    wrap.innerHTML = `<strong>${z.name}</strong><p>Your zone. Delivered it?</p>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mark-delivered';
+    btn.textContent = 'Mark delivered';
+    btn.addEventListener('click', () => markDelivered(z, btn));
+    wrap.appendChild(btn);
+    layer.bindPopup(wrap).openPopup();
+  }
+
+  async function markDelivered(z: ZoneStatus, btn: HTMLButtonElement) {
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/leaflet-delivered', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: myEmail, zone: z.name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        z.delivered = true;
+        refreshZone(z.name);
+        fullPolys.get(z.name)?.closePopup();
+        rebuildList();
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Try again';
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+    }
+  }
+
+  // --- list ----------------------------------------------------------------
   function badge(cls: string, text: string): HTMLSpanElement {
     const b = document.createElement('span');
     b.className = 'badge ' + cls;
     b.textContent = text;
     return b;
   }
-
-  function setRowDelivered(row: HTMLElement, status: HTMLElement) {
-    row.classList.add('is-delivered');
-    row.classList.remove('is-selected');
-    status.innerHTML = '';
-    status.appendChild(badge('badge-delivered', 'Delivered ✓'));
-  }
-
-  function zoneRow(z: ZoneStatus): HTMLElement {
-    const mine = myZones.has(z.name);
+  function listRow(z: ZoneStatus): HTMLElement {
+    const s = statusOf(z);
     const row = document.createElement('div');
-    row.className =
-      'zone-row' +
-      (z.taken ? ' is-taken' : '') +
-      (z.delivered ? ' is-delivered' : '') +
-      (mine ? ' is-mine' : '');
+    row.className = `zone-row is-${s}` + (selected.has(z.name) ? ' is-selected' : '');
+    row.addEventListener('mouseenter', () => hoverZone(z.name, true));
+    row.addEventListener('mouseleave', () => hoverZone(z.name, false));
 
-    const label = document.createElement('label');
-    label.className = 'zone-main';
-
+    const main = document.createElement('label');
+    main.className = 'zone-main';
     const text = document.createElement('span');
     text.className = 'zone-text';
     const name = document.createElement('span');
@@ -220,168 +420,169 @@ const MAP_EMBED =
     const status = document.createElement('span');
     status.className = 'zone-status';
 
-    // 1) Already delivered - locked, no action.
-    if (z.delivered) {
-      label.appendChild(text);
+    let checkbox: HTMLInputElement | undefined;
+    if (s === 'delivered') {
+      main.appendChild(text);
       status.appendChild(badge('badge-delivered', 'Delivered ✓'));
-      row.append(label, status);
-      return row;
-    }
-
-    // 2) One of my own zones (claimed on this device) - offer to mark delivered.
-    if (mine) {
-      label.appendChild(text);
+    } else if (s === 'mine') {
+      main.appendChild(text);
       status.appendChild(badge('badge-mine', 'Your zone'));
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'mark-delivered';
       btn.textContent = 'Mark delivered';
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        btn.textContent = 'Saving…';
-        try {
-          const res = await fetch('/api/leaflet-delivered', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: myEmail, zone: z.name }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            setRowDelivered(row, status);
-          } else {
-            btn.disabled = false;
-            btn.textContent = 'Try again';
-          }
-        } catch {
-          btn.disabled = false;
-          btn.textContent = 'Try again';
-        }
-      });
+      btn.addEventListener('click', () => markDelivered(z, btn));
       status.appendChild(btn);
-      row.append(label, status);
-      return row;
-    }
-
-    // 3) Available or taken - selectable (taken => offer as backup).
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = z.name;
-    label.append(cb, text);
-    cb.addEventListener('change', () => {
-      if (cb.checked) {
-        selected.set(z.name, z.taken ? 'backup' : 'primary');
-        row.classList.add('is-selected');
-      } else {
-        selected.delete(z.name);
-        row.classList.remove('is-selected');
-      }
-      refreshSubmitState();
-    });
-
-    if (z.taken) {
-      status.appendChild(
-        badge('badge-taken', z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken')
-      );
-      const help = document.createElement('span');
-      help.className = 'zone-help';
-      help.textContent = 'Offer as backup';
-      status.appendChild(help);
     } else {
-      status.appendChild(badge('badge-free', 'Available'));
+      checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = selected.has(z.name);
+      checkbox.addEventListener('change', () => toggleSelect(z.name));
+      main.append(checkbox, text);
+      if (s === 'taken') {
+        status.appendChild(badge('badge-taken', z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken'));
+        const help = document.createElement('span');
+        help.className = 'zone-help';
+        help.textContent = 'Offer as backup';
+        status.appendChild(help);
+      } else {
+        status.appendChild(badge('badge-free', 'Available'));
+      }
     }
-
-    row.append(label, status);
+    row.append(main, status);
+    listRows.set(z.name, { row, checkbox });
     return row;
   }
-
-  async function loadZones() {
-    const me = readMe();
-    myEmail = me?.email ?? '';
-    myZones = new Set(me?.zones ?? []);
-    try {
-      const res = await fetch('/api/leaflet-zones');
-      const data = await res.json();
-      if (!res.ok || !Array.isArray(data.zones)) {
-        throw new Error(data.error ?? 'Failed to load zones');
-      }
-      // Keep the map's own order (manually sorted north-to-south in My Maps).
-      const zones = data.zones as ZoneStatus[];
-      selected.clear();
-      refreshSubmitState();
-      zonesEl.innerHTML = '';
-      zonesEl.removeAttribute('aria-busy');
-      if (zones.length === 0) {
-        zonesEl.innerHTML = '<p class="zones-loading">No zones found yet.</p>';
-        return;
-      }
-      const frag = document.createDocumentFragment();
-      for (const z of zones) frag.appendChild(zoneRow(z));
-      zonesEl.appendChild(frag);
-
-      // Totals summary (house counts are approximate).
-      const summaryEl = document.getElementById('zones-summary') as HTMLParagraphElement;
-      if (summaryEl) {
-        const totalHomes = zones.reduce((sum, z) => sum + (z.houseCount ?? 0), 0);
-        summaryEl.textContent = totalHomes
-          ? `${zones.length} zones · roughly ${totalHomes} homes in total (counts are approximate).`
-          : `${zones.length} zones.`;
-        summaryEl.hidden = false;
-      }
-    } catch (e) {
-      zonesEl.innerHTML =
-        '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
-    }
+  function rebuildList() {
+    listRows.clear();
+    zonesEl.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (const z of zones) frag.appendChild(listRow(z));
+    zonesEl.appendChild(frag);
+    zonesEl.removeAttribute('aria-busy');
   }
 
-  form?.addEventListener('submit', async (e) => {
+  // --- map modal -----------------------------------------------------------
+  function openMapModal() {
+    mapModal.hidden = false;
+    document.body.classList.add('modal-open');
+    if (!mapBuilt) { mapBuilt = true; setTimeout(buildFullMap, 30); }
+    else setTimeout(() => map?.invalidateSize(), 30);
+  }
+  function closeMapModal() {
+    mapModal.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
+  el('open-map-btn').addEventListener('click', openMapModal);
+  el('map-done').addEventListener('click', closeMapModal);
+  el('map-close').addEventListener('click', closeMapModal);
+  const miniWrap = el('mini-map-wrap');
+  miniWrap.addEventListener('click', openMapModal);
+  miniWrap.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); openMapModal(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Escape' && !mapModal.hidden) closeMapModal();
+  });
+  el('poster-toggle').addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    if (!posterLayer || !map) return;
+    if (on) posterLayer.addTo(map);
+    else posterLayer.remove();
+  });
+  el('sat-toggle').addEventListener('change', (e) => {
+    if (!map || !streetLayer || !satLayer) return;
+    satMode = (e.target as HTMLInputElement).checked;
+    if (satMode) { map.removeLayer(streetLayer); satLayer.addTo(map); }
+    else { map.removeLayer(satLayer); streetLayer.addTo(map); }
+    // Re-style the full map's zones for the new basemap (legible on imagery).
+    for (const [name, poly] of fullPolys) {
+      const z = zones.find((x) => x.name === name);
+      if (z) poly.setStyle(zoneStyle(z, satMode));
+    }
+  });
+
+  // --- step navigation -----------------------------------------------------
+  function renderChips() {
+    const wrap = el('chosen-chips');
+    wrap.innerHTML = '';
+    for (const name of selected) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = name;
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'chip-x';
+      x.setAttribute('aria-label', `Remove ${name}`);
+      x.textContent = '×';
+      x.addEventListener('click', () => {
+        selected.delete(name);
+        refreshZone(name);
+        refreshSelectBar();
+        if (selected.size === 0) goToZones();
+        else renderChips();
+      });
+      chip.appendChild(x);
+      wrap.appendChild(chip);
+    }
+  }
+  function goToDetails() {
+    if (selected.size === 0) return;
+    stepZones.hidden = true;
+    selectBar.hidden = true;
+    stepDetails.hidden = false;
+    renderChips();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function goToZones() {
+    stepDetails.hidden = true;
+    stepZones.hidden = false;
+    refreshSelectBar();
+  }
+  nextBtn.addEventListener('click', goToDetails);
+  backBtn.addEventListener('click', goToZones);
+
+  // --- submit --------------------------------------------------------------
+  function showError(m: string) { errorEl.textContent = m; errorEl.hidden = false; }
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    clearError();
+    errorEl.hidden = true;
+    const firstName = (el('firstName') as HTMLInputElement).value.trim();
+    const lastName = (el('lastName') as HTMLInputElement).value.trim();
+    const email = (el('email') as HTMLInputElement).value.trim();
+    const phone = (el('phone') as HTMLInputElement).value.trim();
+    const consent = (el('consent') as HTMLInputElement).checked;
 
-    const email = (form.querySelector('#email') as HTMLInputElement).value.trim();
-    const firstName = (form.querySelector('#firstName') as HTMLInputElement).value.trim();
-    const phone = (form.querySelector('#phone') as HTMLInputElement).value.trim();
-    const consent = (form.querySelector('#consent') as HTMLInputElement).checked;
-
-    if (selected.size === 0) {
-      showError('Please choose at least one zone.');
-      return;
-    }
-    if (!email) {
-      showError('Please enter your email address.');
-      return;
-    }
-    if (!consent) {
-      showError('Please tick the box to confirm we can contact you.');
-      return;
-    }
+    if (!firstName) return showError('Please enter your first name.');
+    if (!email) return showError('Please enter your email address.');
+    if (!consent) return showError('Please tick the box to confirm we can contact you.');
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing up…';
-
     try {
       const res = await fetch('/api/leaflet-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, firstName, phone, zones: [...selected.keys()] }),
+        body: JSON.stringify({ email, firstName, lastName, phone, zones: [...selected] }),
       });
       const data = await res.json();
-
       if (data.success) {
         const outcomes = data.outcomes as { zone: string; role: string }[];
-        // Remember on this device so a return visit can mark these delivered.
         saveMe(email, outcomes.map((o) => o.zone));
-        successZonesEl.innerHTML = '';
+        const ul = el('success-zones');
+        ul.innerHTML = '';
         for (const o of outcomes) {
           const li = document.createElement('li');
           const role = document.createElement('span');
           role.className = 'role role-' + o.role;
           role.textContent = o.role === 'primary' ? 'Lead deliverer' : 'Backup';
           li.append(document.createTextNode(o.zone + ' '), role);
-          successZonesEl.appendChild(li);
+          ul.appendChild(li);
         }
-        form.hidden = true;
+        stepDetails.hidden = true;
         successEl.hidden = false;
-        successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         showError(data.error ?? 'Something went wrong. Please try again.');
         submitBtn.disabled = false;
@@ -394,365 +595,277 @@ const MAP_EMBED =
     }
   });
 
-  loadZones();
+  // --- init ----------------------------------------------------------------
+  async function init() {
+    const me = readMe();
+    myEmail = me?.email ?? '';
+    myZones = new Set(me?.zones ?? []);
+    try {
+      const res = await fetch('/api/leaflet-zones');
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.zones)) throw new Error(data.error ?? 'failed');
+      zones = data.zones;
+      posters = data.posters ?? [];
+
+      const summary = el('zones-summary');
+      const totalHomes = zones.reduce((s, z) => s + (z.houseCount ?? 0), 0);
+      summary.textContent = totalHomes
+        ? `${zones.length} zones · roughly ${totalHomes} homes in total (counts are approximate).`
+        : `${zones.length} zones.`;
+      summary.hidden = false;
+
+      buildMiniMap();
+      rebuildList();
+      refreshSelectBar();
+    } catch {
+      zonesEl.innerHTML = '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
+    }
+  }
+  init();
 </script>
 
 <style>
-  .leaflet-layout {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr;
-    gap: var(--space-7);
-    align-items: start;
-  }
-  @media (max-width: 860px) {
-    .leaflet-layout {
-      grid-template-columns: 1fr;
-      gap: var(--space-8);
-    }
-  }
+  .hero-compact { padding-bottom: var(--space-5); }
+  .leaflet-sect { padding-top: var(--space-5); }
 
-  .col-h {
+  /* This page breaks out of the site's 1200px gutter so the map can breathe.
+     Hero + section share the wider container so their left edges align; step 2
+     (the form) stays at a comfortable reading width. */
+  .hero-compact .mw-wrap,
+  .leaflet-sect .mw-wrap,
+  #select-bar .mw-wrap { max-width: 1440px; }
+  #step-details { max-width: 760px; }
+
+  .step-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-3);
+  }
+  .step-title {
     font-family: var(--font-body);
-    font-size: 1.25rem;
+    font-size: 1.4rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-    margin: 0 0 var(--space-2);
+    margin: 0;
   }
-  .col-lead {
-    color: var(--fg-soft);
-    margin: 0 0 var(--space-5);
-    font-size: 0.95rem;
+  .open-map-btn {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--green-dark);
+    background: rgba(116,169,83,0.14);
+    border: 1.5px solid rgba(116,169,83,0.4);
+    border-radius: var(--r-pill);
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .open-map-btn:hover { background: rgba(116,169,83,0.22); }
+
+  .zones-summary { margin: 0 0 var(--space-3); font-size: 0.82rem; color: var(--fg-mute); }
+
+  /* Two-column zone picker (list + side map on wide screens) */
+  .zone-picker { display: grid; grid-template-columns: 1fr; gap: var(--space-4); align-items: start; }
+  @media (min-width: 880px) {
+    /* List narrower, map larger (and it gets the bigger share of extra width). */
+    .zone-picker { grid-template-columns: minmax(360px, 1fr) minmax(440px, 1.4fr); }
+    .map-col { position: sticky; top: var(--space-5); }
+  }
+  @media (max-width: 879px) {
+    .map-col { order: -1; } /* preview on top when stacked */
   }
 
-  .map-frame {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    border-radius: var(--r-lg);
-    overflow: hidden;
-    border: 1.5px solid var(--paper-deep);
-    box-shadow: var(--shadow-float);
-  }
-  .map-frame iframe {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
-  }
-  .map-note {
-    display: flex;
-    gap: var(--space-3);
-    margin: var(--space-4) 0 0;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: var(--fg-soft);
-  }
-  .map-note .pin {
-    flex-shrink: 0;
-  }
-  @media (min-width: 861px) {
-    .map-col {
-      position: sticky;
-      top: var(--space-5);
-    }
-  }
-
-  /* Zone checklist */
+  /* List */
   .zones {
     border: 1.5px solid var(--paper-deep);
     border-radius: var(--r-md);
     background: var(--bone);
-    max-height: 360px;
-    overflow-y: auto;
-    margin-bottom: var(--space-6);
+    overflow: hidden;
   }
-  .zones-loading {
-    padding: var(--space-5);
-    margin: 0;
-    color: var(--fg-mute);
-    font-size: 0.9rem;
-  }
-  .zones-summary {
-    margin: 0 0 var(--space-3);
-    font-size: 0.82rem;
-    color: var(--fg-mute);
-  }
-  /* NB: zone rows + success list items are built in client JS, so their styles
-     live in the is:global block below (scoped styles don't match JS-created
-     elements). They're namespaced under #zones / #success-zones to avoid leaks. */
+  .zones-loading { padding: var(--space-5); margin: 0; color: var(--fg-mute); font-size: 0.9rem; }
 
-  /* Contact fields */
-  .contact-fields {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
-    margin-bottom: var(--space-5);
-  }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--fg);
-  }
-  .optional {
-    font-weight: 400;
-    color: var(--fg-mute);
-  }
-  .field-hint {
-    font-size: 0.78rem;
-    color: var(--fg-mute);
-    line-height: 1.4;
-  }
-  .required {
-    color: #c0392b;
-  }
-  input[type='email'],
-  input[type='text'] {
-    font-family: var(--font-body);
-    font-size: 1rem;
-    color: var(--fg);
-    background: var(--bone);
+  /* Mini map preview */
+  .mini-map-wrap {
+    position: relative;
+    height: 220px;
     border: 1.5px solid var(--paper-deep);
     border-radius: var(--r-md);
-    padding: 11px 14px;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.15s ease;
-    outline: none;
-  }
-  input[type='email']:focus,
-  input[type='text']:focus {
-    border-color: var(--green);
-    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
-  }
-  input::placeholder {
-    color: var(--ink-mute);
-  }
-  .checkbox-label {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-    font-weight: 400;
-    font-size: 0.875rem;
-    color: var(--fg-soft);
-    cursor: pointer;
-    line-height: 1.5;
-  }
-  .checkbox-label input[type='checkbox'] {
-    margin-top: 2px;
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    accent-color: var(--green);
+    overflow: hidden;
     cursor: pointer;
   }
-  .checkbox-label a {
-    color: var(--green-dark);
+  @media (min-width: 880px) {
+    .mini-map-wrap { height: clamp(420px, 72vh, 700px); }
+  }
+  .mini-map { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .mini-map-overlay {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 10px; transition: background 0.15s ease;
+  }
+  .mini-map-wrap:hover .mini-map-overlay,
+  .mini-map-wrap:focus-visible .mini-map-overlay { background: rgba(0,0,0,0.06); }
+  .mini-map-hint {
+    background: var(--green); color: #fff;
+    font-size: 0.78rem; font-weight: 700;
+    padding: 5px 12px; border-radius: var(--r-pill);
+    box-shadow: var(--shadow-float);
   }
 
-  .form-message {
-    font-size: 0.875rem;
-    border-radius: var(--r-md);
-    padding: 10px 14px;
-    margin-bottom: var(--space-5);
+  /* Map modal */
+  .map-modal {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--paper);
+    display: flex; flex-direction: column;
   }
-  .form-message--error {
-    background: #fdf0ee;
-    color: #a93226;
-    border: 1px solid #f0b8b2;
+  .map-modal[hidden] { display: none; }
+  .map-modal-head {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: 10px var(--space-4);
+    background: #5A3F38; color: #fff;
   }
-  #submit-btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+  .mm-head-left { display: flex; flex-direction: column; margin-right: auto; }
+  .mm-title { font-size: 0.95rem; font-weight: 700; }
+  .mm-count { font-size: 0.8rem; color: rgba(255,255,255,0.82); }
+  .map-modal-head .poster-toggle { color: #fff; font-size: 0.82rem; }
+  .mm-close {
+    background: rgba(255,255,255,0.16); color: #fff; border: 0;
+    width: 34px; height: 34px; border-radius: 50%;
+    font-size: 1.4rem; line-height: 1; cursor: pointer; flex: none;
   }
-  .selection-hint {
-    font-size: 0.8rem;
-    color: var(--fg-mute);
-    margin: var(--space-3) 0 0;
+  .mm-close:hover { background: rgba(255,255,255,0.28); }
+  .map-modal-body { position: relative; flex: 1; min-height: 0; }
+  .map-full { position: absolute; inset: 0; }
+
+  .poster-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .poster-toggle input { accent-color: var(--green); }
+
+  .map-legend {
+    position: absolute; left: 12px; bottom: 12px; z-index: 500;
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--space-2) var(--space-4);
+    background: rgba(255,255,255,0.94);
+    padding: 8px 12px; border-radius: var(--r-md);
+    box-shadow: var(--shadow-float);
+    max-width: calc(100% - 24px);
+    font-size: 0.76rem; color: var(--fg-soft);
   }
+  .map-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1.5px solid; }
+  .sw-free { background: rgba(116,169,83,0.32); border-color: #4d7a33; }
+  .sw-taken { background: rgba(224,155,59,0.32); border-color: #b4791f; }
+  .sw-mine { background: rgba(111,123,214,0.32); border-color: #4854b5; }
+  .sw-done { background: rgba(154,160,166,0.45); border-color: #6b7177; }
+  .sw-sel { background: rgba(31,111,235,0.5); border-color: #1f6feb; }
+
+  /* Selection bar */
+  .select-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #5A3F38;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.2);
+    z-index: 500;
+    padding: var(--space-3) 0;
+  }
+  .select-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+  .select-count { font-weight: 600; font-size: 0.95rem; color: #fff; }
+  #step-zones { padding-bottom: 84px; } /* clear the fixed bar */
+
+  /* Step 2 */
+  .back-btn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+    color: var(--green-dark); margin-bottom: var(--space-4);
+  }
+  .chosen { margin-bottom: var(--space-5); }
+  .chosen-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--fg-mute); margin-bottom: var(--space-2); }
+  .chosen-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(116,169,83,0.14); color: var(--green-dark);
+    border: 1px solid rgba(116,169,83,0.4); border-radius: var(--r-pill);
+    padding: 4px 6px 4px 12px; font-size: 0.85rem; font-weight: 600;
+  }
+  .chip-x { background: none; border: 0; cursor: pointer; color: var(--green-dark); font-size: 1.1rem; line-height: 1; padding: 0 4px; }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+  @media (max-width: 520px) { .field-grid { grid-template-columns: 1fr; } }
+  form .field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+  .field-grid .field { margin-bottom: 0; }
+  label { font-size: 0.875rem; font-weight: 600; color: var(--fg); }
+  .optional { font-weight: 400; color: var(--fg-mute); }
+  .required { color: #c0392b; }
+  .field-hint { font-size: 0.78rem; color: var(--fg-mute); line-height: 1.4; }
+  input[type="email"], input[type="text"], input[type="tel"] {
+    font-family: var(--font-body); font-size: 1rem; color: var(--fg);
+    background: var(--bone); border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md); padding: 11px 14px; width: 100%;
+    box-sizing: border-box; transition: border-color 0.15s ease; outline: none;
+  }
+  input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(116,169,83,0.18); }
+  input::placeholder { color: var(--ink-mute); }
+  .checkbox-label {
+    display: flex; align-items: flex-start; gap: var(--space-3);
+    font-weight: 400; font-size: 0.875rem; color: var(--fg-soft);
+    cursor: pointer; line-height: 1.5; margin: var(--space-2) 0 var(--space-5);
+  }
+  .checkbox-label input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+  .checkbox-label a { color: var(--green-dark); }
+  .form-message { font-size: 0.875rem; border-radius: var(--r-md); padding: 10px 14px; margin-bottom: var(--space-5); }
+  .form-message--error { background: #fdf0ee; color: #a93226; border: 1px solid #f0b8b2; }
+  #submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* Success */
-  .success-wrap {
-    text-align: center;
-    padding: var(--space-6) 0;
-  }
+  .success-wrap { text-align: center; padding: var(--space-7) 0; }
   .success-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--green);
-    color: #fff;
-    font-size: 1.5rem;
-    margin-bottom: var(--space-4);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; border-radius: 50%; background: var(--green);
+    color: #fff; font-size: 1.5rem; margin-bottom: var(--space-4);
   }
-  .success-wrap h2 {
-    font-family: var(--font-body);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0 0 var(--space-3);
-    letter-spacing: -0.02em;
-  }
-  .success-zones {
-    list-style: none;
-    padding: 0;
-    margin: var(--space-4) auto;
-    max-width: 320px;
-    text-align: left;
-  }
-  .success-foot {
-    color: var(--fg-soft);
-    font-size: 0.95rem;
-  }
+  .success-wrap h2 { font-family: var(--font-body); font-size: 1.5rem; font-weight: 700; margin: 0 0 var(--space-3); letter-spacing: -0.02em; }
+  .success-zones { list-style: none; padding: 0; margin: var(--space-4) auto; max-width: 340px; text-align: left; }
+  .success-foot { color: var(--fg-soft); font-size: 0.95rem; max-width: 48ch; margin: var(--space-4) auto 0; }
 </style>
 
-<!-- Styles for elements created in client JS (zone rows + success list items).
-     Scoped styles don't apply to JS-created DOM, so these are global but
-     namespaced under #zones / #success-zones so they can't leak elsewhere. -->
+<!-- Styles for JS-created list rows + Leaflet popups; namespaced so they don't leak. -->
 <style is:global>
-  #zones .zone-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--paper-deep);
+  body.modal-open { overflow: hidden; }
+  #zones .zone-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px 14px; border-bottom: 1px solid var(--paper-deep); transition: background 0.12s ease; }
+  #zones .zone-row:last-child { border-bottom: 0; }
+  #zones .zone-row:hover { background: rgba(0,0,0,0.03); }
+  #zones .zone-row.is-selected { background: rgba(31,111,235,0.14); box-shadow: inset 3px 0 0 #1f6feb; }
+  #zones .zone-main { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; flex: 1; min-width: 0; }
+  #zones .zone-main input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--green); cursor: pointer; }
+  #zones .zone-text { display: flex; flex-direction: column; min-width: 0; }
+  #zones .zone-name { font-size: 0.95rem; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #zones .zone-meta { font-size: 0.72rem; color: var(--fg-mute); margin-top: 1px; }
+  #zones .zone-row.is-delivered .zone-name { color: var(--fg-mute); text-decoration: line-through; }
+  #zones .zone-status { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+  .badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 8px; border-radius: var(--r-pill); white-space: nowrap; }
+  #zones .badge-free { background: rgba(116,169,83,0.16); color: var(--green-dark); }
+  #zones .badge-taken { background: var(--paper-deep); color: var(--fg-mute); }
+  #zones .badge-delivered { background: var(--green); color: #fff; }
+  #zones .badge-mine { background: var(--sun, #f2c14e); color: var(--night, #2b2517); }
+  #zones .zone-help { font-size: 0.72rem; color: var(--fg-mute); }
+  .mark-delivered {
+    font-family: var(--font-body); font-size: 0.75rem; font-weight: 600;
+    color: var(--green-dark); background: rgba(116,169,83,0.14);
+    border: 1px solid rgba(116,169,83,0.4); border-radius: var(--r-pill);
+    padding: 4px 10px; cursor: pointer; white-space: nowrap;
   }
-  #zones .zone-row:last-child {
-    border-bottom: 0;
-  }
-  #zones .zone-row.is-selected {
-    background: rgba(116, 169, 83, 0.1);
-  }
-  #zones .zone-main {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    cursor: pointer;
-    flex: 1;
-    min-width: 0;
-  }
-  #zones .zone-main input[type='checkbox'] {
-    width: 17px;
-    height: 17px;
-    flex-shrink: 0;
-    accent-color: var(--green);
-    cursor: pointer;
-  }
-  #zones .zone-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-  #zones .zone-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--fg);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  #zones .zone-meta {
-    font-size: 0.72rem;
-    color: var(--fg-mute);
-    margin-top: 1px;
-  }
-  #zones .zone-row.is-taken .zone-name {
-    color: var(--fg-soft);
-  }
-  #zones .zone-status {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    flex-shrink: 0;
-  }
-  #zones .badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 3px 8px;
-    border-radius: var(--r-pill);
-    white-space: nowrap;
-  }
-  #zones .badge-free {
-    background: rgba(116, 169, 83, 0.16);
-    color: var(--green-dark);
-  }
-  #zones .badge-taken {
-    background: var(--paper-deep);
-    color: var(--fg-mute);
-  }
-  #zones .badge-delivered {
-    background: var(--green);
-    color: #fff;
-  }
-  #zones .badge-mine {
-    background: var(--sun, #f2c14e);
-    color: var(--night, #2b2517);
-  }
-  #zones .zone-help {
-    font-size: 0.72rem;
-    color: var(--fg-mute);
-  }
-  #zones .zone-row.is-delivered .zone-name {
-    color: var(--fg-mute);
-    text-decoration: line-through;
-  }
-  #zones .mark-delivered {
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--green-dark);
-    background: rgba(116, 169, 83, 0.14);
-    border: 1px solid rgba(116, 169, 83, 0.4);
-    border-radius: var(--r-pill);
-    padding: 4px 10px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s ease;
-  }
-  #zones .mark-delivered:hover {
-    background: rgba(116, 169, 83, 0.24);
-  }
-  #zones .mark-delivered:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-  #success-zones li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: 8px 12px;
-    border: 1px solid var(--paper-deep);
-    border-radius: var(--r-md);
-    margin-bottom: var(--space-2);
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-  #success-zones .role {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 3px 8px;
-    border-radius: var(--r-pill);
-    white-space: nowrap;
-  }
-  #success-zones .role-primary {
-    background: rgba(116, 169, 83, 0.16);
-    color: var(--green-dark);
-  }
-  #success-zones .role-backup {
-    background: var(--paper-deep);
-    color: var(--fg-mute);
-  }
+  .mark-delivered:hover { background: rgba(116,169,83,0.24); }
+  .mark-delivered:disabled { opacity: 0.6; cursor: default; }
+  #success-zones li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 8px 12px; border: 1px solid var(--paper-deep); border-radius: var(--r-md); margin-bottom: var(--space-2); font-weight: 600; font-size: 0.9rem; }
+  #success-zones .role { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 8px; border-radius: var(--r-pill); white-space: nowrap; }
+  #success-zones .role-primary { background: rgba(116,169,83,0.16); color: var(--green-dark); }
+  #success-zones .role-backup { background: var(--paper-deep); color: var(--fg-mute); }
+  /* Leaflet popup / tooltip */
+  .deliver-pop strong { font-size: 0.95rem; }
+  .deliver-pop p { margin: 4px 0 8px; font-size: 0.85rem; color: var(--fg-soft); }
+  .tt-status { font-weight: 700; }
+  .leaflet-tooltip .tt-free { color: #4d7a33; }
+  .leaflet-tooltip .tt-taken { color: #b4791f; }
+  .leaflet-tooltip .tt-mine { color: #4854b5; }
+  .leaflet-tooltip .tt-delivered { color: #6b7177; }
 </style>
