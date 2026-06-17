@@ -11,6 +11,7 @@ const json = (data: unknown, status = 200) =>
 export const POST: APIRoute = async ({ request }) => {
   let email = '';
   let firstName = '';
+  let lastName = '';
   let phone = '';
   let zones: string[] = [];
 
@@ -18,6 +19,7 @@ export const POST: APIRoute = async ({ request }) => {
     const body = await request.json();
     email = String(body.email ?? '').trim();
     firstName = String(body.firstName ?? '').trim();
+    lastName = String(body.lastName ?? '').trim();
     phone = String(body.phone ?? '').trim();
     zones = Array.isArray(body.zones) ? body.zones.map((z: unknown) => String(z)) : [];
   } catch {
@@ -42,10 +44,11 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: 'Please choose at least one valid zone.' }, 400);
     }
 
-    const outcomes = await recordClaim({ email, name: firstName, phone, zones: requested });
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+    const outcomes = await recordClaim({ email, name: fullName, phone, zones: requested });
 
     // Add to the mailing list (best-effort; never blocks the claim).
-    await addToBrevoList({ email, firstName }).catch((e) =>
+    await addToBrevoList({ email, firstName, lastName }).catch((e) =>
       console.warn('Brevo add error:', e)
     );
 
