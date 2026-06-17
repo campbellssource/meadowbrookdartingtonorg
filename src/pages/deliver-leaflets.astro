@@ -628,6 +628,14 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   .hero-compact { padding-bottom: var(--space-5); }
   .leaflet-sect { padding-top: var(--space-5); }
 
+  /* This page breaks out of the site's 1200px gutter so the map can breathe.
+     Hero + section share the wider container so their left edges align; step 2
+     (the form) stays at a comfortable reading width. */
+  .hero-compact .mw-wrap,
+  .leaflet-sect .mw-wrap,
+  #select-bar .mw-wrap { max-width: 1440px; }
+  #step-details { max-width: 760px; }
+
   .step-head {
     display: flex;
     align-items: center;
@@ -661,7 +669,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   /* Two-column zone picker (list + side map on wide screens) */
   .zone-picker { display: grid; grid-template-columns: 1fr; gap: var(--space-4); align-items: start; }
   @media (min-width: 880px) {
-    .zone-picker { grid-template-columns: 1fr 380px; }
+    /* List narrower, map larger (and it gets the bigger share of extra width). */
+    .zone-picker { grid-template-columns: minmax(360px, 1fr) minmax(440px, 1.4fr); }
     .map-col { position: sticky; top: var(--space-5); }
   }
   @media (max-width: 879px) {
@@ -687,7 +696,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     cursor: pointer;
   }
   @media (min-width: 880px) {
-    .mini-map-wrap { height: clamp(360px, 68vh, 600px); }
+    .mini-map-wrap { height: clamp(420px, 72vh, 700px); }
   }
   .mini-map { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
   .mini-map-overlay {
