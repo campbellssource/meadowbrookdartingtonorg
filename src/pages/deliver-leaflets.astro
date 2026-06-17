@@ -15,8 +15,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       <span class="mw-eyebrow">Lend a hand</span>
       <h1>Help deliver our leaflets</h1>
       <p>
-        We've split the village into delivery zones. Pick one or more on the
-        map, then tell us where to send you. An hour or two covers most zones.
+        We've split the village into delivery zones. Pick one or more, then tell
+        us where to send you. An hour or two covers most zones.
       </p>
     </div>
   </section>
@@ -28,37 +28,24 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       <div id="step-zones" class="step">
         <div class="step-head">
           <h2 class="step-title">Choose your zones</h2>
-          <div class="view-toggle" role="tablist" aria-label="Map or list view">
-            <button type="button" id="tab-map" class="vt-btn" role="tab" aria-selected="false">Map</button>
-            <button type="button" id="tab-list" class="vt-btn active" role="tab" aria-selected="true">List</button>
-          </div>
+          <button type="button" id="open-map-btn" class="open-map-btn">⤢ Open full map</button>
         </div>
 
         <p id="zones-summary" class="zones-summary" hidden></p>
 
-        <!-- Map view -->
-        <div id="map-view" class="map-view" hidden>
-          <div id="map" class="map" role="application" aria-label="Map of delivery zones"></div>
-          <div class="map-legend" aria-hidden="true">
-            <span class="lg"><i class="sw sw-free"></i>Available</span>
-            <span class="lg"><i class="sw sw-taken"></i>Taken (backup ok)</span>
-            <span class="lg"><i class="sw sw-mine"></i>Yours</span>
-            <span class="lg"><i class="sw sw-done"></i>Delivered</span>
-            <span class="lg"><i class="sw sw-sel"></i>Selected</span>
-            <label class="poster-toggle"><input type="checkbox" id="poster-toggle" /> Poster spots</label>
+        <div class="zone-picker">
+          <div class="list-col">
+            <div id="zones" class="zones" aria-busy="true">
+              <p class="zones-loading">Loading zones…</p>
+            </div>
           </div>
-          <p class="map-hint">Tap a zone to select it. Pins show where to put up posters (and take them down afterwards).</p>
-        </div>
-
-        <!-- List view (default). Includes a small non-interactive map preview
-             whose only action is to open the full map view. -->
-        <div id="list-view" class="list-view">
-          <div id="mini-map-wrap" class="mini-map-wrap" role="button" tabindex="0" aria-label="Open the full map">
-            <div id="mini-map" class="mini-map"></div>
-            <span class="mini-map-overlay"><span class="mini-map-hint">View full map →</span></span>
-          </div>
-          <div id="zones" class="zones" aria-busy="true">
-            <p class="zones-loading">Loading zones…</p>
+          <div class="map-col">
+            <!-- Non-interactive preview; clicking it (or the button above) opens
+                 the full-screen map. Hovering a list item highlights it here. -->
+            <div id="mini-map-wrap" class="mini-map-wrap" role="button" tabindex="0" aria-label="Open the full map">
+              <div id="mini-map" class="mini-map"></div>
+              <span class="mini-map-overlay"><span class="mini-map-hint">Open full map →</span></span>
+            </div>
           </div>
         </div>
       </div>
@@ -132,6 +119,29 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       <button type="button" id="next-btn" class="mw-btn mw-btn-primary" disabled>Next →</button>
     </div>
   </div>
+
+  <!-- Full-screen map modal -->
+  <div id="map-modal" class="map-modal" hidden role="dialog" aria-modal="true" aria-label="Delivery zone map">
+    <div class="map-modal-head">
+      <div class="mm-head-left">
+        <strong class="mm-title">Tap zones to select</strong>
+        <span id="mm-count" class="mm-count">No zones selected</span>
+      </div>
+      <label class="poster-toggle"><input type="checkbox" id="poster-toggle" /> Poster spots</label>
+      <button type="button" id="map-done" class="mw-btn mw-btn-primary mw-btn-sm">Done</button>
+      <button type="button" id="map-close" class="mm-close" aria-label="Close map">×</button>
+    </div>
+    <div class="map-modal-body">
+      <div id="map" class="map-full" role="application" aria-label="Map of delivery zones"></div>
+      <div class="map-legend" aria-hidden="true">
+        <span class="lg"><i class="sw sw-free"></i>Available</span>
+        <span class="lg"><i class="sw sw-taken"></i>Taken (backup ok)</span>
+        <span class="lg"><i class="sw sw-mine"></i>Yours</span>
+        <span class="lg"><i class="sw sw-done"></i>Delivered</span>
+        <span class="lg"><i class="sw sw-sel"></i>Selected</span>
+      </div>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -154,7 +164,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   let zones: ZoneStatus[] = [];
   let posters: Poster[] = [];
   const selected = new Set<string>();
-  // Each zone can have a polygon on both the full map and the mini preview.
+  // A zone can have a polygon on both the full map and the mini preview.
   const layers = new Map<string, L.Polygon[]>();
   const listRows = new Map<string, { row: HTMLElement; checkbox?: HTMLInputElement }>();
   let map: L.Map | null = null;
@@ -199,11 +209,9 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   const selectCount = el('select-count');
   const nextBtn = el('next-btn') as HTMLButtonElement;
   const backBtn = el('back-btn');
-  const tabMap = el('tab-map');
-  const tabList = el('tab-list');
-  const mapView = el('map-view');
-  const listView = el('list-view');
   const zonesEl = el('zones');
+  const mapModal = el('map-modal');
+  const mmCount = el('mm-count');
   const form = el('leaflet-form') as HTMLFormElement;
   const submitBtn = el('submit-btn') as HTMLButtonElement;
   const errorEl = el('form-error');
@@ -258,25 +266,35 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       if (lr.checkbox) lr.checkbox.checked = selected.has(name);
     }
   }
+  // Transient highlight when hovering a list row (does not change selection).
+  function hoverZone(name: string, on: boolean) {
+    const z = zones.find((x) => x.name === name);
+    if (!z) return;
+    for (const poly of layers.get(name) ?? []) {
+      if (on) { poly.setStyle({ weight: 4, color: '#1f2937' }); poly.bringToFront(); }
+      else poly.setStyle(zoneStyle(z));
+    }
+  }
   function refreshSelectBar() {
     const n = selected.size;
     nextBtn.disabled = n === 0;
-    if (n > 0) {
-      const homes = [...selected].reduce((sum, name) => {
-        const z = zones.find((x) => x.name === name);
-        return sum + (z?.houseCount ?? 0);
-      }, 0);
-      selectCount.textContent = `${n} zone${n > 1 ? 's' : ''} selected${homes ? ` · ~${homes} homes` : ''}`;
-    }
-    // Only show the bar in step 1, and only once at least one zone is chosen.
+    const homes = [...selected].reduce((sum, name) => {
+      const z = zones.find((x) => x.name === name);
+      return sum + (z?.houseCount ?? 0);
+    }, 0);
+    const label = n === 0
+      ? 'No zones selected'
+      : `${n} zone${n > 1 ? 's' : ''} selected${homes ? ` · ~${homes} homes` : ''}`;
+    selectCount.textContent = label;
+    mmCount.textContent = label;
+    // Bar shows only in step 1, once at least one zone is chosen.
     selectBar.hidden = stepZones.hidden || n === 0;
   }
 
-  // --- map -----------------------------------------------------------------
+  // --- maps ----------------------------------------------------------------
   function buildFullMap() {
-    map = L.map('map', { scrollWheelZoom: false }).setView([50.4449, -3.7091], 14);
+    map = L.map('map', { scrollWheelZoom: true }).setView([50.4449, -3.7091], 14);
     L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
-    map.on('click', () => map!.scrollWheelZoom.enable());
 
     const bounds: number[][] = [];
     for (const z of zones) {
@@ -292,7 +310,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       registerLayer(z.name, poly);
       z.polygon.forEach((p) => bounds.push(p));
     }
-    if (bounds.length) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [16, 16] });
+    if (bounds.length) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [24, 24] });
 
     posterLayer = L.layerGroup(
       posters.map((p) =>
@@ -302,12 +320,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     );
   }
 
-  // Small, non-interactive preview shown in the list view. Its only action is
-  // a click anywhere, which opens the full map (handled on the wrapper).
   function buildMiniMap() {
-    // Fixed centre/zoom rather than fitBounds: the preview is a wide, short
-    // strip, so fitBounds would zoom right out. A fixed zoom frames the village
-    // and lets it fill the strip (cropping the edges).
+    // Fixed centre/zoom: a fitBounds on this small box would zoom right out.
     miniMap = L.map('mini-map', {
       dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
       boxZoom: false, keyboard: false, touchZoom: false, zoomControl: false,
@@ -354,7 +368,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       if (data.success) {
         z.delivered = true;
         refreshZone(z.name);
-        layers.get(z.name)?.closePopup();
+        for (const poly of layers.get(z.name) ?? []) poly.closePopup();
         rebuildList();
       } else {
         btn.disabled = false;
@@ -377,6 +391,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     const s = statusOf(z);
     const row = document.createElement('div');
     row.className = `zone-row is-${s}` + (selected.has(z.name) ? ' is-selected' : '');
+    row.addEventListener('mouseenter', () => hoverZone(z.name, true));
+    row.addEventListener('mouseleave', () => hoverZone(z.name, false));
 
     const main = document.createElement('label');
     main.className = 'zone-main';
@@ -438,28 +454,28 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     zonesEl.removeAttribute('aria-busy');
   }
 
-  // --- view toggle ---------------------------------------------------------
-  function showMap() {
-    tabMap.classList.add('active'); tabList.classList.remove('active');
-    tabMap.setAttribute('aria-selected', 'true'); tabList.setAttribute('aria-selected', 'false');
-    mapView.hidden = false; listView.hidden = true;
-    // Build the full map lazily, the first time it's shown (so the container
-    // has a real size for fitBounds).
-    if (!mapBuilt) { mapBuilt = true; setTimeout(buildFullMap, 0); }
-    else setTimeout(() => map?.invalidateSize(), 0);
+  // --- map modal -----------------------------------------------------------
+  function openMapModal() {
+    mapModal.hidden = false;
+    document.body.classList.add('modal-open');
+    if (!mapBuilt) { mapBuilt = true; setTimeout(buildFullMap, 30); }
+    else setTimeout(() => map?.invalidateSize(), 30);
   }
-  function showList() {
-    tabList.classList.add('active'); tabMap.classList.remove('active');
-    tabList.setAttribute('aria-selected', 'true'); tabMap.setAttribute('aria-selected', 'false');
-    listView.hidden = false; mapView.hidden = true;
+  function closeMapModal() {
+    mapModal.hidden = true;
+    document.body.classList.remove('modal-open');
   }
-  tabMap.addEventListener('click', showMap);
-  tabList.addEventListener('click', showList);
+  el('open-map-btn').addEventListener('click', openMapModal);
+  el('map-done').addEventListener('click', closeMapModal);
+  el('map-close').addEventListener('click', closeMapModal);
   const miniWrap = el('mini-map-wrap');
-  miniWrap.addEventListener('click', showMap);
+  miniWrap.addEventListener('click', openMapModal);
   miniWrap.addEventListener('keydown', (e) => {
     const k = (e as KeyboardEvent).key;
-    if (k === 'Enter' || k === ' ') { e.preventDefault(); showMap(); }
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); openMapModal(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Escape' && !mapModal.hidden) closeMapModal();
   });
   el('poster-toggle').addEventListener('change', (e) => {
     const on = (e.target as HTMLInputElement).checked;
@@ -503,8 +519,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   function goToZones() {
     stepDetails.hidden = true;
     stepZones.hidden = false;
-    selectBar.hidden = false;
-    setTimeout(() => map?.invalidateSize(), 0);
+    refreshSelectBar();
   }
   nextBtn.addEventListener('click', goToDetails);
   backBtn.addEventListener('click', goToZones);
@@ -585,7 +600,6 @@ import KeepInTouch from '../components/KeepInTouch.astro';
       refreshSelectBar();
     } catch {
       zonesEl.innerHTML = '<p class="zones-loading">Couldn\'t load the zones right now. Please refresh the page.</p>';
-      mapView.hidden = true;
     }
   }
   init();
@@ -610,57 +624,30 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     letter-spacing: -0.01em;
     margin: 0;
   }
-  .view-toggle {
-    display: inline-flex;
-    background: var(--bone);
-    border: 1.5px solid var(--paper-deep);
-    border-radius: var(--r-pill);
-    padding: 3px;
-  }
-  .vt-btn {
+  .open-map-btn {
     font-family: var(--font-body);
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--fg-soft);
-    background: transparent;
-    border: 0;
+    color: var(--green-dark);
+    background: rgba(116,169,83,0.14);
+    border: 1.5px solid rgba(116,169,83,0.4);
     border-radius: var(--r-pill);
-    padding: 6px 18px;
+    padding: 7px 16px;
     cursor: pointer;
   }
-  .vt-btn.active { background: var(--green); color: #fff; }
+  .open-map-btn:hover { background: rgba(116,169,83,0.22); }
 
   .zones-summary { margin: 0 0 var(--space-3); font-size: 0.82rem; color: var(--fg-mute); }
 
-  /* Map */
-  .map-view { position: relative; }
-  .map {
-    height: clamp(380px, calc(100svh - 300px), 720px);
-    width: 100%;
-    border-radius: var(--r-lg);
-    border: 1.5px solid var(--paper-deep);
-    box-shadow: var(--shadow-float);
-    z-index: 0;
+  /* Two-column zone picker (list + side map on wide screens) */
+  .zone-picker { display: grid; grid-template-columns: 1fr; gap: var(--space-4); align-items: start; }
+  @media (min-width: 880px) {
+    .zone-picker { grid-template-columns: 1fr 380px; }
+    .map-col { position: sticky; top: var(--space-5); }
   }
-  .map-legend {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2) var(--space-4);
-    margin-top: var(--space-3);
-    font-size: 0.78rem;
-    color: var(--fg-soft);
+  @media (max-width: 879px) {
+    .map-col { order: -1; } /* preview on top when stacked */
   }
-  .map-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
-  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1.5px solid; }
-  .sw-free { background: rgba(116,169,83,0.32); border-color: #4d7a33; }
-  .sw-taken { background: rgba(224,155,59,0.32); border-color: #b4791f; }
-  .sw-mine { background: rgba(111,123,214,0.32); border-color: #4854b5; }
-  .sw-done { background: rgba(154,160,166,0.45); border-color: #6b7177; }
-  .sw-sel { background: rgba(31,111,235,0.5); border-color: #1f6feb; }
-  .poster-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-  .poster-toggle input { accent-color: var(--green); }
-  .map-hint { margin: var(--space-2) 0 0; font-size: 0.8rem; color: var(--fg-mute); }
 
   /* List */
   .zones {
@@ -670,17 +657,18 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     overflow: hidden;
   }
   .zones-loading { padding: var(--space-5); margin: 0; color: var(--fg-mute); font-size: 0.9rem; }
-  .list-view .zones { border-radius: 0 0 var(--r-md) var(--r-md); border-top: 0; }
 
-  /* Mini map preview (list view) */
+  /* Mini map preview */
   .mini-map-wrap {
     position: relative;
-    height: 200px;
+    height: 220px;
     border: 1.5px solid var(--paper-deep);
-    border-bottom: 0;
-    border-radius: var(--r-md) var(--r-md) 0 0;
+    border-radius: var(--r-md);
     overflow: hidden;
     cursor: pointer;
+  }
+  @media (min-width: 880px) {
+    .mini-map-wrap { height: clamp(360px, 68vh, 600px); }
   }
   .mini-map { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
   .mini-map-overlay {
@@ -697,6 +685,52 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     box-shadow: var(--shadow-float);
   }
 
+  /* Map modal */
+  .map-modal {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--paper);
+    display: flex; flex-direction: column;
+  }
+  .map-modal[hidden] { display: none; }
+  .map-modal-head {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: 10px var(--space-4);
+    background: #5A3F38; color: #fff;
+  }
+  .mm-head-left { display: flex; flex-direction: column; margin-right: auto; }
+  .mm-title { font-size: 0.95rem; font-weight: 700; }
+  .mm-count { font-size: 0.8rem; color: rgba(255,255,255,0.82); }
+  .map-modal-head .poster-toggle { color: #fff; font-size: 0.82rem; }
+  .mm-close {
+    background: rgba(255,255,255,0.16); color: #fff; border: 0;
+    width: 34px; height: 34px; border-radius: 50%;
+    font-size: 1.4rem; line-height: 1; cursor: pointer; flex: none;
+  }
+  .mm-close:hover { background: rgba(255,255,255,0.28); }
+  .map-modal-body { position: relative; flex: 1; min-height: 0; }
+  .map-full { position: absolute; inset: 0; }
+
+  .poster-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .poster-toggle input { accent-color: var(--green); }
+
+  .map-legend {
+    position: absolute; left: 12px; bottom: 12px; z-index: 500;
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--space-2) var(--space-4);
+    background: rgba(255,255,255,0.94);
+    padding: 8px 12px; border-radius: var(--r-md);
+    box-shadow: var(--shadow-float);
+    max-width: calc(100% - 24px);
+    font-size: 0.76rem; color: var(--fg-soft);
+  }
+  .map-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1.5px solid; }
+  .sw-free { background: rgba(116,169,83,0.32); border-color: #4d7a33; }
+  .sw-taken { background: rgba(224,155,59,0.32); border-color: #b4791f; }
+  .sw-mine { background: rgba(111,123,214,0.32); border-color: #4854b5; }
+  .sw-done { background: rgba(154,160,166,0.45); border-color: #6b7177; }
+  .sw-sel { background: rgba(31,111,235,0.5); border-color: #1f6feb; }
+
   /* Selection bar */
   .select-bar {
     position: fixed;
@@ -708,8 +742,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   }
   .select-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
   .select-count { font-weight: 600; font-size: 0.95rem; color: #fff; }
-  /* keep content clear of the fixed bar */
-  #step-zones { padding-bottom: 84px; }
+  #step-zones { padding-bottom: 84px; } /* clear the fixed bar */
 
   /* Step 2 */
   .back-btn {
@@ -769,8 +802,10 @@ import KeepInTouch from '../components/KeepInTouch.astro';
 
 <!-- Styles for JS-created list rows + Leaflet popups; namespaced so they don't leak. -->
 <style is:global>
-  #zones .zone-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px 14px; border-bottom: 1px solid var(--paper-deep); }
+  body.modal-open { overflow: hidden; }
+  #zones .zone-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px 14px; border-bottom: 1px solid var(--paper-deep); transition: background 0.12s ease; }
   #zones .zone-row:last-child { border-bottom: 0; }
+  #zones .zone-row:hover { background: rgba(0,0,0,0.03); }
   #zones .zone-row.is-selected { background: rgba(31,111,235,0.14); box-shadow: inset 3px 0 0 #1f6feb; }
   #zones .zone-main { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; flex: 1; min-width: 0; }
   #zones .zone-main input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--green); cursor: pointer; }
@@ -797,7 +832,7 @@ import KeepInTouch from '../components/KeepInTouch.astro';
   #success-zones .role { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 8px; border-radius: var(--r-pill); white-space: nowrap; }
   #success-zones .role-primary { background: rgba(116,169,83,0.16); color: var(--green-dark); }
   #success-zones .role-backup { background: var(--paper-deep); color: var(--fg-mute); }
-  /* Leaflet popup */
+  /* Leaflet popup / tooltip */
   .deliver-pop strong { font-size: 0.95rem; }
   .deliver-pop p { margin: 4px 0 8px; font-size: 0.85rem; color: var(--fg-soft); }
   .tt-status { font-weight: 700; }
