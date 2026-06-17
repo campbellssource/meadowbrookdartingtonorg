@@ -103,14 +103,18 @@ async function ensureHeader(): Promise<void> {
   );
 }
 
-async function appendRows(rows: string[][]): Promise<void> {
-  if (rows.length === 0) return;
-  const range = encodeURIComponent(`${TAB}!A:G`);
+// Seed zone names into column A at an explicit row. We deliberately avoid
+// values.append: on a fresh sheet it places data *below* the default ~1000
+// empty rows. A positioned values.update is deterministic.
+async function seedZoneNames(startRow: number, names: string[]): Promise<void> {
+  if (names.length === 0) return;
+  const endRow = startRow + names.length - 1;
+  const range = encodeURIComponent(`${TAB}!A${startRow}:A${endRow}`);
   const res = await authedFetch(
-    `${SHEETS_BASE}/${sheetId()}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    { method: 'POST', body: JSON.stringify({ values: rows }) }
+    `${SHEETS_BASE}/${sheetId()}/values/${range}?valueInputOption=USER_ENTERED`,
+    { method: 'PUT', body: JSON.stringify({ values: names.map((n) => [n]) }) }
   );
-  if (!res.ok) throw new Error(`Sheet append failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`Sheet seed failed: ${res.status} ${await res.text()}`);
 }
 
 async function updateCells(
@@ -166,8 +170,14 @@ async function loadRows(zones: Zone[]): Promise<Map<string, RowRef>> {
   const missing = zones.filter((z) => !byName.has(z.name));
   if (missing.length > 0) {
     await ensureHeader();
-    await appendRows(missing.map((z) => [z.name]));
-    // Re-read so we have correct row numbers for the freshly appended rows.
+    // Write the new zones immediately after the last existing data row (row 1
+    // is the header), so a fresh sheet fills from the top.
+    let lastRow = 1;
+    for (const ref of byName.values()) {
+      if (ref.sheetRow > lastRow) lastRow = ref.sheetRow;
+    }
+    await seedZoneNames(lastRow + 1, missing.map((z) => z.name));
+    // Re-read so we have correct row numbers for the freshly seeded rows.
     const rows2 = await readRows();
     byName.clear();
     rows2.forEach((data, i) => {
