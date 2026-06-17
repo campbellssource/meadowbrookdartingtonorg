@@ -85,20 +85,50 @@ function nowStamp(): string {
 // All data lives on one tab. We prefer a tab literally named "Zones" but fall
 // back to the first tab, so renaming it can't break the integration. Cached per
 // instance. a1() builds a quoted A1 range that tolerates spaces/quotes.
-let resolvedTab: string | null = null;
-async function getTab(): Promise<string> {
-  if (resolvedTab) return resolvedTab;
+interface TabMeta { title: string; sheetId: number; rowCount: number }
+let tabMeta: TabMeta | null = null;
+async function getMeta(): Promise<TabMeta> {
+  if (tabMeta) return tabMeta;
   const res = await authedFetch(
-    `${SHEETS_BASE}/${sheetId()}?fields=sheets.properties.title`
+    `${SHEETS_BASE}/${sheetId()}?fields=sheets.properties(title,sheetId,gridProperties.rowCount)`
   );
   if (!res.ok) throw new Error(`Sheet meta failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
-  const titles: string[] = (data.sheets ?? [])
-    .map((s: any) => s?.properties?.title)
-    .filter(Boolean);
-  resolvedTab =
-    titles.find((t) => t.trim().toLowerCase() === TAB.toLowerCase()) ?? titles[0] ?? TAB;
-  return resolvedTab;
+  const props = (data.sheets ?? []).map((s: any) => s?.properties).filter(Boolean);
+  const chosen =
+    props.find((p: any) => String(p.title).trim().toLowerCase() === TAB.toLowerCase()) ??
+    props[0];
+  if (!chosen) throw new Error('Spreadsheet has no tabs');
+  tabMeta = {
+    title: chosen.title,
+    sheetId: chosen.sheetId,
+    rowCount: chosen.gridProperties?.rowCount ?? 1000,
+  };
+  return tabMeta;
+}
+async function getTab(): Promise<string> {
+  return (await getMeta()).title;
+}
+// values.update can't write outside the grid, so grow it first if needed.
+async function ensureRows(minRows: number): Promise<void> {
+  const meta = await getMeta();
+  if (meta.rowCount >= minRows) return;
+  const res = await authedFetch(`${SHEETS_BASE}/${sheetId()}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      requests: [
+        {
+          appendDimension: {
+            sheetId: meta.sheetId,
+            dimension: 'ROWS',
+            length: minRows - meta.rowCount,
+          },
+        },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Sheet grow failed: ${res.status} ${await res.text()}`);
+  meta.rowCount = minRows;
 }
 function a1(tab: string, ref: string): string {
   return `'${tab.replace(/'/g, "''")}'!${ref}`;
@@ -141,6 +171,7 @@ async function ensureHeader(): Promise<void> {
 async function seedZoneNames(startRow: number, names: string[]): Promise<void> {
   if (names.length === 0) return;
   const endRow = startRow + names.length - 1;
+  await ensureRows(endRow);
   const range = encodeURIComponent(a1(await getTab(), `A${startRow}:A${endRow}`));
   const res = await authedFetch(
     `${SHEETS_BASE}/${sheetId()}/values/${range}?valueInputOption=USER_ENTERED`,
