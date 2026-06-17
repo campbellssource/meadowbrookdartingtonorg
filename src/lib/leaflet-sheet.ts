@@ -80,10 +80,34 @@ function nowStamp(): string {
   return new Date().toISOString().replace('T', ' ').slice(0, 16);
 }
 
+// --- tab resolution --------------------------------------------------------
+
+// All data lives on one tab. We prefer a tab literally named "Zones" but fall
+// back to the first tab, so renaming it can't break the integration. Cached per
+// instance. a1() builds a quoted A1 range that tolerates spaces/quotes.
+let resolvedTab: string | null = null;
+async function getTab(): Promise<string> {
+  if (resolvedTab) return resolvedTab;
+  const res = await authedFetch(
+    `${SHEETS_BASE}/${sheetId()}?fields=sheets.properties.title`
+  );
+  if (!res.ok) throw new Error(`Sheet meta failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  const titles: string[] = (data.sheets ?? [])
+    .map((s: any) => s?.properties?.title)
+    .filter(Boolean);
+  resolvedTab =
+    titles.find((t) => t.trim().toLowerCase() === TAB.toLowerCase()) ?? titles[0] ?? TAB;
+  return resolvedTab;
+}
+function a1(tab: string, ref: string): string {
+  return `'${tab.replace(/'/g, "''")}'!${ref}`;
+}
+
 // --- low-level sheet ops ---------------------------------------------------
 
 async function readRows(): Promise<string[][]> {
-  const range = encodeURIComponent(`${TAB}!A2:G`);
+  const range = encodeURIComponent(a1(await getTab(), 'A2:G'));
   const res = await authedFetch(`${SHEETS_BASE}/${sheetId()}/values/${range}`);
   if (!res.ok) throw new Error(`Sheet read failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
@@ -91,7 +115,7 @@ async function readRows(): Promise<string[][]> {
 }
 
 async function ensureHeader(): Promise<void> {
-  const range = encodeURIComponent(`${TAB}!A1:G1`);
+  const range = encodeURIComponent(a1(await getTab(), 'A1:G1'));
   const res = await authedFetch(`${SHEETS_BASE}/${sheetId()}/values/${range}`);
   if (!res.ok) return; // best-effort
   const data = await res.json();
@@ -109,7 +133,7 @@ async function ensureHeader(): Promise<void> {
 async function seedZoneNames(startRow: number, names: string[]): Promise<void> {
   if (names.length === 0) return;
   const endRow = startRow + names.length - 1;
-  const range = encodeURIComponent(`${TAB}!A${startRow}:A${endRow}`);
+  const range = encodeURIComponent(a1(await getTab(), `A${startRow}:A${endRow}`));
   const res = await authedFetch(
     `${SHEETS_BASE}/${sheetId()}/values/${range}?valueInputOption=USER_ENTERED`,
     { method: 'PUT', body: JSON.stringify({ values: names.map((n) => [n]) }) }
@@ -214,6 +238,7 @@ export async function recordClaim(opts: {
   const byName = await loadRows(
     opts.zones.map((name) => ({ id: name, name }))
   );
+  const tab = await getTab();
 
   const updates: { range: string; values: string[][] }[] = [];
   const outcomes: ClaimOutcome[] = [];
@@ -228,10 +253,10 @@ export async function recordClaim(opts: {
     if (!leadEmail) {
       // Becomes lead.
       updates.push({
-        range: `${TAB}!B${row}:D${row}`,
+        range: a1(tab, `B${row}:D${row}`),
         values: [[opts.name, opts.email, opts.phone]],
       });
-      updates.push({ range: `${TAB}!G${row}`, values: [[stamp]] });
+      updates.push({ range: a1(tab, `G${row}`), values: [[stamp]] });
       outcomes.push({ zone, role: 'primary' });
     } else if (leadEmail === email) {
       outcomes.push({ zone, role: 'primary' }); // already leading
@@ -243,8 +268,8 @@ export async function recordClaim(opts: {
         }`;
         const existing = (ref.data[COL.BACKUPS] ?? '').trim();
         const merged = existing ? `${existing}; ${entry}` : entry;
-        updates.push({ range: `${TAB}!E${row}`, values: [[merged]] });
-        updates.push({ range: `${TAB}!G${row}`, values: [[stamp]] });
+        updates.push({ range: a1(tab, `E${row}`), values: [[merged]] });
+        updates.push({ range: a1(tab, `G${row}`), values: [[stamp]] });
       }
       outcomes.push({ zone, role: 'backup' });
     }
@@ -270,9 +295,10 @@ export async function markDelivered(opts: {
     return { ok: false, error: "We couldn't match you to this zone." };
   }
 
+  const tab = await getTab();
   await updateCells([
-    { range: `${TAB}!F${ref.sheetRow}`, values: [['TRUE']] },
-    { range: `${TAB}!G${ref.sheetRow}`, values: [[nowStamp()]] },
+    { range: a1(tab, `F${ref.sheetRow}`), values: [['TRUE']] },
+    { range: a1(tab, `G${ref.sheetRow}`), values: [[nowStamp()]] },
   ]);
   return { ok: true };
 }
