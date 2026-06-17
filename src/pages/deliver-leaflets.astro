@@ -105,7 +105,7 @@ const MAP_EMBED =
             <h2>Thank you!</h2>
             <p>You're all set for:</p>
             <ul id="success-zones" class="success-zones"></ul>
-            <p class="success-foot">We'll be in touch with the leaflets and any details. Thanks for helping out.</p>
+            <p class="success-foot">We'll be in touch with the leaflets and any details. Once you've delivered, pop back to this page and you'll be able to mark your zone as done. Thanks for helping out!</p>
           </div>
         </div>
       </div>
@@ -124,6 +124,7 @@ const MAP_EMBED =
     name: string;
     taken: boolean;
     backupCount: number;
+    delivered: boolean;
   }
 
   const zonesEl = document.getElementById('zones') as HTMLDivElement;
@@ -136,6 +137,28 @@ const MAP_EMBED =
 
   // zone name -> intended role
   const selected = new Map<string, 'primary' | 'backup'>();
+
+  // Remember (on this device) who this volunteer is and which zones they've
+  // claimed, so on a return visit we can offer them a "Mark delivered" button.
+  const ME_KEY = 'mbLeafletMe';
+  function readMe(): { email: string; zones: string[] } | null {
+    try {
+      const raw = localStorage.getItem(ME_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (o && typeof o.email === 'string' && Array.isArray(o.zones)) return o;
+    } catch {}
+    return null;
+  }
+  function saveMe(email: string, zones: string[]) {
+    const cur = readMe();
+    const merged = new Set([...(cur?.zones ?? []), ...zones]);
+    try {
+      localStorage.setItem(ME_KEY, JSON.stringify({ email, zones: [...merged] }));
+    } catch {}
+  }
+  let myEmail = '';
+  let myZones = new Set<string>();
 
   function showError(msg: string) {
     errorEl.textContent = msg;
@@ -152,62 +175,107 @@ const MAP_EMBED =
     hintEl.hidden = has;
   }
 
+  function badge(cls: string, text: string): HTMLSpanElement {
+    const b = document.createElement('span');
+    b.className = 'badge ' + cls;
+    b.textContent = text;
+    return b;
+  }
+
+  function setRowDelivered(row: HTMLElement, status: HTMLElement) {
+    row.classList.add('is-delivered');
+    row.classList.remove('is-selected');
+    status.innerHTML = '';
+    status.appendChild(badge('badge-delivered', 'Delivered ✓'));
+  }
+
   function zoneRow(z: ZoneStatus): HTMLElement {
+    const mine = myZones.has(z.name);
     const row = document.createElement('div');
-    row.className = 'zone-row' + (z.taken ? ' is-taken' : '');
+    row.className =
+      'zone-row' +
+      (z.taken ? ' is-taken' : '') +
+      (z.delivered ? ' is-delivered' : '') +
+      (mine ? ' is-mine' : '');
 
     const label = document.createElement('label');
     label.className = 'zone-main';
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = z.name;
 
     const name = document.createElement('span');
     name.className = 'zone-name';
     name.textContent = z.name;
 
-    label.append(cb, name);
-
     const status = document.createElement('span');
     status.className = 'zone-status';
 
-    if (z.taken) {
-      const badge = document.createElement('span');
-      badge.className = 'badge badge-taken';
-      badge.textContent =
-        z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken';
-      status.appendChild(badge);
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          selected.set(z.name, 'backup');
-          row.classList.add('is-selected');
-        } else {
-          selected.delete(z.name);
-          row.classList.remove('is-selected');
+    // 1) Already delivered - locked, no action.
+    if (z.delivered) {
+      label.appendChild(name);
+      status.appendChild(badge('badge-delivered', 'Delivered ✓'));
+      row.append(label, status);
+      return row;
+    }
+
+    // 2) One of my own zones (claimed on this device) - offer to mark delivered.
+    if (mine) {
+      label.appendChild(name);
+      status.appendChild(badge('badge-mine', 'Your zone'));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mark-delivered';
+      btn.textContent = 'Mark delivered';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        try {
+          const res = await fetch('/api/leaflet-delivered', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: myEmail, zone: z.name }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setRowDelivered(row, status);
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Try again';
+          }
+        } catch {
+          btn.disabled = false;
+          btn.textContent = 'Try again';
         }
-        refreshSubmitState();
       });
-      // Hint that ticking means "offer as backup".
+      status.appendChild(btn);
+      row.append(label, status);
+      return row;
+    }
+
+    // 3) Available or taken - selectable (taken => offer as backup).
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = z.name;
+    label.append(cb, name);
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        selected.set(z.name, z.taken ? 'backup' : 'primary');
+        row.classList.add('is-selected');
+      } else {
+        selected.delete(z.name);
+        row.classList.remove('is-selected');
+      }
+      refreshSubmitState();
+    });
+
+    if (z.taken) {
+      status.appendChild(
+        badge('badge-taken', z.backupCount > 0 ? `Taken · ${z.backupCount} backup` : 'Taken')
+      );
       const help = document.createElement('span');
       help.className = 'zone-help';
       help.textContent = 'Offer as backup';
       status.appendChild(help);
     } else {
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          selected.set(z.name, 'primary');
-          row.classList.add('is-selected');
-        } else {
-          selected.delete(z.name);
-          row.classList.remove('is-selected');
-        }
-        refreshSubmitState();
-      });
-      const badge = document.createElement('span');
-      badge.className = 'badge badge-free';
-      badge.textContent = 'Available';
-      status.appendChild(badge);
+      status.appendChild(badge('badge-free', 'Available'));
     }
 
     row.append(label, status);
@@ -215,6 +283,9 @@ const MAP_EMBED =
   }
 
   async function loadZones() {
+    const me = readMe();
+    myEmail = me?.email ?? '';
+    myZones = new Set(me?.zones ?? []);
     try {
       const res = await fetch('/api/leaflet-zones');
       const data = await res.json();
@@ -223,6 +294,8 @@ const MAP_EMBED =
       }
       // Keep the map's own order (manually sorted north-to-south in My Maps).
       const zones = data.zones as ZoneStatus[];
+      selected.clear();
+      refreshSubmitState();
       zonesEl.innerHTML = '';
       zonesEl.removeAttribute('aria-busy');
       if (zones.length === 0) {
@@ -272,8 +345,11 @@ const MAP_EMBED =
       const data = await res.json();
 
       if (data.success) {
+        const outcomes = data.outcomes as { zone: string; role: string }[];
+        // Remember on this device so a return visit can mark these delivered.
+        saveMe(email, outcomes.map((o) => o.zone));
         successZonesEl.innerHTML = '';
-        for (const o of data.outcomes as { zone: string; role: string }[]) {
+        for (const o of outcomes) {
           const li = document.createElement('li');
           const role = document.createElement('span');
           role.className = 'role role-' + o.role;
@@ -577,9 +653,41 @@ const MAP_EMBED =
     background: var(--paper-deep);
     color: var(--fg-mute);
   }
+  #zones .badge-delivered {
+    background: var(--green);
+    color: #fff;
+  }
+  #zones .badge-mine {
+    background: var(--sun, #f2c14e);
+    color: var(--night, #2b2517);
+  }
   #zones .zone-help {
     font-size: 0.72rem;
     color: var(--fg-mute);
+  }
+  #zones .zone-row.is-delivered .zone-name {
+    color: var(--fg-mute);
+    text-decoration: line-through;
+  }
+  #zones .mark-delivered {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--green-dark);
+    background: rgba(116, 169, 83, 0.14);
+    border: 1px solid rgba(116, 169, 83, 0.4);
+    border-radius: var(--r-pill);
+    padding: 4px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease;
+  }
+  #zones .mark-delivered:hover {
+    background: rgba(116, 169, 83, 0.24);
+  }
+  #zones .mark-delivered:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
   #success-zones li {
     display: flex;

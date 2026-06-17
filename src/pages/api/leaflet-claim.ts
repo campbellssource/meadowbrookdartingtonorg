@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { submitClaim } from '../../lib/leaflet';
+import { getZones, addToBrevoList } from '../../lib/leaflet';
+import { recordClaim, isSheetConfigured } from '../../lib/leaflet-sheet';
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -29,13 +30,28 @@ export const POST: APIRoute = async ({ request }) => {
   if (zones.length === 0) {
     return json({ error: 'Please choose at least one zone.' }, 400);
   }
+  if (!isSheetConfigured()) {
+    return json({ error: 'Sign-ups are not available right now. Please try again later.' }, 503);
+  }
 
   try {
-    const result = await submitClaim({ email, firstName, phone, zones });
-    if (!result.ok) return json({ error: result.error }, 502);
-    return json({ success: true, outcomes: result.outcomes });
+    // Only record real zone names from the map; de-dupe.
+    const valid = new Set((await getZones()).map((z) => z.name));
+    const requested = [...new Set(zones.map((z) => z.trim()))].filter((z) => valid.has(z));
+    if (requested.length === 0) {
+      return json({ error: 'Please choose at least one valid zone.' }, 400);
+    }
+
+    const outcomes = await recordClaim({ email, name: firstName, phone, zones: requested });
+
+    // Add to the mailing list (best-effort; never blocks the claim).
+    await addToBrevoList({ email, firstName }).catch((e) =>
+      console.warn('Brevo add error:', e)
+    );
+
+    return json({ success: true, outcomes });
   } catch (err) {
     console.error('leaflet-claim error:', err);
-    return json({ error: 'Something went wrong. Please try again.' }, 502);
+    return json({ error: 'Something went wrong saving your sign-up. Please try again.' }, 502);
   }
 };
