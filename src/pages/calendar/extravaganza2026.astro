@@ -42,15 +42,16 @@ const ogImage = providedShare
 const bunt = ['sky', 'pink', 'sun', 'teal', 'green', 'orange'];
 const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt.length]);
 
-// Activities, each tinted in a legible bright (sun excluded — accent only).
+// Activities. Set in black — the per-word brights were low-contrast on the
+// festival orange; ink black reads cleanly and passes WCAG AA.
 const activities = [
-  { word: 'Music', c: '#ffffff' },
-  { word: 'BBQ', c: '#1DB5EF' },
-  { word: 'Games', c: '#E84C7A' },
+  { word: 'Music', c: '#221c17' },
+  { word: 'BBQ', c: '#221c17' },
+  { word: 'Games', c: '#221c17' },
   { word: 'Stalls', c: '#221c17' },
-  { word: 'Football tournament', c: '#1E9E8E' },
-  { word: 'Dog show', c: '#74A953' },
-  { word: 'Bouncy castles', c: '#ffffff' },
+  { word: 'Football tournament', c: '#221c17' },
+  { word: 'Dog show', c: '#221c17' },
+  { word: 'Bouncy castles', c: '#221c17' },
 ];
 
 const sceneSrc = '/assets/illustrations/extravaganza-scene.webp';
