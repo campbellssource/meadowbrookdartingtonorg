@@ -231,7 +231,9 @@ const sceneSrc = '/assets/illustrations/extravaganza-scene.webp';
   }
   .ex-article { color: rgba(255,255,255,0.94); line-height: 1.7; }
   .ex-article :global(p) { margin: 0 0 1em; max-width: 62ch; }
-  .ex-article :global(a) { color: var(--sun); text-decoration: underline; text-underline-offset: 0.2em; }
+  /* Links sit on festival orange. Sun yellow / sky blue both fail WCAG contrast
+     here (~1.2–1.9:1); ink black is brand-approved and passes AA (~6.2:1). */
+  .ex-article :global(a) { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
   .ex-article :global(strong) { color: #fff; font-weight: 700; }
   .ex-article :global(h2) {
     font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
