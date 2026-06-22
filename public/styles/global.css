@@ -365,8 +365,10 @@ section.mw-sect.tall { padding: var(--space-9) 0; }
 .mw-zone-tile { aspect-ratio: 4/5; border-radius: var(--r-lg); padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; cursor: pointer; position: relative; overflow: hidden; transition: transform var(--dur-base) var(--ease-natural); border: 0; text-align: left; font: inherit; text-decoration: none; }
 .mw-zone-tile:hover { transform: translateY(-3px); text-decoration: none; }
 .mw-zone-tile.pizzalogica h3,
-.mw-zone-tile.things-happen-here h3 { display: none; }
-.mw-zone-tile.pizzalogica .tile-photo { background-size: contain; background-repeat: no-repeat; background-position: center; }
+.mw-zone-tile.things-happen-here h3,
+.mw-zone-tile.kom-massage-therapy h3 { display: none; }
+.mw-zone-tile.pizzalogica .tile-photo,
+.mw-zone-tile.kom-massage-therapy .tile-photo { background-size: contain; background-repeat: no-repeat; background-position: center; }
 
 .mw-zone-tile.has-photo { padding: 0; background-image: none; }
 .mw-zone-tile.has-photo::before { display: none; }
