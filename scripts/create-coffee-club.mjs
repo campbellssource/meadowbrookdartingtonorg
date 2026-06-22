@@ -74,10 +74,10 @@ for (let i = 0; i < WEEKS_AHEAD; i++) {
   const title    = `Coffee Club – ${niceDate}`;
 
   // ── Generate OG image ──────────────────────────────────────────────────────
-  let imageFilename = null;
+  let imageRef = null;
   try {
     const { generateSocialImage } = await import('./generate-social-image.mjs');
-    imageFilename = await generateSocialImage({
+    imageRef = await generateSocialImage({
       slug,
       title: 'Coffee Club',
       date: dateStr,
@@ -103,7 +103,7 @@ summary: >-
   A weekly get-together for the over-55s. We meet at Meadowbrook, lend a hand
   with a few jobs around the site, play a few games (often boules) and share a
   coffee in the Community Café run by Bidwell Brook students.
-${imageFilename ? `image: '${imageFilename}'\n` : ''}`;
+${imageRef ? `image: ${imageRef}\n` : ''}`;
 
   // ── Write body ─────────────────────────────────────────────────────────────
   const body = `Coffee Club is a relaxed weekly get-together for the over-55s.

@@ -119,10 +119,10 @@ The DRA Social takes place on the **last Thursday of every month**, from 7pm at 
 `;
 
 // ── Generate OG image ──────────────────────────────────────────────────────
-let imageFilename = null;
+let imageRef = null;
 try {
   const { generateSocialImage } = await import('./generate-social-image.mjs');
-  imageFilename = await generateSocialImage({
+  imageRef = await generateSocialImage({
     slug,
     title: `DRA Social – ${monthName} ${year}`,
     date: dateStr,
@@ -133,8 +133,10 @@ try {
 }
 
 // ── Write YAML (with image if generated) ──────────────────────────────────
-const yamlWithImage = imageFilename
-  ? yaml + `image: '${imageFilename}'\n`
+// imageRef is already a full /images/events/<slug>/image.jpg path — the same
+// format Keystatic writes — so store it unquoted, exactly as the CMS would.
+const yamlWithImage = imageRef
+  ? yaml + `image: ${imageRef}\n`
   : yaml;
 
 mkdirSync(bodyDir, { recursive: true });

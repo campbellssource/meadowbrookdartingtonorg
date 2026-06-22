@@ -15,7 +15,10 @@
  *
  * Usage (imported by create-social.mjs):
  *   const { generateSocialImage } = await import('./generate-social-image.mjs');
- *   const filename = await generateSocialImage({ slug, title, date, time });
+ *   const imageRef = await generateSocialImage({ slug, title, date, time });
+ *   // imageRef is the Keystatic-style reference, e.g.
+ *   //   /images/events/<slug>/image.jpg
+ *   // written verbatim into the event's `image:` field.
  */
 
 import satori from 'satori';
@@ -454,12 +457,19 @@ export async function generateSocialImage({ slug, title, date, time, cardOpts = 
     .jpeg({ quality: 90, mozjpeg: true })
     .toBuffer();
 
-  mkdirSync(OUT_DIR, { recursive: true });
-  const filename = `${slug}-og.jpg`;
-  writeFileSync(join(OUT_DIR, filename), compressed);
+  // Match Keystatic's image-field convention exactly: one folder per entry
+  // slug, with the image named after the field ('image'). Keystatic's events
+  // `image` field uses directory 'public/images/events' + publicPath
+  // '/images/events/', so it composes the stored reference from the slug and
+  // field name. Writing to the same place means an event opened and re-saved
+  // in the CMS keeps its image instead of dropping it.
+  const entryDir = join(OUT_DIR, slug);
+  mkdirSync(entryDir, { recursive: true });
+  writeFileSync(join(entryDir, 'image.jpg'), compressed);
 
-  console.log(`Image generated: public/images/events/${filename}  (${Math.round(compressed.length / 1024)}KB)`);
-  return filename;
+  const reference = `/images/events/${slug}/image.jpg`;
+  console.log(`Image generated: public${reference}  (${Math.round(compressed.length / 1024)}KB)`);
+  return reference;
 }
 
 // ── CLI entry point ────────────────────────────────────────────────────────
