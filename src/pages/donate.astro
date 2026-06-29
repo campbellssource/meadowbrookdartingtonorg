@@ -44,6 +44,8 @@ const squareSdkUrl = squareEnv === 'sandbox'
               <button type="button" class="amount-btn" data-pence="1000">£10</button>
               <button type="button" class="amount-btn selected" data-pence="2500">£25</button>
               <button type="button" class="amount-btn" data-pence="5000">£50</button>
+              <button type="button" class="amount-btn" data-pence="10000">£100</button>
+              <button type="button" class="amount-btn" data-pence="25000">£250</button>
             </div>
             <div class="custom-amount-row">
               <span class="currency-prefix">£</span>
@@ -294,7 +296,7 @@ const squareSdkUrl = squareEnv === 'sandbox'
 
   .amount-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
     margin-bottom: var(--space-3);
   }
