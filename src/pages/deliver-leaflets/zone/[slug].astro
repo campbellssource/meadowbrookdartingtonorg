@@ -1,0 +1,157 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { getMapData } from '../../../lib/leaflet';
+
+// Per-zone map page, linked from the volunteer emails. Shows a single zone
+// zoomed in with its boundary drawn, and a "Delivered" button that opens a
+// pre-filled email to the organiser. Unlisted (noindex) - shared by link only.
+
+const { slug } = Astro.params;
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'zone'
+  );
+}
+
+let zone: Awaited<ReturnType<typeof getMapData>>['zones'][number] | undefined;
+try {
+  const { zones } = await getMapData();
+  // Match on the parsed id first, then fall back to a fresh slugify of the
+  // name so links survive trailing spaces / punctuation differences.
+  zone =
+    zones.find((z) => z.id === slug) ??
+    zones.find((z) => slugify(z.name) === slug);
+} catch (err) {
+  console.error('zone page map load failed:', err);
+}
+
+if (!zone || !zone.polygon || zone.polygon.length < 3) {
+  return new Response(null, { status: 404, statusText: 'Zone not found' });
+}
+
+const ORGANISER_EMAIL = 'michael@campbellssource.com';
+const subject = `${zone.name} done`;
+const body = `Thanks for delivering ${zone.name}!
+
+If you have a moment, let us know how it went - anything tricky, any houses you couldn't reach, gates/dogs to note, or roughly how long it took. It all helps for next time.
+
+(No need to write anything if all was straightforward - just send this and we'll mark the zone as delivered.)`;
+const mailto = `mailto:${ORGANISER_EMAIL}?subject=${encodeURIComponent(
+  subject
+)}&body=${encodeURIComponent(body)}`;
+
+const homes = zone.houseCount ?? (zone.houses ? Number(zone.houses) : undefined);
+const zoneData = JSON.stringify({ name: zone.name, polygon: zone.polygon });
+---
+
+<Layout
+  title={`Deliver: ${zone.name}`}
+  description={`Delivery map for the ${zone.name} leaflet zone.`}
+  noindex={true}
+>
+  <section class="zone-page">
+    <div class="mw-wrap">
+      <a href="/deliver-leaflets" class="back-link">← All zones</a>
+      <span class="mw-eyebrow">Leaflet delivery</span>
+      <h1>{zone.name}</h1>
+      {homes !== undefined && homes > 0 && (
+        <p class="zone-sub">Roughly {homes} homes in this zone.</p>
+      )}
+
+      <div id="zone-map" class="zone-map" role="application" aria-label={`Map of the ${zone.name} delivery zone`}></div>
+
+      <p class="map-hint">The shaded area is your zone. Pinch or scroll to zoom; drag to pan.</p>
+
+      <div class="done-block">
+        <p class="done-lead">All delivered?</p>
+        <a class="mw-btn mw-btn-primary done-btn" href={mailto}>✓ Mark this zone delivered</a>
+        <p class="done-foot">
+          This opens an email to us with the subject "<strong>{subject}</strong>".
+          Add a line about how it went if you like, then send.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script type="application/json" id="zone-data" set:html={zoneData}></script>
+
+  <script>
+    import L from 'leaflet';
+    import 'leaflet/dist/leaflet.css';
+
+    const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    const CARTO_ATTR =
+      '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+    const raw = document.getElementById('zone-data')?.textContent;
+    if (raw) {
+      const data = JSON.parse(raw) as { name: string; polygon: [number, number][] };
+      const map = L.map('zone-map', { scrollWheelZoom: true }).setView([50.4449, -3.7091], 15);
+      L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+
+      const poly = L.polygon(data.polygon, {
+        color: '#0b3d91',
+        weight: 4,
+        fillColor: '#2f86ff',
+        fillOpacity: 0.18,
+      })
+        .addTo(map)
+        .bindTooltip(data.name, { permanent: true, direction: 'center', className: 'zone-label' });
+
+      map.fitBounds(poly.getBounds(), { padding: [30, 30] });
+      setTimeout(() => map.invalidateSize(), 0);
+    }
+  </script>
+</Layout>
+
+<style>
+  .zone-page { padding: var(--space-6) 0 var(--space-7); }
+  .zone-page .mw-wrap { max-width: 960px; }
+  .back-link {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--green-dark);
+    margin-bottom: var(--space-4);
+  }
+  .zone-page h1 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin: 0 0 var(--space-2);
+  }
+  .zone-sub { color: var(--fg-soft); margin: 0 0 var(--space-4); }
+  .zone-map {
+    height: clamp(360px, 60vh, 620px);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .map-hint { font-size: 0.8rem; color: var(--fg-mute); margin: var(--space-2) 0 var(--space-5); }
+
+  .done-block {
+    text-align: center;
+    background: var(--bone);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: var(--space-5);
+  }
+  .done-lead { font-weight: 700; font-size: 1.1rem; margin: 0 0 var(--space-3); }
+  .done-btn { font-size: 1rem; }
+  .done-foot { font-size: 0.8rem; color: var(--fg-mute); max-width: 46ch; margin: var(--space-3) auto 0; }
+</style>
+
+<style is:global>
+  .leaflet-tooltip.zone-label {
+    background: rgba(11, 61, 145, 0.9);
+    color: #fff;
+    border: 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: none;
+    padding: 3px 9px;
+  }
+  .leaflet-tooltip.zone-label::before { display: none; }
+</style>
