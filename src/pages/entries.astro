@@ -1,0 +1,126 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RaffleLegal from '../components/RaffleLegal.astro';
+import { DRAW_DATE_LABEL } from '../lib/raffle';
+import { getPublicEntries, isRaffleSheetConfigured } from '../lib/raffle-sheet';
+
+// Public, no auth. The transparency page: anyone can see their ticket is really
+// in the pool before the draw — the digital "watching your slip go into the
+// drum". Shows ticket number + first name only; never email or phone.
+
+const configured = isRaffleSheetConfigured();
+let entries: Awaited<ReturnType<typeof getPublicEntries>>['entries'] = [];
+let totals = { entries: 0, entrants: 0, pennies: 0 };
+let loadError = false;
+if (configured) {
+  try {
+    const data = await getPublicEntries();
+    entries = data.entries;
+    totals = data.totals;
+  } catch (err) {
+    console.error('entries: getPublicEntries failed', err);
+    loadError = true;
+  }
+}
+
+const bunt = ['sky', 'pink', 'sun', 'teal', 'green', 'orange'];
+const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt.length]);
+---
+
+<Layout
+  title="Raffle entries"
+  description={`Every ticket in the Meadowbrook Extravaganza raffle. Drawn live on ${DRAW_DATE_LABEL}.`}
+  bodyClass="zone-extravaganza"
+  noindex={true}
+>
+  <div class="ex-bunt-band down" aria-hidden="true">
+    {buntRow(24).map((c) => <i style={`background: var(--bunt-${c})`}></i>)}
+  </div>
+
+  <section class="mw-sect rf-hero">
+    <div class="mw-wrap">
+      <h1 class="ex-wordmark">Entries</h1>
+      <p class="rf-lead">
+        Every ticket in the draw is listed here — so you can check yours is in before the winners
+        are drawn live at the Extravaganza on {DRAW_DATE_LABEL}.
+      </p>
+      <div class="en-totals">
+        <div class="en-stat"><span class="en-num">{totals.entries}</span><span class="en-lbl">tickets</span></div>
+        <div class="en-stat"><span class="en-num">{totals.entrants}</span><span class="en-lbl">{totals.entrants === 1 ? 'entrant' : 'entrants'}</span></div>
+      </div>
+      <a class="rf-seeall" href="/raffle">← Buy a ticket</a>
+    </div>
+  </section>
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap">
+      {!configured || loadError ? (
+        <p class="rf-empty">The entries list isn't available right now. Please try again later.</p>
+      ) : entries.length === 0 ? (
+        <p class="rf-empty">No tickets yet — <a href="/raffle" class="en-inline-link">be the first to enter!</a></p>
+      ) : (
+        <ul class="en-grid">
+          {entries.map((e) => (
+            <li class="en-ticket">
+              <span class="en-tno">{e.ticketNumber}</span>
+              <span class="en-name">{e.firstName}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+
+  <section class="mw-sect tight">
+    <div class="mw-wrap"><RaffleLegal /></div>
+  </section>
+
+  <div class="ex-bunt-band up" aria-hidden="true">
+    {buntRow(24).map((c) => <i style={`background: var(--bunt-${c})`}></i>)}
+  </div>
+</Layout>
+
+<style>
+  .ex-bunt-band { display: flex; height: 46px; width: 100%; }
+  .ex-bunt-band i { flex: 1 1 0; display: block; }
+  .ex-bunt-band.down i { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+  .ex-bunt-band.up i { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+
+  .ex-wordmark {
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.02em; line-height: 0.9;
+    font-size: clamp(2.6rem, 8vw, 5rem); color: #fff; margin: 0;
+  }
+  .rf-hero { padding-top: var(--space-7); }
+  .rf-lead { font-size: 1.15rem; line-height: 1.6; color: #fff; font-weight: 500; max-width: 46ch; margin: var(--space-5) 0 0; }
+
+  .en-totals { display: flex; gap: var(--space-6); margin: var(--space-6) 0 var(--space-4); }
+  .en-stat {
+    background: var(--sun); color: var(--ink); border-radius: var(--r-lg);
+    padding: 12px 22px; display: flex; flex-direction: column; align-items: center; line-height: 1.1;
+  }
+  .en-num { font-family: "Poppins", sans-serif; font-weight: 800; font-size: 2rem; }
+  .en-lbl { font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72rem; }
+
+  .rf-seeall {
+    display: inline-block;
+    font-family: "Poppins", sans-serif; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; font-size: 13px; color: var(--ink);
+    text-decoration: underline; text-underline-offset: 0.3em;
+  }
+  .rf-empty { color: #fff; opacity: 0.95; font-size: 1.1rem; }
+  .en-inline-link, .rf-empty a { color: var(--ink); text-decoration: underline; }
+
+  .en-grid {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-4);
+  }
+  .en-ticket {
+    background: #fff; color: var(--ink); border-radius: var(--r-md, 10px);
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .en-tno { font-family: "Poppins", sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: 0.02em; }
+  .en-name { font-size: 0.85rem; color: var(--ink-soft); }
+
+  .raffle-legal { color: #fff; max-width: 720px; }
+</style>

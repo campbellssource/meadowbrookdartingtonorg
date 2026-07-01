@@ -1,0 +1,206 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import {
+  isAdminAuthorized,
+  adminChallenge,
+  formatPennies,
+  EXCLUDE_PREVIOUS_WINNERS,
+  DRAW_METHOD,
+  DRAW_DATE_LABEL,
+} from '../../lib/raffle';
+import { getPrizes, getDraws, getTotals, isRaffleSheetConfigured } from '../../lib/raffle-sheet';
+
+// POC-grade guard ONLY: a shared secret via HTTP Basic auth (see isAdminAuthorized).
+// Good enough for one trusted operator on the day — NOT production auth.
+if (!isAdminAuthorized(Astro.request)) {
+  return adminChallenge();
+}
+// Mirror the secret into a cookie so this page's fetch() calls to /api/raffle/*
+// carry auth (Basic-auth creds aren't auto-sent to a different path).
+const secret = process.env.ADMIN_SECRET ?? import.meta.env.ADMIN_SECRET;
+if (secret) Astro.cookies.set('raffle_admin', secret, { path: '/', httpOnly: true, sameSite: 'lax' });
+
+const configured = isRaffleSheetConfigured();
+let prizes: Awaited<ReturnType<typeof getPrizes>> = [];
+let draws: Awaited<ReturnType<typeof getDraws>> = [];
+let totals = { entries: 0, entrants: 0, pennies: 0 };
+let loadError = false;
+if (configured) {
+  try {
+    [prizes, draws, totals] = await Promise.all([getPrizes(), getDraws(), getTotals()]);
+  } catch (err) {
+    console.error('admin: load failed', err);
+    loadError = true;
+  }
+}
+const drawByPrize = new Map(draws.map((d) => [d.prizeId, d]));
+---
+
+<Layout title="Raffle admin" description="Raffle draw admin" noindex={true}>
+  <section class="mw-sect ad-sect">
+    <div class="mw-wrap">
+      <h1 class="ad-h1">Raffle admin</h1>
+      <p class="ad-sub">
+        Draw rule: <strong>{EXCLUDE_PREVIOUS_WINNERS ? 'one prize per person' : 'a person can win more than once'}</strong>.
+        Winners chosen by <code>{DRAW_METHOD}</code>. Announce the rule before drawing. Draw day: {DRAW_DATE_LABEL}.
+      </p>
+
+      {loadError || !configured ? (
+        <p class="ad-error">The raffle data couldn't be loaded. Check the sheet configuration.</p>
+      ) : (
+        <>
+          <div class="ad-totals">
+            <div class="ad-stat"><span class="ad-num">{totals.entries}</span><span class="ad-lbl">tickets</span></div>
+            <div class="ad-stat"><span class="ad-num">{totals.entrants}</span><span class="ad-lbl">entrants</span></div>
+            <div class="ad-stat"><span class="ad-num">{formatPennies(totals.pennies)}</span><span class="ad-lbl">raised</span></div>
+          </div>
+
+          <table class="ad-table">
+            <thead>
+              <tr><th>Prize</th><th>Donor</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {prizes.map((p) => {
+                const d = drawByPrize.get(p.id);
+                return (
+                  <tr data-prize-id={p.id}>
+                    <td class="ad-prize">{p.name}</td>
+                    <td class="ad-donor">{p.donor ?? '—'}</td>
+                    <td class="ad-status">
+                      {d ? (
+                        <div class="ad-winner">
+                          <span class="ad-won-ticket">{d.winningTicket}</span>
+                          <span class="ad-won-name">{d.winnerName}</span>
+                          <span class="ad-won-contact">{d.winnerEmail}{d.winnerPhone ? ` · ${d.winnerPhone}` : ''}</span>
+                          <span class="ad-won-pool">drawn from {d.poolSize} {d.poolSize === 1 ? 'entry' : 'entries'}</span>
+                        </div>
+                      ) : (
+                        <span class="ad-notdrawn">Not drawn</span>
+                      )}
+                    </td>
+                    <td class="ad-action">
+                      {!d && <button class="mw-btn mw-btn-primary ad-draw-btn" data-prize-id={p.id} data-prize-name={p.name}>Draw</button>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {prizes.length === 0 && <p class="ad-empty">No prizes configured. Add rows to the Prizes tab.</p>}
+        </>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<!-- Live winner reveal overlay -->
+<div id="ad-reveal" class="ad-reveal" hidden>
+  <div class="ad-reveal-card">
+    <p class="ad-reveal-prize" id="ad-reveal-prize"></p>
+    <p class="ad-reveal-ticket" id="ad-reveal-ticket"></p>
+    <p class="ad-reveal-name" id="ad-reveal-name"></p>
+    <p class="ad-reveal-pool" id="ad-reveal-pool"></p>
+    <button class="mw-btn mw-btn-primary" id="ad-reveal-close">Close</button>
+  </div>
+</div>
+
+<script>
+  const reveal = document.getElementById('ad-reveal');
+  const rPrize = document.getElementById('ad-reveal-prize');
+  const rTicket = document.getElementById('ad-reveal-ticket');
+  const rName = document.getElementById('ad-reveal-name');
+  const rPool = document.getElementById('ad-reveal-pool');
+  document.getElementById('ad-reveal-close')?.addEventListener('click', () => {
+    if (reveal) reveal.hidden = true;
+    // Reload so the drawn prize shows its recorded winner + button disappears.
+    window.location.reload();
+  });
+
+  document.querySelectorAll('.ad-draw-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const prizeId = btn.getAttribute('data-prize-id');
+      const prizeName = btn.getAttribute('data-prize-name') || 'this prize';
+      if (!confirm(`Run the draw for "${prizeName}"? This can't be undone.`)) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Drawing…';
+      try {
+        const res = await fetch('/api/raffle/draw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prizeId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (rPrize) rPrize.textContent = prizeName;
+          if (rTicket) rTicket.textContent = data.ticket;
+          if (rName) rName.textContent = data.name;
+          if (rPool) rPool.textContent = `drawn from ${data.poolSize} ${data.poolSize === 1 ? 'entry' : 'entries'}`;
+          if (reveal) reveal.hidden = false;
+        } else {
+          alert(data.error || 'The draw failed. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Draw';
+        }
+      } catch {
+        alert('Could not connect. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Draw';
+      }
+    });
+  });
+</script>
+
+<style>
+  .ad-sect { padding-top: var(--space-7); }
+  .ad-h1 { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.02em; font-size: 2rem; margin: 0 0 8px; }
+  .ad-sub { color: var(--ink-soft); margin: 0 0 var(--space-6); line-height: 1.6; }
+  .ad-sub code { background: var(--paper-deep); padding: 1px 6px; border-radius: 5px; font-size: 0.9em; }
+  .ad-error, .ad-empty { color: #a93226; }
+
+  .ad-totals { display: flex; gap: var(--space-5); flex-wrap: wrap; margin-bottom: var(--space-7); }
+  .ad-stat {
+    background: var(--bg-elevated); border-radius: var(--r-lg); padding: 14px 24px;
+    display: flex; flex-direction: column; line-height: 1.15;
+  }
+  .ad-num { font-family: var(--font-body); font-weight: 700; font-size: 1.8rem; color: var(--ink); }
+  .ad-lbl { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-mute); }
+
+  .ad-table { width: 100%; border-collapse: collapse; }
+  .ad-table th {
+    text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-mute); font-weight: 700; padding: 8px 12px; border-bottom: 2px solid var(--paper-deep);
+  }
+  .ad-table td { padding: 14px 12px; border-bottom: 1px solid var(--paper-deep); vertical-align: top; }
+  .ad-prize { font-weight: 700; color: var(--ink); }
+  .ad-donor { color: var(--ink-soft); font-size: 0.9rem; }
+  .ad-notdrawn { color: var(--ink-mute); font-style: italic; }
+  .ad-winner { display: flex; flex-direction: column; gap: 2px; }
+  .ad-won-ticket { font-family: var(--font-body); font-weight: 800; font-size: 1.05rem; color: var(--green-dark, #3f6b23); }
+  .ad-won-name { font-weight: 600; }
+  .ad-won-contact { font-size: 0.82rem; color: var(--ink-soft); }
+  .ad-won-pool { font-size: 0.75rem; color: var(--ink-mute); }
+  .ad-action { text-align: right; }
+
+  .ad-reveal {
+    position: fixed; inset: 0; background: rgba(40, 32, 26, 0.72);
+    display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-5);
+  }
+  .ad-reveal[hidden] { display: none; }
+  .ad-reveal-card {
+    background: #fff; border-radius: var(--r-xl, 20px); padding: var(--space-8, 3.5rem) var(--space-7);
+    text-align: center; max-width: 460px; width: 100%; box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  }
+  .ad-reveal-prize { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; font-weight: 700; color: var(--ink-mute); margin: 0 0 var(--space-4); }
+  .ad-reveal-ticket { font-family: "Poppins", var(--font-body), sans-serif; font-weight: 800; font-size: clamp(2.5rem, 8vw, 4rem); color: var(--ink); margin: 0; line-height: 1; }
+  .ad-reveal-name { font-size: 1.4rem; font-weight: 600; margin: var(--space-4) 0 var(--space-3); color: var(--ink); }
+  .ad-reveal-pool { color: var(--ink-mute); font-size: 0.9rem; margin: 0 0 var(--space-6); }
+
+  @media (max-width: 560px) {
+    .ad-table thead { display: none; }
+    .ad-table, .ad-table tbody, .ad-table tr, .ad-table td { display: block; width: 100%; }
+    .ad-table tr { border-bottom: 2px solid var(--paper-deep); padding: 8px 0; }
+    .ad-table td { border: none; padding: 4px 0; }
+    .ad-action { text-align: left; margin-top: 8px; }
+  }
+</style>
