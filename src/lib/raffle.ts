@@ -19,16 +19,23 @@ export const ORGANISER_NAME = 'Dartington Recreation Association';
 export const ORGANISER_ADDRESS = 'Meadowbrook, Shinners Bridge, Dartington, TQ9 6JD';
 export const DRAW_DATE_ISO = '2026-07-11';
 export const DRAW_DATE_LABEL = '11 July 2026';
+export const DRAW_TIME_LABEL = '3pm'; // drawn live on the loudspeaker at 3pm
+export const DRAW_WHEN_LABEL = `${DRAW_TIME_LABEL} on ${DRAW_DATE_LABEL}`;
 
 // --- Config ----------------------------------------------------------------
 export const TICKET_PRICE_PENNIES = Number(env('RAFFLE_PRICE_PENNIES') ?? 100); // £1
 export const MAX_QUANTITY = Number(env('RAFFLE_MAX_QUANTITY') ?? 20);
 // Default true: a person can win at most one prize (previous winners excluded
 // from later draws). Announce whatever this is at the event before drawing.
-export const EXCLUDE_PREVIOUS_WINNERS =
-  (env('EXCLUDE_PREVIOUS_WINNERS') ?? 'true').toLowerCase() !== 'false';
+// One prize per TICKET: a winning ticket is removed from later draws, but a
+// person's other tickets stay eligible — so one person can win more than one
+// prize (with different tickets). Prizes are drawn in REVERSE display order, so
+// the star prize (top of the list) is drawn LAST, as the finale.
+export const DRAW_RULE_LABEL = 'one prize per ticket';
+
+// Confirmation email on entry. On by default (needs a verified Brevo sender).
 export const SEND_CONFIRMATION_EMAIL =
-  (env('SEND_CONFIRMATION_EMAIL') ?? 'false').toLowerCase() === 'true';
+  (env('SEND_CONFIRMATION_EMAIL') ?? 'true').toLowerCase() === 'true';
 
 export const DRAW_METHOD = 'crypto.randomInt'; // recorded on every draw (transparency)
 
@@ -101,7 +108,9 @@ export interface Prize {
   name: string;
   description?: string;
   donor?: string;
+  donorUrl?: string; // optional link to the donor's website
   displayOrder: number;
+  star: boolean; // the headline prize — shown first with special treatment, drawn last
 }
 
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
@@ -160,6 +169,34 @@ export interface DrawResult {
   name: string;
   phone: string;
   poolSize: number;
+}
+
+// --- Entry deadline --------------------------------------------------------
+// Stored in the Settings tab (key `entry_deadline`) as an ISO 8601 timestamp
+// WITH a timezone offset, e.g. 2026-07-03T18:00:00+01:00 (BST). Empty or
+// unparseable means no deadline (entries always open).
+export interface DeadlineStatus {
+  hasDeadline: boolean;
+  closed: boolean;
+  at: Date | null;
+}
+export function entryDeadlineStatus(raw: string | undefined, now: Date = new Date()): DeadlineStatus {
+  const trimmed = (raw ?? '').trim();
+  const ms = trimmed ? Date.parse(trimmed) : NaN;
+  if (!Number.isFinite(ms)) return { hasDeadline: false, closed: false, at: null };
+  return { hasDeadline: true, closed: now.getTime() >= ms, at: new Date(ms) };
+}
+export function formatDeadline(at: Date): string {
+  // e.g. "Fri 3 Jul, 6pm" in UK time.
+  const date = at.toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London',
+  });
+  const time = at
+    .toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Europe/London' })
+    .replace(':00', '')
+    .replace(/\s/g, '')
+    .toLowerCase(); // "6:00 pm" -> "6pm"
+  return `${date}, ${time}`;
 }
 
 // Signals used by the draw API to return clean errors (05 acceptance criteria).

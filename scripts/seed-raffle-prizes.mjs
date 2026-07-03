@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Seeds a few sample prizes into the raffle Google Sheet's "Prizes" tab so the
- * /raffle page and /admin draw have something to show. Idempotent: it writes the
- * header + sample rows at the top of the tab, so re-running overwrites rather
- * than duplicating. Edit the SAMPLE_PRIZES list (or the sheet directly) for real.
+ * Seeds the raffle's Prizes and Settings tabs so /raffle and /admin have data.
+ * Idempotent: writes header + rows at the top of each tab, so re-running
+ * overwrites rather than duplicating. Edit the lists below (or the sheet).
  *
- * Requires the same env the app uses:
- *   RAFFLE_SHEET_ID                the raffle spreadsheet id
- *   GOOGLE_SERVICE_ACCOUNT_JSON    service-account key JSON, OR
- *   RAFFLE_IMPERSONATE_SA          a service account to impersonate via ADC
- *                                  (local-dev path on this managed domain), OR
- *                                  neither → plain ADC (Cloud Run runtime SA).
+ * Targets the prizes spreadsheet: RAFFLE_PRIZES_SHEET_ID if set, else
+ * RAFFLE_SHEET_ID (single-sheet fallback).
+ *
+ * Requires the same auth the app uses:
+ *   GOOGLE_SERVICE_ACCOUNT_JSON  service-account key JSON, OR
+ *   RAFFLE_IMPERSONATE_SA        a service account to impersonate via ADC, OR
+ *                                neither → plain ADC (Cloud Run runtime SA).
  *
  * Usage:  set -a && . .env && set +a && node scripts/seed-raffle-prizes.mjs
  */
@@ -18,24 +18,29 @@
 import { GoogleAuth, Impersonated } from 'google-auth-library';
 
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
-const TAB = 'Prizes';
-const HEADER = ['id', 'name', 'description', 'donor', 'display_order'];
 
-// Sample prizes — replace with the real ones (or edit them in the sheet).
+const PRIZES_HEADER = ['id', 'name', 'description', 'donor', 'display_order', 'star', 'donor_url'];
+// display_order 1 = the star (headline) prize — shown first, drawn LAST.
 const SAMPLE_PRIZES = [
-  ['hamper', 'Family Hamper', 'A basket of local produce and treats.', 'Dartington Village Shop', '1'],
-  ['meal-for-two', 'Meal for Two', 'Dinner for two at a local pub.', 'The Cott Inn', '2'],
-  ['pool-passes', 'Season Pool Passes', 'A summer of swimming once the pool reopens.', 'Meadowbrook DRA', '3'],
-  ['garden-voucher', '£50 Garden Voucher', 'Towards plants for the season.', 'Riverford', '4'],
-  ['afternoon-tea', 'Afternoon Tea for Two', 'A treat for two at Dartington.', 'Dartington Hall', '5'],
-  ['cider-case', 'Case of Local Cider', 'Twelve bottles of Devon cider.', 'Sandford Orchards', '6'],
-  ['pizza-night', 'Pizza Night for Four', 'Wood-fired pizzas for the family.', 'Pizzalogica', '7'],
-  ['sauna-pass', 'Month of Sauna Sessions', 'A month of wood-fired sauna at Meadowbrook.', 'The Somewhere Sauna', '8'],
+  ['grand-prize', 'Grand Prize: Weekend for Two', 'A two-night Devon getaway for two.', 'Dartington Hall', '1', 'TRUE', 'https://www.dartington.org'],
+  ['hamper', 'Family Hamper', 'A basket of local produce and treats.', 'Dartington Village Shop', '2', '', ''],
+  ['meal-for-two', 'Meal for Two', 'Dinner for two at a local pub.', 'The Cott Inn', '3', '', 'https://www.cottinn.co.uk'],
+  ['pool-passes', 'Season Pool Passes', 'A summer of swimming once the pool reopens.', 'Meadowbrook DRA', '4', '', 'https://meadowbrookdartington.org'],
+  ['afternoon-tea', 'Afternoon Tea for Two', 'A treat for two at Dartington.', 'Dartington Hall', '5', '', 'https://www.dartington.org'],
+  ['cider-case', 'Case of Local Cider', 'Twelve bottles of Devon cider.', 'Sandford Orchards', '6', '', 'https://www.sandfordorchards.co.uk'],
+  ['pizza-night', 'Pizza Night for Four', 'Wood-fired pizzas for the family.', 'Pizzalogica', '7', '', 'https://meadowbrookdartington.org/facilities/pizzalogica'],
+  ['sauna-pass', 'Month of Sauna Sessions', 'A month of wood-fired sauna at Meadowbrook.', 'The Somewhere Sauna', '8', '', 'https://meadowbrookdartington.org/facilities/somewhere-sauna'],
 ];
 
-const sheetId = process.env.RAFFLE_SHEET_ID;
+const SETTINGS_HEADER = ['key', 'value'];
+// entry_deadline: ISO 8601 WITH offset. +01:00 = BST. Edit freely in the sheet.
+const SETTINGS = [
+  ['entry_deadline', '2026-07-03T18:00:00+01:00'],
+];
+
+const sheetId = process.env.RAFFLE_PRIZES_SHEET_ID || process.env.RAFFLE_SHEET_ID;
 if (!sheetId) {
-  console.error('RAFFLE_SHEET_ID not set. Aborting.');
+  console.error('Neither RAFFLE_PRIZES_SHEET_ID nor RAFFLE_SHEET_ID is set. Aborting.');
   process.exit(1);
 }
 
@@ -44,7 +49,7 @@ const auth = new GoogleAuth({
   scopes: SCOPES,
   credentials: process.env.GOOGLE_SERVICE_ACCOUNT_JSON
     ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
-    : undefined, // falls back to ADC
+    : undefined,
 });
 
 let impClient = null;
@@ -75,31 +80,36 @@ async function authedFetch(url, init) {
   return res;
 }
 
-async function ensureTab() {
+async function ensureTab(title) {
   const res = await authedFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets.properties(title)`);
   const data = await res.json();
   const exists = (data.sheets ?? []).some(
-    (s) => String(s?.properties?.title ?? '').toLowerCase() === TAB.toLowerCase()
+    (s) => String(s?.properties?.title ?? '').toLowerCase() === title.toLowerCase()
   );
   if (!exists) {
     await authedFetch(`${SHEETS_BASE}/${sheetId}:batchUpdate`, {
       method: 'POST',
-      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: TAB } } }] }),
+      body: JSON.stringify({ requests: [{ addSheet: { properties: { title } } }] }),
     });
-    console.log(`Created "${TAB}" tab.`);
+    console.log(`Created "${title}" tab.`);
   }
 }
 
-async function seed() {
-  await ensureTab();
-  const values = [HEADER, ...SAMPLE_PRIZES];
-  const lastCol = String.fromCharCode(64 + HEADER.length);
-  const range = encodeURIComponent(`'${TAB}'!A1:${lastCol}${values.length}`);
-  await authedFetch(`${SHEETS_BASE}/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
+async function writeTab(title, header, rows) {
+  await ensureTab(title);
+  const values = [header, ...rows];
+  const lastCol = String.fromCharCode(64 + header.length);
+  const range = encodeURIComponent(`'${title}'!A1:${lastCol}${values.length}`);
+  await authedFetch(`${SHEETS_BASE}/${sheetId}/values/${range}?valueInputOption=RAW`, {
     method: 'PUT',
     body: JSON.stringify({ values }),
   });
-  console.log(`Seeded ${SAMPLE_PRIZES.length} prizes into "${TAB}".`);
+  console.log(`Seeded ${rows.length} row(s) into "${title}".`);
+}
+
+async function seed() {
+  await writeTab('Prizes', PRIZES_HEADER, SAMPLE_PRIZES);
+  await writeTab('Settings', SETTINGS_HEADER, SETTINGS);
 }
 
 seed().catch((err) => {
