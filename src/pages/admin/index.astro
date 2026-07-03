@@ -4,9 +4,9 @@ import {
   isAdminAuthorized,
   adminChallenge,
   formatPennies,
-  EXCLUDE_PREVIOUS_WINNERS,
+  DRAW_RULE_LABEL,
   DRAW_METHOD,
-  DRAW_DATE_LABEL,
+  DRAW_WHEN_LABEL,
 } from '../../lib/raffle';
 import { getPrizes, getDraws, getTotals, isRaffleSheetConfigured } from '../../lib/raffle-sheet';
 
@@ -34,6 +34,8 @@ if (configured) {
   }
 }
 const drawByPrize = new Map(draws.map((d) => [d.prizeId, d]));
+// getPrizes returns display order (star first). Draw in REVERSE — star prize last.
+const drawOrder = prizes.slice().reverse();
 ---
 
 <Layout title="Raffle admin" description="Raffle draw admin" noindex={true}>
@@ -41,8 +43,9 @@ const drawByPrize = new Map(draws.map((d) => [d.prizeId, d]));
     <div class="mw-wrap">
       <h1 class="ad-h1">Raffle admin</h1>
       <p class="ad-sub">
-        Draw rule: <strong>{EXCLUDE_PREVIOUS_WINNERS ? 'one prize per person' : 'a person can win more than once'}</strong>.
-        Winners chosen by <code>{DRAW_METHOD}</code>. Announce the rule before drawing. Draw day: {DRAW_DATE_LABEL}.
+        Draw rule: <strong>{DRAW_RULE_LABEL}</strong>. Prizes are listed in <strong>draw order</strong>
+        — work top to bottom, so the star prize is drawn last. Winners chosen by <code>{DRAW_METHOD}</code>.
+        Draw: {DRAW_WHEN_LABEL}.
       </p>
 
       {loadError || !configured ? (
@@ -60,11 +63,11 @@ const drawByPrize = new Map(draws.map((d) => [d.prizeId, d]));
               <tr><th>Prize</th><th>Donor</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
-              {prizes.map((p) => {
+              {drawOrder.map((p) => {
                 const d = drawByPrize.get(p.id);
                 return (
                   <tr data-prize-id={p.id}>
-                    <td class="ad-prize">{p.name}</td>
+                    <td class="ad-prize">{p.star && <span class="ad-star">★</span>}{p.name}</td>
                     <td class="ad-donor">{p.donor ?? '—'}</td>
                     <td class="ad-status">
                       {d ? (
@@ -173,6 +176,7 @@ const drawByPrize = new Map(draws.map((d) => [d.prizeId, d]));
   }
   .ad-table td { padding: 14px 12px; border-bottom: 1px solid var(--paper-deep); vertical-align: top; }
   .ad-prize { font-weight: 700; color: var(--ink); }
+  .ad-star { color: #E6A700; margin-right: 6px; }
   .ad-donor { color: var(--ink-soft); font-size: 0.9rem; }
   .ad-notdrawn { color: var(--ink-mute); font-style: italic; }
   .ad-winner { display: flex; flex-direction: column; gap: 2px; }

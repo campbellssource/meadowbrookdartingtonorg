@@ -12,6 +12,7 @@ import {
   ORGANISER_NAME,
   ORGANISER_ADDRESS,
   DRAW_DATE_LABEL,
+  DRAW_WHEN_LABEL,
   TICKET_PRICE_LABEL,
 } from './raffle';
 
@@ -30,7 +31,7 @@ export async function sendConfirmationEmail(opts: {
   if (!SEND_CONFIRMATION_EMAIL) return;
 
   const apiKey = env('BREVO_API_KEY');
-  const fromEmail = env('RAFFLE_EMAIL_FROM') ?? 'contact@meadowbrookdartington.org';
+  const fromEmail = env('RAFFLE_EMAIL_FROM') ?? 'extravaganza@meadowbrookdartington.org';
   if (!apiKey) {
     console.warn('raffle-email: SEND_CONFIRMATION_EMAIL is on but BREVO_API_KEY is missing; skipping.');
     return;
@@ -44,8 +45,9 @@ export async function sendConfirmationEmail(opts: {
         opts.tickets.length > 1 ? 'are your ticket numbers' : 'is your ticket number'
       }:</p>
       <ul>${ticketList}</ul>
-      <p>Every ticket is entered in the draw for <strong>every</strong> prize. Winners are drawn
-         live at the Meadowbrook Extravaganza on <strong>${DRAW_DATE_LABEL}</strong>.</p>
+      <p>You don't pick a prize — each prize is drawn separately, and any of your tickets could win.</p>
+      <p>The draw is <strong>live on the loudspeaker at ${DRAW_WHEN_LABEL}</strong>. You don't need
+         to be there to win — if you're not around, we'll email you to arrange collection.</p>
       <p>You can see your ticket on the public entries list:
          <a href="${SITE_URL}/entries">${SITE_URL}/entries</a></p>
       <hr style="border:none;border-top:1px solid #e6dccb;margin:20px 0" />

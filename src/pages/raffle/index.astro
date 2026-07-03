@@ -6,9 +6,13 @@ import {
   TICKET_PRICE_LABEL,
   MAX_QUANTITY,
   DRAW_DATE_LABEL,
+  DRAW_WHEN_LABEL,
+  raffleSquareConfig,
+  entryDeadlineStatus,
+  formatDeadline,
+  type DeadlineStatus,
 } from '../../lib/raffle';
-import { getPrizes, isRaffleSheetConfigured } from '../../lib/raffle-sheet';
-import { raffleSquareConfig } from '../../lib/raffle';
+import { getPrizes, getEntryDeadlineRaw, isRaffleSheetConfigured } from '../../lib/raffle-sheet';
 
 // The raffle is Extravaganza-only, so it wears the event's festival micro-brand
 // (bodyClass="zone-extravaganza"): orange field, Poppins caps, bunting. See
@@ -23,15 +27,22 @@ const squareSdkUrl = sq.environment === 'production'
 
 const configured = isRaffleSheetConfigured();
 let prizes: Awaited<ReturnType<typeof getPrizes>> = [];
+let deadline: DeadlineStatus = { hasDeadline: false, closed: false, at: null };
 let loadError = false;
 if (configured) {
   try {
     prizes = await getPrizes();
+    deadline = entryDeadlineStatus(await getEntryDeadlineRaw());
   } catch (err) {
-    console.error('raffle: getPrizes failed', err);
+    console.error('raffle: load failed', err);
     loadError = true;
   }
 }
+
+// getPrizes returns star-first; split the headline prize out for special treatment.
+const starPrize = prizes.find((p) => p.star) ?? null;
+const otherPrizes = prizes.filter((p) => p !== starPrize);
+const entriesClosed = deadline.closed;
 
 const bunt = ['sky', 'pink', 'sun', 'teal', 'green', 'orange'];
 const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt.length]);
@@ -39,7 +50,8 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
 
 <Layout
   title="Extravaganza Raffle"
-  description={`Win great prizes and support the Meadowbrook pool. ${TICKET_PRICE_LABEL} per ticket — one ticket enters the draw for every prize. Drawn live at the Extravaganza on ${DRAW_DATE_LABEL}.`}
+  description={`Win great prizes and support the Meadowbrook pool. ${TICKET_PRICE_LABEL} a ticket. Winners drawn live at the Extravaganza on ${DRAW_DATE_LABEL} — you don't need to be there to win.`}
+  ogImage="/images/events/raffle/image.jpg"
   bodyClass="zone-extravaganza"
   noindex={true}
 >
@@ -58,14 +70,14 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
       <p class="ex-sub">Win big at the Extravaganza</p>
       <p class="rf-lead">
         Grab a ticket, support the community pool we're working to bring back, and you could
-        win one of our prizes — drawn live on stage at the Extravaganza on {DRAW_DATE_LABEL}.
+        win one of our prizes — drawn live on the loudspeaker at <strong>{DRAW_WHEN_LABEL}</strong>.
       </p>
-      <div class="rf-price-badge">
-        <span class="rf-price">{TICKET_PRICE_LABEL}</span>
-        <span class="rf-price-per">per ticket</span>
+      <p class="rf-price-line"><span class="rf-price-amt">{TICKET_PRICE_LABEL}</span> a ticket</p>
+      <p class="rf-everyprize">Every ticket is in the draw for <strong>every</strong> prize — you don't need to be there to win.</p>
+      <div class="rf-hero-cta">
+        <a class="mw-btn rf-buy-btn" href="#enter">Buy tickets</a>
+        <a class="rf-seeall" href="/entries">See all entries →</a>
       </div>
-      <p class="rf-everyprize">One ticket enters the draw for <strong>every</strong> prize.</p>
-      <a class="rf-seeall" href="/entries">See all entries →</a>
     </div>
   </section>
 
@@ -73,18 +85,45 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
   <section class="mw-sect tight">
     <div class="mw-wrap">
       <h2 class="ex-h2">The prizes</h2>
-      {prizes.length > 0 ? (
+      {prizes.length === 0 && <p class="rf-empty">Prizes are being confirmed — check back soon.</p>}
+
+      {starPrize && (
+        <div class="rf-star">
+          <span class="rf-star-ribbon">★ Star prize</span>
+          <h3>{starPrize.name}</h3>
+          {starPrize.description && <p class="rf-star-desc">{starPrize.description}</p>}
+          {starPrize.donor && (
+            <p class="rf-prize-donor">
+              Kindly donated by {starPrize.donorUrl
+                ? <a href={starPrize.donorUrl} target="_blank" rel="noopener">{starPrize.donor}</a>
+                : starPrize.donor}
+            </p>
+          )}
+        </div>
+      )}
+
+      {otherPrizes.length > 0 && (
         <ul class="rf-prizes">
-          {prizes.map((p) => (
+          {otherPrizes.map((p) => (
             <li class="rf-prize">
               <h3>{p.name}</h3>
               {p.description && <p class="rf-prize-desc">{p.description}</p>}
-              {p.donor && <p class="rf-prize-donor">Kindly donated by {p.donor}</p>}
+              {p.donor && (
+                <p class="rf-prize-donor">
+                  Kindly donated by {p.donorUrl
+                    ? <a href={p.donorUrl} target="_blank" rel="noopener">{p.donor}</a>
+                    : p.donor}
+                </p>
+              )}
             </li>
           ))}
         </ul>
-      ) : (
-        <p class="rf-empty">Prizes are being confirmed — check back soon.</p>
+      )}
+      {prizes.length > 0 && (
+        <p class="rf-prize-note">
+          You don't choose a prize — we run a separate draw for each one, and any of your tickets
+          could win. The star prize is drawn last.
+        </p>
       )}
     </div>
   </section>
@@ -99,8 +138,16 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
           The raffle isn't available right now. Please try again later, or
           <a href="/contact">get in touch</a>.
         </div>
+      ) : entriesClosed ? (
+        <div class="rf-card rf-notice">
+          <strong>Entries have now closed.</strong> The draw is live on the loudspeaker at
+          {' '}{DRAW_WHEN_LABEL}. You can still <a href="/entries">see all the entries</a>.
+        </div>
       ) : (
         <div class="rf-card">
+          {deadline.hasDeadline && deadline.at && (
+            <p class="rf-deadline">Entries close <strong>{formatDeadline(deadline.at)}</strong>.</p>
+          )}
           <form id="rf-form" novalidate>
             <div class="rf-field">
               <label for="rf-name">Your name</label>
@@ -118,6 +165,7 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
             <div class="rf-field">
               <label for="rf-qty">Number of tickets</label>
               <input id="rf-qty" name="quantity" type="number" min="1" max={MAX_QUANTITY} value="1" inputmode="numeric" required />
+              <p class="rf-hint" id="rf-qty-hint">Up to {MAX_QUANTITY} tickets per person.</p>
             </div>
 
             <div class="rf-total-row">
@@ -178,9 +226,11 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
     <div class="mw-wrap rf-how">
       <h2 class="ex-h2">How the draw works</h2>
       <ul class="rf-how-list">
-        <li>Every ticket you buy is listed on the public <a href="/entries">entries page</a> — so you can see your ticket is really in the draw.</li>
-        <li>Winners are picked using a cryptographically secure random selection (<code>crypto.randomInt</code>), not a guessable one.</li>
-        <li>The draw happens live at the Extravaganza on {DRAW_DATE_LABEL}, and the number of tickets in the draw is shown on screen when each winner is picked.</li>
+        <li><strong>You don't pick a prize.</strong> We run a separate draw for each prize, in turn, working up to the star prize which is drawn last.</li>
+        <li>Every ticket goes into every draw. A ticket that wins is taken out, so one ticket wins at most one prize — but if you hold several tickets, each still has its own chances.</li>
+        <li>The draw is <strong>live on the loudspeaker at {DRAW_WHEN_LABEL}</strong>. You <strong>don't need to be there</strong> — if you're not around when your ticket wins, we'll email you to arrange collection.</li>
+        <li>Every ticket is listed on the public <a href="/entries">entries page</a>, so you can check yours is really in before the draw.</li>
+        <li>Winners are picked by a cryptographically secure random selection (<code>crypto.randomInt</code>), and the number of tickets in each draw is announced as the winner is picked.</li>
       </ul>
     </div>
   </section>
@@ -215,13 +265,31 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
     const doneEl = document.getElementById('rf-done');
     const doneLead = document.getElementById('rf-done-lead');
     const ticketsEl = document.getElementById('rf-tickets');
+    const qtyHint = document.getElementById('rf-qty-hint');
+    const enterSection = document.getElementById('enter');
 
     const fmt = (pence) => (pence % 100 === 0 ? `£${pence / 100}` : `£${(pence / 100).toFixed(2)}`);
+    const defaultHint = `Up to ${maxQty} tickets per person.`;
 
     function currentQty() {
       let q = Math.floor(Number(qtyInput.value));
       if (!Number.isFinite(q)) q = 1;
       return Math.min(Math.max(q, 1), maxQty);
+    }
+    // Reflect the clamp in the field so it never silently changes what they'll get.
+    function normaliseQty() {
+      const raw = Math.floor(Number(qtyInput.value));
+      const clamped = currentQty();
+      if (qtyHint) {
+        if (Number.isFinite(raw) && raw > maxQty) {
+          qtyInput.value = String(clamped);
+          qtyHint.textContent = `Maximum ${maxQty} tickets per person — set to ${maxQty}.`;
+          qtyHint.classList.add('rf-hint--warn');
+        } else {
+          qtyHint.textContent = defaultHint;
+          qtyHint.classList.remove('rf-hint--warn');
+        }
+      }
     }
     function updateTotal() {
       const label = fmt(currentQty() * pricePennies);
@@ -230,8 +298,14 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
     }
     function showError(el, msg) { if (el) { el.textContent = msg; el.hidden = false; } }
     function clearError(el) { if (el) { el.hidden = true; el.textContent = ''; } }
+    // After a step change, bring the section heading back into view — otherwise
+    // the user is left scrolled past the new content.
+    function scrollToTopOfSection() {
+      enterSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     qtyInput?.addEventListener('input', updateTotal);
+    qtyInput?.addEventListener('change', normaliseQty);
     updateTotal();
 
     let paymentId = null;
@@ -297,6 +371,7 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
         if (payBtnTotal) payBtnTotal.textContent = label;
         form.hidden = true;
         if (payEl) payEl.hidden = false;
+        scrollToTopOfSection();
         const ok = await initCard();
         if (payBtn) payBtn.disabled = !ok;
       } catch {
@@ -343,6 +418,7 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
           if (ticketsEl) ticketsEl.innerHTML = tickets.map((t) => `<li>${t}</li>`).join('');
           if (payEl) payEl.hidden = true;
           if (doneEl) doneEl.hidden = false;
+          scrollToTopOfSection();
         } else {
           showError(payErrorEl, data.error ?? 'Payment failed. Please try again.');
           payBtn.disabled = false; payBtn.innerHTML = restore;
@@ -389,17 +465,25 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
     font-size: 1.2rem; line-height: 1.6; color: #fff; font-weight: 500;
     max-width: 46ch; margin: var(--space-5) 0 0;
   }
-  .rf-price-badge {
-    display: inline-flex; align-items: baseline; gap: 8px;
-    background: var(--sun); color: var(--ink); border-radius: var(--r-lg);
-    padding: 10px 18px; margin: var(--space-5) 0 0;
+  /* Price as plain text (not a boxed pill — avoids looking like a button). */
+  .rf-price-line {
+    margin: var(--space-5) 0 0; color: #fff;
+    font-family: "Poppins", sans-serif; font-weight: 700; font-size: 1.2rem;
   }
-  .rf-price { font-family: "Poppins", sans-serif; font-weight: 800; font-size: 1.8rem; line-height: 1; }
-  .rf-price-per { font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8rem; }
+  .rf-price-amt { font-weight: 800; font-size: 2rem; color: var(--sun); }
   .rf-everyprize { color: #fff; font-size: 1.05rem; margin: var(--space-4) 0 0; }
   .rf-everyprize strong { color: var(--sun); }
+  .rf-hero-cta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-5);
+    margin-top: var(--space-6);
+  }
+  .rf-buy-btn {
+    background: var(--sun); color: var(--ink); font-size: 1.1rem; padding: 14px 32px;
+    font-weight: 800;
+  }
+  .rf-buy-btn:hover { background: #ffdf3d; }
   .rf-seeall {
-    display: inline-block; margin-top: var(--space-4);
+    display: inline-block;
     font-family: "Poppins", sans-serif; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.04em; font-size: 13px; color: var(--ink);
     text-decoration: underline; text-underline-offset: 0.3em;
@@ -417,7 +501,32 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
   .rf-prize h3 { font-family: "Poppins", sans-serif; font-weight: 800; font-size: 1.15rem; margin: 0 0 8px; }
   .rf-prize-desc { margin: 0 0 10px; color: var(--ink-soft); line-height: 1.5; font-size: 0.95rem; }
   .rf-prize-donor { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--ink-mute); }
+  .rf-prize-donor a { color: var(--bunt-orange, #F47B1F); text-decoration: underline; }
   .rf-empty { color: #fff; opacity: 0.9; }
+
+  /* Star (headline) prize */
+  .rf-star {
+    position: relative; background: #fff; color: var(--ink);
+    border: 3px solid var(--sun); border-radius: var(--r-lg);
+    padding: var(--space-6) var(--space-6) var(--space-6);
+    margin: 0 0 var(--space-5); box-shadow: 0 14px 40px rgba(40, 35, 32, 0.22);
+  }
+  .rf-star-ribbon {
+    display: inline-block; background: var(--sun); color: var(--ink);
+    font-family: "Poppins", sans-serif; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.05em; font-size: 0.72rem; padding: 5px 12px; border-radius: 999px;
+    margin-bottom: var(--space-4);
+  }
+  .rf-star h3 { font-family: "Poppins", sans-serif; font-weight: 800; font-size: clamp(1.4rem, 3.4vw, 2rem); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .rf-star-desc { margin: 0 0 10px; color: var(--ink-soft); line-height: 1.55; font-size: 1.05rem; }
+
+  .rf-prize-note { color: #fff; margin: var(--space-5) 0 0; font-size: 0.98rem; line-height: 1.6; max-width: 60ch; }
+
+  .rf-deadline {
+    margin: 0 0 var(--space-5); padding: 8px 12px; border-radius: var(--r-md, 10px);
+    background: var(--bone, #faf6ef); color: var(--ink-soft); font-size: 0.9rem;
+  }
+  .rf-deadline strong { color: var(--ink); }
 
   /* Form card */
   .rf-form-wrap { max-width: 560px; }
@@ -442,6 +551,7 @@ const buntRow = (n: number) => Array.from({ length: n }, (_, i) => bunt[i % bunt
     box-shadow: 0 0 0 3px rgba(244, 123, 31, 0.18);
   }
   .rf-hint { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-mute); }
+  .rf-hint--warn { color: #a93226; font-weight: 600; }
 
   .rf-total-row {
     display: flex; justify-content: space-between; align-items: baseline;

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { MAX_QUANTITY, TICKET_PRICE_PENNIES } from '../../../lib/raffle';
-import { createPendingPayment, isRaffleSheetConfigured } from '../../../lib/raffle-sheet';
+import { MAX_QUANTITY, TICKET_PRICE_PENNIES, entryDeadlineStatus } from '../../../lib/raffle';
+import { createPendingPayment, getEntryDeadlineRaw, isRaffleSheetConfigured } from '../../../lib/raffle-sheet';
 
 // Entry step: validate the form and create a PENDING payment. No tickets are
 // minted here — those are only created after Square confirms the payment (see
@@ -15,6 +15,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const POST: APIRoute = async ({ request }) => {
   if (!isRaffleSheetConfigured()) {
     return json({ error: 'The raffle is not available right now. Please try again later.' }, 503);
+  }
+
+  // Entries close at the deadline (Settings tab). Enforce server-side.
+  if (entryDeadlineStatus(await getEntryDeadlineRaw()).closed) {
+    return json({ error: 'Entries have now closed. See you at the draw!' }, 403);
   }
 
   let name = '';
