@@ -38,6 +38,7 @@ export default defineConfig({
 
     // Events - old slug → year-stamped slug
     '/calendar/extravaganza': '/calendar/extravaganza2026',
+    '/extravaganza':          '/calendar/extravaganza2026',
 
     // Privacy policy - maintained in Google Docs
     '/privacy': 'https://docs.google.com/document/d/1V94cmxs0Nix99-eZzGKzUx9z8Bzd0ynNno5waPc0hQQ/edit',
