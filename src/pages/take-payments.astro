@@ -1,0 +1,417 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Unlisted for now (no nav link, kept out of search) - share by URL with volunteers.
+
+const HELP_EMAIL = 'it@meadowbrookdartington.org';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.kaching.merchant';
+// Official links from sumup.com (the itunes URL redirects to apps.apple.com).
+const APP_STORE_URL = 'https://itunes.apple.com/app/sumup/id514879214?ls=1&mt=8';
+---
+
+<Layout
+  title="Take payments with SumUp"
+  description="Volunteer guide: set up SumUp on your phone and take card payments for the DRA."
+  noindex={true}
+>
+  <section class="mw-zone-hero hero-compact">
+    <div class="mw-wrap guide-wrap">
+      <span class="mw-eyebrow">Volunteer guide</span>
+      <h1>Take payments with SumUp</h1>
+      <p>
+        A step-by-step guide to getting SumUp working on your phone so you can
+        take card payments for the Dartington Recreation Association — no card
+        reader needed, just your phone.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-sect guide-sect">
+    <div class="mw-wrap guide-wrap">
+
+      <div class="help-cta">
+        <a class="mw-btn mw-btn-primary" href="#video">Show video</a>
+        <a class="mw-btn mw-btn-secondary" href={`mailto:${HELP_EMAIL}?subject=SumUp%20help`}>
+          Ask for help
+        </a>
+        <p class="help-note">
+          Stuck at any point? Email <a href={`mailto:${HELP_EMAIL}`}>{HELP_EMAIL}</a>
+          and we'll get you going.
+        </p>
+      </div>
+
+      <!-- PART 1 — get set up -->
+      <h2 class="part-title"><span class="part-num">Part 1</span> Get set up</h2>
+
+      <ol class="guide-steps">
+        <li class="guide-step no-shot">
+          <div class="step-text">
+            <h3>Download the SumUp Business app</h3>
+            <p>It's free, from your phone's app store:</p>
+            <div class="store-links">
+              <a class="store-btn" href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+                <span class="store-small">Get it on</span>
+                <span class="store-name">Google Play</span>
+              </a>
+              <a class="store-btn" href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                <span class="store-small">Download on the</span>
+                <span class="store-name">App Store</span>
+              </a>
+            </div>
+          </div>
+        </li>
+
+        <li class="guide-step no-shot">
+          <div class="step-text">
+            <h3>Ask for an account</h3>
+            <p>
+              Email <a href={`mailto:${HELP_EMAIL}?subject=SumUp%20account%20please`}>{HELP_EMAIL}</a>
+              to ask for an account — unless you've already been sent an invite,
+              in which case skip straight to the next step.
+            </p>
+          </div>
+        </li>
+
+        <li class="guide-step stack-shot">
+          <div class="step-text">
+            <h3>Follow the invite to create your SumUp account</h3>
+            <p>
+              You'll get an invite email from SumUp. Follow its instructions to
+              create your own SumUp account.
+            </p>
+          </div>
+          <figure class="step-shot shot-pair">
+            <img src="/images/take-payments/1a.png" alt="SumUp invite email with the Accept invitation button" loading="lazy" />
+            <img src="/images/take-payments/1b.png" alt="Create your profile form to join Dartington Recreation Association in SumUp" loading="lazy" />
+          </figure>
+        </li>
+
+        <li class="guide-step">
+          <div class="step-text">
+            <h3>Sign in to the app</h3>
+            <p>
+              Open the SumUp app and sign in with the account you've just
+              created. That's the setup done.
+            </p>
+          </div>
+          <figure class="step-shot">
+            <img src="/images/take-payments/2.png" alt="SumUp log in screen asking for email address and password" loading="lazy" />
+          </figure>
+        </li>
+      </ol>
+
+      <aside class="trouble-note">
+        <strong>If anything doesn't work:</strong> try closing and restarting the
+        app first. Still stuck? Email
+        <a href={`mailto:${HELP_EMAIL}?subject=SumUp%20help`}>{HELP_EMAIL}</a>
+        with a screenshot of what you're seeing.
+      </aside>
+
+      <!-- PART 2 — practice taking a payment -->
+      <h2 class="part-title"><span class="part-num">Part 2</span> Practice taking a payment</h2>
+
+      <ol class="guide-steps" start="5">
+        <li class="guide-step">
+          <div class="step-text">
+            <h3>Hit <em>Checkout</em></h3>
+            <p>From the app's home screen, tap the <strong>Checkout</strong> button.</p>
+          </div>
+          <figure class="step-shot">
+            <img src="/images/take-payments/5.png" alt="SumUp home screen with the Checkout tab circled in the bottom bar" loading="lazy" />
+          </figure>
+        </li>
+
+        <li class="guide-step stack-shot">
+          <div class="step-text">
+            <h3>Key in a value, or pick a product</h3>
+            <p>
+              At the top there are two tabs: one for keying in a value, one for
+              selecting a "product".
+            </p>
+          </div>
+          <figure class="step-shot shot-pair">
+            <img src="/images/take-payments/6b.png" alt="Checkout keypad tab, circled top left, for keying in a value" loading="lazy" />
+            <img src="/images/take-payments/6a.png" alt="Checkout products tab, circled top right, listing items like raffle tickets" loading="lazy" />
+          </figure>
+        </li>
+
+        <li class="guide-step">
+          <div class="step-text">
+            <h3>Hit <em>Charge</em></h3>
+          </div>
+          <figure class="step-shot">
+            <img src="/images/take-payments/7.png" alt="Checkout screen with the Charge button circled" loading="lazy" />
+          </figure>
+        </li>
+
+        <li class="guide-step">
+          <div class="step-text">
+            <h3>Hit <em>Tap to Pay on phone</em></h3>
+            <p>It takes a little longer the very first time you do this — that's normal.</p>
+          </div>
+          <figure class="step-shot">
+            <img src="/images/take-payments/8.png" alt="Payment methods screen with Tap to Pay on iPhone circled" loading="lazy" />
+          </figure>
+        </li>
+
+        <li class="guide-step stack-shot">
+          <div class="step-text">
+            <h3>Look for "Pay Dartington Recreation Association"</h3>
+            <p>
+              The screen will show
+              <strong>"Pay Dartington Recreation Association £x.xx"</strong>.
+              If you see this, you're ready to take your first payment. Feel
+              free to donate something to test — or wait for the first
+              real-world use.
+            </p>
+          </div>
+          <figure class="step-shot shot-wide">
+            <img src="/images/take-payments/9.jpg" alt="A customer tapping their card on the phone to pay" loading="lazy" />
+          </figure>
+        </li>
+      </ol>
+
+      <div class="done-note">
+        <span class="done-icon" aria-hidden="true">✓</span>
+        <p>
+          That's it — you're set up to take card payments for the DRA. Thank you
+          for volunteering!
+        </p>
+      </div>
+
+      <!-- Good to know -->
+      <h2 class="part-title notes-title">Good to know</h2>
+      <ul class="tips">
+        <li>
+          Need to remove an item from a sale? Hit the <strong>cart</strong>
+          icon, then the <strong>bin</strong> icon.
+          <div class="tip-shots">
+            <img src="/images/take-payments/cart-a.png" alt="Checkout screen with the cart icon circled" loading="lazy" />
+            <img src="/images/take-payments/cart-b.png" alt="Cart contents with the bin icon circled" loading="lazy" />
+          </div>
+        </li>
+        <li>
+          Check <strong>Sales</strong> to see what's happened so far.
+          <div class="tip-shots">
+            <img src="/images/take-payments/sales.png" alt="Sales tab listing today's transactions" loading="lazy" />
+          </div>
+        </li>
+        <li>
+          Already have a SumUp account of your own? You'll need a different
+          email address for the DRA one —
+          <a href={`mailto:${HELP_EMAIL}?subject=SumUp%20email%20address%20please`}>{HELP_EMAIL}</a>
+          can give you one. To switch between accounts, sign out of the app by
+          tapping the icon in the top right of the home page.
+        </li>
+      </ul>
+
+      <!-- Walkthrough video -->
+      <h2 class="part-title" id="video">Video walkthrough</h2>
+      <div class="video-wrap">
+        <video
+          controls
+          playsinline
+          preload="metadata"
+          src="/images/take-payments/how-to-set-up-sumup.mp4"
+        >
+          Your browser can't play this video.
+          <a href="/images/take-payments/how-to-set-up-sumup.mp4">Download it instead</a>.
+        </video>
+      </div>
+
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero-compact { padding-bottom: var(--space-5); }
+  .guide-sect { padding-top: var(--space-5); }
+  .guide-wrap { max-width: 760px; }
+
+  /* Clear the sticky site nav (~83px) when jumping to the anchor */
+  #video { scroll-margin-top: 104px; }
+
+  /* Video — a portrait phone recording, so cap the height and centre it. */
+  .video-wrap {
+    display: flex;
+    justify-content: center;
+    background: var(--paper-deep);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+  }
+  .video-wrap video {
+    display: block;
+    max-width: 100%;
+    max-height: min(72vh, 640px);
+    width: auto; height: auto;
+  }
+
+  /* Help CTA under the video */
+  .help-cta {
+    display: flex; align-items: center; gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-7);
+  }
+  .help-note { margin: 0; font-size: 0.875rem; color: var(--fg-mute); }
+  .help-note a { color: var(--green-dark); }
+
+  /* Part headings */
+  .part-title {
+    display: flex; align-items: center; gap: var(--space-3);
+    font-family: var(--font-body);
+    font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em;
+    margin: var(--space-7) 0 var(--space-5);
+  }
+  .part-num {
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    background: rgba(116,169,83,0.16); color: var(--green-dark);
+    border-radius: var(--r-pill); padding: 4px 12px;
+    white-space: nowrap;
+  }
+
+  /* Steps */
+  .guide-steps {
+    list-style: none;
+    counter-reset: step var(--step-start, 0);
+    margin: 0; padding: 0;
+  }
+  .guide-steps[start="5"] { counter-reset: step 4; }
+  .guide-step {
+    counter-increment: step;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: var(--space-5);
+    align-items: start;
+    padding: var(--space-5) 0 var(--space-5) 56px;
+    border-bottom: 1px solid var(--paper-deep);
+  }
+  .guide-step:last-child { border-bottom: 0; }
+  .guide-step::before {
+    content: counter(step);
+    position: absolute; left: 0; top: var(--space-5);
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    font-weight: 700; font-size: 1rem;
+  }
+  @media (max-width: 640px) {
+    .guide-step { grid-template-columns: 1fr; }
+  }
+  .guide-step.no-shot,
+  .guide-step.stack-shot { grid-template-columns: 1fr; }
+  .step-text h3 {
+    font-family: var(--font-body);
+    font-size: 1.05rem; font-weight: 700;
+    margin: 6px 0 var(--space-2);
+  }
+  .step-text h3 em { font-style: normal; color: var(--green-dark); }
+  .step-text p { margin: 0 0 var(--space-2); font-size: 0.95rem; line-height: 1.6; color: var(--fg-soft); }
+  .step-text p:last-child { margin-bottom: 0; }
+  .step-text a { color: var(--green-dark); }
+
+  /* Store buttons */
+  .store-links { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-3); }
+  .store-btn {
+    display: inline-flex; flex-direction: column;
+    background: #1c1c1e; color: #fff; text-decoration: none;
+    border-radius: 10px; padding: 8px 18px; line-height: 1.25;
+  }
+  .store-btn:hover { background: #333336; }
+  /* Global anchor colour rules outrank .store-btn, so pin the colour on the spans. */
+  .store-small { font-size: 0.65rem; opacity: 0.85; color: #fff; }
+  .store-name { font-size: 1rem; font-weight: 700; color: #fff; }
+
+  /* Screenshots */
+  .step-shot { margin: 0; }
+  .step-shot img {
+    display: block; width: 100%; height: auto;
+    border-radius: var(--r-md);
+    border: 1.5px solid var(--paper-deep);
+  }
+  /* Two screenshots side by side, below the step text */
+  .step-shot.shot-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    max-width: 480px;
+  }
+  /* Single landscape image below the step text */
+  .step-shot.shot-wide { max-width: 560px; }
+  .shot-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    aspect-ratio: 9 / 16;
+    max-height: 300px;
+    width: 100%;
+    border: 1.5px dashed var(--paper-deep);
+    border-radius: var(--r-md);
+    background: var(--bone);
+    color: var(--ink-mute);
+    font-size: 0.78rem; font-weight: 600;
+    padding: var(--space-3);
+  }
+  @media (max-width: 640px) {
+    .shot-placeholder { max-width: 220px; }
+  }
+
+  /* Troubleshooting callout */
+  .trouble-note {
+    background: rgba(224,155,59,0.12);
+    border: 1.5px solid rgba(224,155,59,0.4);
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    font-size: 0.92rem; line-height: 1.6; color: var(--fg-soft);
+    margin: var(--space-6) 0;
+  }
+  .trouble-note strong { color: var(--green-dark); }
+  .trouble-note a { color: var(--green-dark); font-weight: 600; }
+
+  /* Done note */
+  .done-note {
+    display: flex; align-items: center; gap: var(--space-4);
+    background: rgba(116,169,83,0.12);
+    border: 1.5px solid rgba(116,169,83,0.4);
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    margin-top: var(--space-6);
+  }
+  .done-note p { margin: 0; font-size: 0.95rem; color: var(--fg-soft); }
+  .done-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: none;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--green); color: #fff; font-size: 1.1rem;
+  }
+
+  /* Good to know */
+  .notes-title { margin-bottom: var(--space-4); }
+  .tips {
+    margin: 0; padding: 0;
+    list-style: none;
+  }
+  .tips li {
+    position: relative;
+    padding: 10px 0 10px 28px;
+    font-size: 0.95rem; line-height: 1.6; color: var(--fg-soft);
+    border-bottom: 1px solid var(--paper-deep);
+  }
+  .tips li:last-child { border-bottom: 0; }
+  .tips li::before {
+    content: "•";
+    position: absolute; left: 8px;
+    color: var(--green); font-weight: 700;
+  }
+  .tips a { color: var(--green-dark); font-weight: 600; }
+  .tip-shots {
+    display: flex; gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+  .tip-shots img {
+    width: min(180px, 44%); height: auto;
+    border-radius: var(--r-md);
+    border: 1.5px solid var(--paper-deep);
+  }
+</style>
