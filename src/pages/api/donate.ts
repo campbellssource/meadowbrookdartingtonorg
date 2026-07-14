@@ -14,11 +14,13 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let sourceId: string;
+  let verificationToken: string | undefined;
   let amountPence: number;
 
   try {
     const body = await request.json();
     sourceId = (body.sourceId ?? '').trim();
+    verificationToken = (body.verificationToken ?? '').trim() || undefined;
     amountPence = Math.round(Number(body.amount));
   } catch {
     return new Response(
@@ -54,6 +56,11 @@ export const POST: APIRoute = async ({ request }) => {
     },
     body: JSON.stringify({
       source_id: sourceId,
+      // 3-D Secure / SCA token from the client's verifyBuyer() call. Required
+      // for card issuers that mandate Strong Customer Authentication (PSD2);
+      // omitting it gets those cards declined with
+      // CARD_DECLINED_VERIFICATION_REQUIRED.
+      ...(verificationToken ? { verification_token: verificationToken } : {}),
       idempotency_key: randomUUID(),
       amount_money: {
         amount: amountPence,
@@ -73,9 +80,26 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  const errorDetail = squareData.errors?.[0]?.detail ?? 'Payment failed. Please try again.';
+  // Log declines/failures so they're visible in Cloud Logging — the Square
+  // error `code` is what tells us *why* (e.g. CARD_DECLINED_VERIFICATION_REQUIRED
+  // means the buyer still needs SCA). We only log non-identifying fields.
+  const squareError = squareData.errors?.[0];
+  console.error('donate: payment not completed', {
+    httpStatus: squareRes.status,
+    amountPence,
+    hadVerificationToken: Boolean(verificationToken),
+    code: squareError?.code,
+    category: squareError?.category,
+    detail: squareError?.detail,
+  });
+
+  // Give SCA declines a clearer, actionable message than Square's raw string.
+  const userMessage = squareError?.code === 'CARD_DECLINED_VERIFICATION_REQUIRED'
+    ? 'Your bank needs to verify this payment. Please try again and complete the verification step, or use a different card.'
+    : squareError?.detail ?? 'Payment failed. Please try again.';
+
   return new Response(
-    JSON.stringify({ error: errorDetail }),
+    JSON.stringify({ error: userMessage }),
     { status: squareRes.ok ? 500 : squareRes.status, headers: { 'Content-Type': 'application/json' } }
   );
 };

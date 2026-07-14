@@ -136,6 +136,12 @@ const squareSdkUrl = squareEnv === 'sandbox'
     errorEl.hidden = true;
   }
 
+  function resetSubmit() {
+    if (!submitBtn) return;
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+  }
+
   // Preset amount buttons
   document.querySelectorAll('.amount-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -174,6 +180,23 @@ const squareSdkUrl = squareEnv === 'sandbox'
     }
 
     const payments = await Square.payments(squareAppId, squareLocationId);
+
+    // Strong Customer Authentication (3-D Secure). UK/EU card issuers require
+    // this under PSD2 — without a verification token, issuers that mandate SCA
+    // decline the payment with CARD_DECLINED_VERIFICATION_REQUIRED. This runs
+    // the 3DS challenge (frictionless when the issuer allows it) and returns a
+    // token we hand to the server to include in the charge.
+    async function verifyBuyer(token) {
+      const verification = await payments.verifyBuyer(token, {
+        amount: (selectedPence / 100).toFixed(2),
+        currencyCode: 'GBP',
+        intent: 'CHARGE',
+        customerInitiated: true,
+        sellerKeyedIn: false,
+      });
+      return verification?.token;
+    }
+
     const card = await payments.card({
       style: {
         '.input-container': { borderColor: '#d4c4b0', borderRadius: '6px' },
@@ -206,8 +229,19 @@ const squareSdkUrl = squareEnv === 'sandbox'
       if (result.status !== 'OK') {
         const msg = result.errors?.[0]?.message ?? 'Card details invalid. Please check and try again.';
         showError(msg);
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+        resetSubmit();
+        return;
+      }
+
+      // Run 3-D Secure / SCA before charging. If the buyer fails or cancels the
+      // bank challenge, stop here — charging without a token would just be
+      // declined with CARD_DECLINED_VERIFICATION_REQUIRED.
+      let verificationToken;
+      try {
+        verificationToken = await verifyBuyer(result.token);
+      } catch {
+        showError('We could not verify your card with your bank. Please try again or use a different card.');
+        resetSubmit();
         return;
       }
 
@@ -215,7 +249,7 @@ const squareSdkUrl = squareEnv === 'sandbox'
         const res = await fetch('/api/donate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceId: result.token, amount: selectedPence }),
+          body: JSON.stringify({ sourceId: result.token, verificationToken, amount: selectedPence }),
         });
 
         const data = await res.json();
@@ -225,13 +259,11 @@ const squareSdkUrl = squareEnv === 'sandbox'
           if (successEl) successEl.hidden = false;
         } else {
           showError(data.error ?? 'Payment failed. Please try again.');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+          resetSubmit();
         }
       } catch {
         showError('Could not connect. Please check your connection and try again.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `Donate <span id="amount-display">${formatGBP(selectedPence)}</span>`;
+        resetSubmit();
       }
     });
   }
