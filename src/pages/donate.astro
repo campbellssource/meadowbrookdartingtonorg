@@ -66,6 +66,29 @@ const squareSdkUrl = squareEnv === 'sandbox'
             <p class="nudge-proceed">You're still very welcome to donate online if you prefer.</p>
           </div>
 
+          <div class="form-section">
+            <span class="form-label">Your details</span>
+            <div class="field-stack">
+              <input
+                type="text"
+                id="donor-name"
+                class="text-field"
+                placeholder="Your name"
+                autocomplete="name"
+                aria-label="Your name"
+              />
+              <input
+                type="email"
+                id="donor-email"
+                class="text-field"
+                placeholder="Email address"
+                autocomplete="email"
+                aria-label="Email address"
+              />
+            </div>
+            <p class="card-note">Your bank needs these to verify the payment. We'll send a receipt — nothing else.</p>
+          </div>
+
           <div class="form-section" id="card-section">
             <label class="form-label">Card details</label>
             <div id="card-container"></div>
@@ -107,6 +130,8 @@ const squareSdkUrl = squareEnv === 'sandbox'
   const configMissingEl = document.getElementById('config-missing');
   const customInput = document.getElementById('custom-amount');
   const largeNudgeEl = document.getElementById('large-donation-nudge');
+  const nameInput = document.getElementById('donor-name');
+  const emailInput = document.getElementById('donor-email');
 
   // Selected amount in pence
   let selectedPence = 2500;
@@ -205,8 +230,28 @@ const squareSdkUrl = squareEnv === 'sandbox'
         return;
       }
 
+      const donorName = (nameInput?.value ?? '').trim();
+      const donorEmail = (emailInput?.value ?? '').trim();
+
+      if (!donorName) {
+        showError('Please enter your name — your bank needs it to verify the payment.');
+        nameInput?.focus();
+        return;
+      }
+
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(donorEmail)) {
+        showError('Please enter a valid email address.');
+        emailInput?.focus();
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Processing…';
+
+      // Square requires billingContact with at least givenName. Everything else
+      // is optional but improves 3DS decline rates, so send what we collect.
+      const [givenName, ...restOfName] = donorName.split(/\s+/);
+      const familyName = restOfName.join(' ');
 
       // Passing verificationDetails to tokenize() runs Strong Customer
       // Authentication (3-D Secure) inline — frictionless where the issuer
@@ -222,6 +267,12 @@ const squareSdkUrl = squareEnv === 'sandbox'
           intent: 'CHARGE',
           customerInitiated: true,
           sellerKeyedIn: false,
+          billingContact: {
+            givenName,
+            ...(familyName ? { familyName } : {}),
+            email: donorEmail,
+            countryCode: 'GB',
+          },
         });
       } catch (err) {
         // Log the real reason — otherwise an SCA failure is undiagnosable.
@@ -243,7 +294,12 @@ const squareSdkUrl = squareEnv === 'sandbox'
         const res = await fetch('/api/donate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceId: result.token, amount: selectedPence }),
+          body: JSON.stringify({
+            sourceId: result.token,
+            amount: selectedPence,
+            name: donorName,
+            email: donorEmail,
+          }),
         });
 
         const data = await res.json();
@@ -394,6 +450,33 @@ const squareSdkUrl = squareEnv === 'sandbox'
     margin: 0;
   }
   #custom-amount[type=number] { -moz-appearance: textfield; }
+
+  .field-stack {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .text-field {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bone);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .text-field::placeholder {
+    color: var(--fg-mute);
+  }
+
+  .text-field:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
+  }
 
   #card-container {
     min-height: 89px;

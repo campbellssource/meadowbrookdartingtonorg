@@ -15,11 +15,15 @@ export const POST: APIRoute = async ({ request }) => {
 
   let sourceId: string;
   let amountPence: number;
+  let donorName: string;
+  let donorEmail: string;
 
   try {
     const body = await request.json();
     sourceId = (body.sourceId ?? '').trim();
     amountPence = Math.round(Number(body.amount));
+    donorName = String(body.name ?? '').trim().slice(0, 100);
+    donorEmail = String(body.email ?? '').trim().slice(0, 254);
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid request.' }),
@@ -63,7 +67,9 @@ export const POST: APIRoute = async ({ request }) => {
         currency: 'GBP',
       },
       location_id: locationId,
-      note: 'Meadowbrook DRA donation',
+      // Square emails the buyer its own receipt when given an address.
+      ...(donorEmail ? { buyer_email_address: donorEmail } : {}),
+      note: donorName ? `Meadowbrook DRA donation — ${donorName}` : 'Meadowbrook DRA donation',
     }),
   });
 
