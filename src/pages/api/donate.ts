@@ -14,13 +14,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let sourceId: string;
-  let verificationToken: string | undefined;
   let amountPence: number;
 
   try {
     const body = await request.json();
     sourceId = (body.sourceId ?? '').trim();
-    verificationToken = (body.verificationToken ?? '').trim() || undefined;
     amountPence = Math.round(Number(body.amount));
   } catch {
     return new Response(
@@ -55,12 +53,10 @@ export const POST: APIRoute = async ({ request }) => {
       'Square-Version': '2024-01-17',
     },
     body: JSON.stringify({
+      // Strong Customer Authentication (3-D Secure) is carried by the token
+      // itself — the client runs it via tokenize(verificationDetails), so no
+      // separate verification token is needed here.
       source_id: sourceId,
-      // 3-D Secure / SCA token from the client's verifyBuyer() call. Required
-      // for card issuers that mandate Strong Customer Authentication (PSD2);
-      // omitting it gets those cards declined with
-      // CARD_DECLINED_VERIFICATION_REQUIRED.
-      ...(verificationToken ? { verification_token: verificationToken } : {}),
       idempotency_key: randomUUID(),
       amount_money: {
         amount: amountPence,
@@ -87,7 +83,6 @@ export const POST: APIRoute = async ({ request }) => {
   console.error('donate: payment not completed', {
     httpStatus: squareRes.status,
     amountPence,
-    hadVerificationToken: Boolean(verificationToken),
     code: squareError?.code,
     category: squareError?.category,
     detail: squareError?.detail,
