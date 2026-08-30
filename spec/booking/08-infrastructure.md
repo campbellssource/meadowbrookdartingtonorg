@@ -109,6 +109,20 @@ availability comes back suspiciously wide open, this is why.
 
 Set a budget alert at £5/month regardless. Free tiers are free until a loop isn't.
 
+**The script cannot create the budget** — that needs `roles/billing.admin`, which the account
+running it does not have. Create it by hand: Billing → Budgets & alerts → Create, scoped to
+`meadowbrook-booking`, £5/month, alerts at 50/90/100%. This is the one provisioning step still
+outstanding.
+
+### Billing account project cap
+
+The Meadowbrook billing account (`01802B-E42BD8-B2BD60`) is subject to Google's self-serve cap
+of 5 linked projects, and was at it when this project was created — `gcloud billing projects
+link` fails with `FAILED_PRECONDITION: Cloud billing quota exceeded`, which reads like a
+spend limit and is not one. Free a slot by unlinking a dormant project, or request an increase
+via Google's billing quota form. Worth knowing before the next project, because the error
+message sends you looking in the wrong place.
+
 ## Setup
 
 `setup-gcp.sh` in this folder does everything scriptable, and is idempotent — safe to re-run.

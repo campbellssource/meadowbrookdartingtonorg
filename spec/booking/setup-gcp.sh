@@ -107,14 +107,27 @@ else
   ok "created Native-mode database in ${REGION}"
 fi
 
-gcloud firestore databases update \
-  --enable-pitr \
-  --project="$PROJECT_ID" >/dev/null 2>&1 && ok "point-in-time recovery on" \
-  || warn "could not enable PITR — set it in the console"
+# Run this AFTER the indexes: on a database that is still initialising the
+# update is accepted and then quietly does nothing, which is how the first
+# run of this script left PITR disabled.
+enable_pitr() {
+  local state
+  state="$(gcloud firestore databases describe --project="$PROJECT_ID" \
+    --format='value(pointInTimeRecoveryEnablement)' 2>/dev/null || true)"
+  if [[ "$state" == *ENABLED* ]]; then ok "point-in-time recovery already on"; return; fi
+  if gcloud firestore databases update --enable-pitr --project="$PROJECT_ID" >/dev/null 2>&1; then
+    state="$(gcloud firestore databases describe --project="$PROJECT_ID" \
+      --format='value(pointInTimeRecoveryEnablement)' 2>/dev/null || true)"
+    [[ "$state" == *ENABLED* ]] && ok "point-in-time recovery on" \
+      || warn "PITR update accepted but not applied — re-run this script"
+  else
+    warn "could not enable PITR — set it in the console"
+  fi
+}
 
 # TTL on holds, so expired slot reservations sweep themselves.
-if gcloud firestore fields ttls describe expiresAt \
-     --collection-group=holds --project="$PROJECT_ID" >/dev/null 2>&1; then
+if gcloud firestore fields ttls list --project="$PROJECT_ID" \
+     --format='value(name)' 2>/dev/null | grep -q 'collectionGroups/holds/fields/expiresAt'; then
   ok "TTL policy on holds.expiresAt already set"
 else
   gcloud firestore fields ttls update expiresAt \
@@ -135,6 +148,8 @@ add_index bookings --field-config=field-path=room,order=ascending \
                    --field-config=field-path=status,order=ascending
 add_index bookings --field-config=field-path=status,order=ascending \
                    --field-config=field-path=start,order=ascending
+
+enable_pitr
 
 # ── 4. Service accounts ─────────────────────────────────────────────────────
 say "Service accounts"
