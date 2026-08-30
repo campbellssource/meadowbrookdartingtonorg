@@ -4,8 +4,11 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 
 ## Needed before the build can be configured
 
-1. **Current prices for each room.** Hourly rate, and any peak/off-peak or weekend rate. These
-   live in Acuity today and are not in this repo. Needed for the Keystatic config in `02`.
+1. **Prices — mostly answered, one to confirm.** Read out of live Acuity bookings on the
+   calendars: Snooker **£7.50/hour** (three data points, all consistent), Lounge **£10.00/hour**,
+   Studio **£10.00/hour**. The Studio rests on a single 4h = £40.00 booking and gives a 75 m²
+   hall the same rate as the small Lounge — plausible, but check it against the Acuity config
+   before launch. Also still unknown: whether any peak, weekend or off-peak rate exists.
 2. **Opening hours per room, per weekday.** Including whether the Snooker Room's hours depend
    on the bar being open — the facility copy mentions "drinks available from the bar downstairs
    when open", which implies a coupling worth being explicit about.
@@ -17,8 +20,14 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 
 ## Needed before launch
 
-6. **Terms of hire.** Wording for cancellation, room rules, liability and damage. Referenced by
-   the booking form's consent checkbox (`09`).
+6. **Terms of hire — and there is a live problem here.** Every Acuity booking makes the hirer
+   tick *"Tick to agree to the room hire terms and conditions? https://meadowbrookdartington.org/room-hire-terms"*.
+   **That URL currently returns 404.** Hirers have been agreeing to terms that cannot be read,
+   which is worth fixing regardless of this project — a consent checkbox pointing at a dead page
+   is not much of a consent. The link is also referenced from the stale `src/content/pages/large-room.md`,
+   which predates the Keystatic migration and is not what the site serves.
+   Needed: the actual wording (cancellation, room rules, liability, damage), published at
+   `/room-hire-terms`, before the new booking form reuses the same consent line.
 7. **Privacy policy update.** Booking data: what is stored, where, for how long, shared with
    whom. The policy is a Google Doc, so this is an edit outside the repo.
 8. **Which address receives owner notifications and system alerts** (`06`).

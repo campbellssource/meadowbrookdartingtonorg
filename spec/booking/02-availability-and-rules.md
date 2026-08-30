@@ -39,11 +39,36 @@ booking: {
   minNoticeHours:      integer   // can't book something starting sooner than this. Default 24
   maxAdvanceDays:      integer   // can't book further out than this. Default 180
   capacityNote:        string    // free text shown on the booking form
+  intakeQuestions: [             // per-room custom fields; empty for the Snooker Room
+    { key: 'use', label: 'How do you intend to use the room?', required: true }
+  ]
   active:              boolean   // false hides the room from booking without deleting config
 }
 ```
 
 All times are `HH:MM` in `Europe/London`. All money is integer pence — never floats, anywhere.
+
+## Rates observed in live bookings
+
+Derived from Acuity-created calendar events, so these are what is actually being charged today
+rather than what anyone remembers the price being:
+
+| Room | Evidence | Implied rate |
+|---|---|---|
+| Snooker | 1h = £7.50, 2h = £15.00, 2h 30m = £18.75 | **£7.50/hour** |
+| Lounge (Small room) | 3h = £30.00 | **£10.00/hour** |
+| Studio (Large room) | 4h = £40.00 | **£10.00/hour** |
+
+Three independent Snooker data points at different durations all agree, so £7.50/hour flat,
+billed in 30-minute increments, is solid.
+
+**Confirm the Studio before launch.** There is only one data point, and it gives the Studio —
+75 m², vaulted ceiling, capacity 100 — the same hourly rate as the Lounge. That may well be
+deliberate, but it may equally be a promotional rate, an off-peak booking, or simply the one
+example that happened to be visible. Do not launch on a single observation; check it against
+the Acuity config export (`09`).
+
+Bookings observed running from 09:00 to 22:00, so opening hours reach at least that far.
 
 ## Computing availability
 

@@ -106,31 +106,118 @@ Reserved. Not used in v1 — booking references are random, not sequential.
 
 ## Calendar event shape
 
-One event per confirmed booking, on that room's calendar. This is what the committee sees, so
-it has to read well at a glance in the Google Calendar UI.
+Modelled deliberately closely on what Acuity produces today, because the committee already
+reads these events at a glance and there is no reason to make them learn a new layout. Acuity's
+current output, for reference:
 
 ```
-summary:     "Studio — Jane Smith"                  // room short name em-dash booker name
-description: "Booking MB-7K2QX4\n"
-             "jane@example.com · 07700 900000\n"
-             "Paid £48.00\n"
-             "Manage: https://meadowbrookdartington.org/bookings/MB-7K2QX4\n"
-             "\n"
-             "Booked via the Meadowbrook website. Do not edit this event by hand —\n"
-             "change it at the link above so the booker is told and any refund is made."
-start/end:   { dateTime, timeZone: 'Europe/London' }
+summary:  B Few: Snooker room. 2h (Snooker room)
+location: Meadowbrook, Shinners Bridge Dartington, TQ9 6JD
+description:
+    August 2, 2026 12:00 BST
+    Calendar: Snooker room
+    Name: B Few
+    Phone: +447443960044
+    Email: brianfew5@gmail.com
+    Price: £15.00
+    Paid Online: £15.00
+    … Location / Subscribe to updates / T&Cs blocks …
+    Change Appointment: https://secure.acuityscheduling.com/appointments/view/1746135184
+    (created by Acuity Scheduling)
+    AcuityID=1746135184
+```
+
+### What we produce
+
+```
+summary:  Jane Smith: Studio. 2h
+
+location: Meadowbrook, Shinners Bridge Dartington, TQ9 6JD
+
+description:
+    Saturday 5 September 2026, 14:00 BST
+    Calendar: Studio - Large room
+    Name: Jane Smith
+    Phone: +447700900000
+    Email: jane@example.com
+    Price: £20.00
+    Paid Online: £20.00
+
+    Location
+    ============
+    Meadowbrook, Shinners Bridge Dartington, TQ9 6JD
+
+
+    Subscribe to updates
+    ============
+    Add me to the email list for occasional updates from the charity that runs Meadowbrook: yes
+
+
+    T&Cs Studio
+    ============
+    How do you intend to use the room?: Yoga class
+
+    Tick to agree to the room hire terms and conditions? https://meadowbrookdartington.org/room-hire-terms: yes
+
+
+    Change or cancel this booking:
+    https://meadowbrookdartington.org/bookings/MB-7K2QX4
+
+    Booked on the Meadowbrook website. Please don't edit this event by hand — use the
+    link above, so the booker is told and any refund is made.
+    Ref MB-7K2QX4
+
 extendedProperties.private:
-             { mbBookingRef: 'MB-7K2QX4',
-               mbSource:     'meadowbrook-site',
-               mbVersion:    '1' }
+    { mbBookingRef: 'MB-7K2QX4', mbSource: 'meadowbrook-site', mbVersion: '1' }
 ```
 
-`extendedProperties.private` is the machine-readable marker: it is how reconciliation tells
-*our* events apart from committee blocks and Acuity leftovers, and Calendar's
-`privateExtendedProperty` query parameter can filter on it server-side.
+### Deliberate differences from Acuity
 
-The "do not edit by hand" line matters. A committee member dragging one of our events to a new
-time in Google Calendar would move the room block without refunding, re-pricing or telling the
+| Acuity | Ours | Why |
+|---|---|---|
+| `… 2h (Snooker room)` | `… 2h` | The trailing calendar name is redundant — you can already see which calendar you're looking at. Drops noise from the month view, where the title is truncated anyway |
+| `August 2, 2026 12:00 BST` | `Saturday 5 September 2026, 14:00 BST` | Weekday spelled out. It is what people actually check |
+| `AcuityID=1746135184` in the body | `extendedProperties.private.mbBookingRef` | A machine-readable marker Calendar can filter on server-side via `privateExtendedProperty`, rather than a string to parse out of prose. `Ref MB-7K2QX4` stays in the body for humans |
+| "Please use Acuity Scheduling to cancel" | A link straight to the booking | The committee can act on it, not just read it |
+
+Everything else — the `Name / Phone / Email / Price / Paid Online` header block, the
+`============` section rules, the Location and Subscribe and T&Cs blocks — is kept as-is.
+
+### Duration formatting
+
+Match Acuity exactly, because it appears in the summary and reads well: `1h`, `2h`,
+`2h 30mins`, `3h`, `4h`. Note the irregular `30mins` — not `30m`, not `30 mins`. One helper,
+`formatDuration(mins)`, used everywhere.
+
+### The per-room intake question
+
+Acuity asks **"How do you intend to use the room?"** on the Studio and the Lounge, but not on
+the Snooker Room. That is a per-room custom field, so the Keystatic config carries a
+`intakeQuestions` array per room rather than the form hard-coding one question. Answers are
+stored in `customer.answers` and rendered into the T&Cs block of the description.
+
+### The newsletter opt-in
+
+Already part of today's booking form ("Add me to the email list for occasional updates from the
+charity that runs Meadowbrook"), and it appears in the description whether or not it was
+ticked. Keep it: an unticked checkbox on the booking form, written to the existing Brevo list
+through the existing `/api/subscribe` endpoint. It is separate from the transactional booking
+emails (`06`) and must stay that way.
+
+### Machine-readable marker
+
+`extendedProperties.private` is how reconciliation tells *our* events apart from the three
+other kinds on these calendars, all of which are real and currently in use:
+
+- **Committee blocks** — e.g. "Pool commitee" on the Lounge.
+- **Regular hirers entered by hand** — e.g. "BSAC" (Totnes Sub-Aqua Club) and "Liam" and
+  "Rollen", all recurring events created directly by a person. These are the recurring hires
+  deferred in `00`, and they confirm the design: they occupy the calendar, so the booking
+  system will never double-book them, and nothing about them has to change.
+- **Acuity leftovers** — identifiable by `AcuityID=` in the description until cutover completes.
+
+The "please don't edit this event by hand" line matters. A committee member dragging one of our
+events to a new time would move the room block without refunding, re-pricing or telling the
 booker. Reconciliation detects it; the note tries to prevent it.
 
 ## Reconciliation
