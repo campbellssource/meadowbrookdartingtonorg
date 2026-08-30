@@ -95,6 +95,29 @@ calendars**:
 Without this the service account sees an empty calendar and every room looks free. If
 availability comes back suspiciously wide open, this is why.
 
+**Status: done and verified (30 Aug 2026).** All three calendars return `accessRole: writer`
+to `booking-app`, and a `freeBusy` query across all three returns real busy blocks.
+
+### Verifying it, and two traps
+
+Impersonate the service account and query by calendar ID:
+
+```sh
+TOKEN=$(gcloud auth print-access-token \
+  --impersonate-service-account=booking-app@meadowbrook-booking.iam.gserviceaccount.com \
+  --scopes=https://www.googleapis.com/auth/calendar 2>/dev/null | tr -d '\r\n')
+```
+
+- **Do not use `2>&1`.** gcloud prints two warnings to stderr; folded into the token they put
+  newlines in the `Authorization` header and curl fails to send it at all — `HTTP 000`, which
+  looks like a network fault rather than a quoting mistake. One of those warnings claims
+  `--scopes` "will be ignored" under impersonation; it is wrong, `tokeninfo` confirms the
+  calendar scope is present.
+- **`calendarList` comes back empty, and that is not a permission problem.** Sharing a calendar
+  with a service account grants ACL access without subscribing it to the account's list. Access
+  it directly by ID — which is what the app does. `calendarList.insert` will subscribe it and
+  report the granted `accessRole`, useful as a permission check.
+
 ## Cost
 
 | Item | Estimate |
