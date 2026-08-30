@@ -1,0 +1,48 @@
+# Open questions
+
+Things the DRA must decide or supply. None blocks starting the build; each blocks launch.
+
+## Needed before the build can be configured
+
+1. **Current prices for each room.** Hourly rate, and any peak/off-peak or weekend rate. These
+   live in Acuity today and are not in this repo. Needed for the Keystatic config in `02`.
+2. **Opening hours per room, per weekday.** Including whether the Snooker Room's hours depend
+   on the bar being open — the facility copy mentions "drinks available from the bar downstairs
+   when open", which implies a coupling worth being explicit about.
+3. **Minimum and maximum booking length per room.** Is a 30-minute snooker booking allowed? Can
+   the Studio be taken for a whole day?
+4. **Buffer between bookings.** Does the Studio need turnaround time between hirers?
+5. **Minimum notice and maximum advance.** Can someone book the Lounge for this evening? Can
+   they book next August?
+
+## Needed before launch
+
+6. **Terms of hire.** Wording for cancellation, room rules, liability and damage. Referenced by
+   the booking form's consent checkbox (`09`).
+7. **Privacy policy update.** Booking data: what is stored, where, for how long, shared with
+   whom. The policy is a Google Doc, so this is an edit outside the repo.
+8. **Which address receives owner notifications and system alerts** (`06`).
+9. **Which Workspace accounts get `/admin` access** — the `BOOKING_ADMIN_EMAILS` allowlist (`07`).
+10. **Acuity's calendar-sync behaviour on disconnection** — the test described in `09`. This one
+    has teeth: get it wrong and paid-for bookings vanish from the calendars.
+
+## Decisions worth revisiting
+
+11. **The full-refund-until-start policy (D4).** As built, a hirer can hold a Saturday evening
+    Studio slot and release it an hour before at no cost, and the DRA has no time to re-let it.
+    Every comparable venue has a cancellation window for exactly this reason. The code is
+    written so `CANCELLATION_WINDOW_HOURS = 48` is a config change and nothing more — the
+    decision can be reversed cheaply, but somebody should make it deliberately rather than
+    discover it in a bad month.
+
+12. **Recurring bookings.** Out of scope for v1 (`00`), and the Studio copy already advertises
+    "hourly or recurring hire". Regular hirers are probably the most valuable customers and are
+    currently handled by hand. The reporting page includes a repeat-booker breakdown (`07`)
+    specifically so this decision gets made with a number attached to it.
+
+13. **The stray `calendartopasscode` project.** The raffle POC's service account lives there,
+    unrelated to anything else. Worth folding into a proper project or deleting once the raffle
+    is done — not part of this work, but noted while we were in the neighbourhood.
+
+14. **VAT.** If the DRA is or becomes VAT-registered, room hire pricing and receipts need to say
+    so. Currently assumed out of scope; confirm.
