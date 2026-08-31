@@ -89,11 +89,18 @@ Things the DRA must decide or supply. None blocks starting the build; each block
     furniture. The two produce visibly different availability, and the wrong one will look
     correct right up until two hirers arrive at once. One sentence settles it.
 
-21. **The 90-day calendar purge is a promise that needs code.** The draft privacy policy (`12`)
-    says personal details are removed from the room calendar 90 days after a booking. Nothing
-    currently does that — it needs a scheduled job that strips the name and contact detail from
-    old calendar events while leaving the occupancy block intact. Either it gets built, or the
-    policy should not promise it. Not in any phase yet.
+21. ~~**The 90-day calendar purge needs code.**~~ **CORRECTED 31 Aug 2026.** A scrubber already
+    exists, in the `calendartopasscode` project, and it works — see `13`. The booking system
+    should **not** build a competing one. What remains is coverage (question 23) and a one-off
+    tidy-up of the pre-tool backlog.
 
 22. **Maximum advance booking.** `maxAdvanceDays: 180` is still a guess. How far ahead should
     someone be able to book the Studio?
+
+23. **Which calendars are wired to the locks and the contact scrubber?** Both
+    `calendartopasscode` functions name a single calendar — the Lounge. Nine Studio and Snooker
+    bookings that ended over a week ago still carry full names and mobile numbers, which points
+    the same way. If it holds, two consequences: the Snooker Room is carrying the most personal
+    data with the least scrubbing, and Studio and Snooker hirers are getting into the building
+    some way other than an automatic passcode — which the new system's confirmation emails must
+    not contradict. Evidence in `13`.

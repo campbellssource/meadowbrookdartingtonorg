@@ -76,6 +76,16 @@ For section 11, the UK age of consent for information-society services is **13**
 
 Only needed when the new system goes live.
 
+### A note the policy currently misses entirely
+
+Booking the Lounge provisions a **door passcode on the building's smart locks**, and syncs a
+contact record (`13`). That is processing of personal data for physical access control, and the
+policy does not mention it. It needs a sentence, whether or not the booking system ships:
+
+> **Building access:** For some rooms, your booking automatically generates a door entry code so
+> that you can access the building. The code is created when you book and removed once your
+> booking has finished.
+
 ### Section 2 — What Personal Information We Collect
 
 Replace the existing **Booking Information** bullet:
@@ -97,8 +107,8 @@ Add:
 
 Add to the service-provider list:
 
-> - **Google (Cloud Run, Firestore, Google Calendar)** — hosting, booking records and room
->   calendars, all in the United Kingdom.
+> - **Google (Cloud Run, Firestore, Google Calendar, Google Contacts)** — hosting, booking
+>   records and room calendars, all in the United Kingdom.
 > - **Square** — card payment processing.
 > - **Brevo** — sending booking confirmations, reminders and cancellation emails.
 
@@ -116,11 +126,23 @@ replacement:
 > booking-access links expire and are deleted. Where a booking is started but never paid for,
 > the details are deleted within 24 hours.
 
-⚠️ **This clause creates build work.** "Removed from the calendar after 90 days" is a promise
-the code has to keep — it needs a scheduled job that strips personal detail from calendar
-events older than 90 days while leaving the occupancy block. It does not exist yet and is not
-in any phase. Either build it or do not make the promise; a retention promise nothing enforces
-is worse than a longer, honest one. Logged as question 21.
+⚠️ **Corrected 31 Aug 2026.** An earlier draft of this file said nothing removed personal
+detail from the calendars. That was wrong — a scrubber exists, in the `calendartopasscode`
+project (`13`), and it works. Two things still need settling before the policy can promise a
+retention period:
+
+- **It appears to cover the Lounge only.** Nine Studio and Snooker bookings that ended over a
+  week ago still carry full names and mobile numbers. Evidence and caveats in `13`, question 23.
+- **It has no backfill**, which is normal for something recent — but it means the calendars hold
+  a tail of older bookings with full contact details, the oldest around four months back. A
+  one-off tidy-up, not a recurring job.
+
+The retention period the policy states must be one that actually holds across **all three**
+calendars. Until scrubbing is confirmed to cover them, "90 days" would be a promise the Snooker
+Room in particular does not keep. Fix the coverage, then state the number.
+
+Note also that the current policy's "90 days" is inaccurate in the direction people care about
+least in principle and most in practice: data is being kept *longer* than promised, not shorter.
 
 Confirm the 7 years with whoever prepares the DRA's accounts — 6 is also defensible depending
 on the basis used. Pick one and let the code match it.
