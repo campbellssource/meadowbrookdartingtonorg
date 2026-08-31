@@ -1,0 +1,165 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// noindex: a 404 that gets indexed is a 404 that shows up in search results.
+const links = [
+  {
+    href: '/facilities',
+    eyebrow: 'Facilities',
+    title: 'Rooms and spaces',
+    copy: 'The Studio, the Lounge, the Snooker Room, the pool, the playing fields and everything else on site.',
+  },
+  {
+    href: '/calendar',
+    eyebrow: "What's on",
+    title: 'Events and clubs',
+    copy: 'Coffee Club, the DRA Social, workdays and one-off events happening at Meadowbrook.',
+  },
+  {
+    href: '/contact',
+    eyebrow: 'Contact',
+    title: 'Ask a person',
+    copy: "Can't find what you came for? Tell us and we'll point you at it.",
+  },
+];
+---
+
+<Layout
+  title="Page not found"
+  description="That page doesn't exist. Find your way back to Meadowbrook Dartington."
+  noindex={true}
+>
+  <section class="mw-zone-hero mw-404-hero">
+    <div class="mw-wrap">
+      <div class="mw-404-grid">
+        <div class="copy">
+          <span class="mw-eyebrow">Error 404</span>
+          <h1>This one's wandered off.</h1>
+          <p>
+            The page you're after doesn't exist, or it's moved since you last came
+            looking. No harm done — here's the way back.
+          </p>
+          <div class="actions">
+            <a href="/" class="mw-btn mw-btn-primary">Back to home</a>
+            <a href="/facilities" class="mw-btn mw-btn-secondary">Browse facilities</a>
+          </div>
+        </div>
+        <div class="picture" aria-hidden="true">
+          <img src="/assets/illustrations/map.png" alt="" width="520" height="420" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="background: var(--bg-elevated);">
+    <div class="mw-wrap">
+      <div class="mw-sect-head">
+        <div>
+          <span class="mw-eyebrow">Try these</span>
+          <h2>Where most people are heading.</h2>
+        </div>
+      </div>
+
+      <ul class="mw-404-links">
+        {links.map((link) => (
+          <li>
+            <a href={link.href}>
+              <span class="tile-eyebrow">{link.eyebrow}</span>
+              <span class="tile-title">{link.title}</span>
+              <span class="tile-copy">{link.copy}</span>
+              <span class="tile-go" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <p class="mw-404-foot">
+        Looking to book a room? Email
+        <a href="mailto:bookings@meadowbrookdartington.org">bookings@meadowbrookdartington.org</a>.
+        For anything else, <a href="/contact">get in touch</a>.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .mw-404-hero { padding-bottom: var(--space-7); }
+
+  .mw-404-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--space-7);
+    align-items: center;
+  }
+
+  .mw-404-grid h1 { max-width: 16ch; }
+  .mw-404-grid .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .mw-404-grid .picture {
+    /* The hand-drawn site map, reused from /contact — a nudge back to
+       somewhere real rather than a decorative shrug. */
+    display: flex;
+    justify-content: center;
+  }
+
+  .mw-404-grid .picture img {
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+    transform: rotate(-2deg);
+  }
+
+  .mw-404-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .mw-404-links a {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    padding: 22px;
+    background: var(--bone);
+    border-radius: var(--r-lg);
+    text-decoration: none;
+    color: var(--ink);
+    transition: transform var(--dur-base) var(--ease-natural);
+  }
+
+  .mw-404-links a:hover { transform: translateY(-2px); text-decoration: none; }
+
+  .tile-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--green-dark);
+  }
+
+  .tile-title { font-size: 20px; font-weight: 600; line-height: 1.25; }
+  .tile-copy { font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+  .tile-go { margin-top: auto; padding-top: 10px; color: var(--green-dark); font-weight: 600; }
+
+  .mw-404-foot {
+    margin: var(--space-6) 0 0;
+    font-size: 15px;
+    color: var(--fg-soft);
+  }
+
+  @media (max-width: 860px) {
+    .mw-404-grid { grid-template-columns: 1fr; gap: var(--space-5); }
+    .mw-404-grid .picture { order: -1; }
+    .mw-404-grid .picture img { max-width: 300px; }
+    .mw-404-links { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mw-404-links a { transition: none; }
+    .mw-404-links a:hover { transform: none; }
+  }
+</style>
