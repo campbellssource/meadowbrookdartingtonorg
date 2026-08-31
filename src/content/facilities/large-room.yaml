@@ -22,3 +22,23 @@ facilityType:
       - Parking available (Dartington Hall Trust paid parking)
       - Stair access only - not step-free
     bookingCategory: Studio - Large room
+    booking:
+      calendarId: c_c5f1e9f56d6290965b22e21e136bff0cc2bfefba5fd641b9902efe67a31b5cc7@group.calendar.google.com
+      shortName: Studio
+      hourlyRatePence: 1000
+      openingFrom: '08:00'
+      openingTo: '23:00'
+      minDurationMins: 60
+      durationIncrementMins: 30
+      maxDurationMins: 900
+      slotGranularityMins: 15
+      bufferMins: 30
+      minNoticeHours: 0
+      maxAdvanceDays: 90
+      capacityNote: >-
+        First floor, stair access only (not step-free). No sound system - please bring your own speaker. Parking on site is Dartington Hall Trust paid parking and is not included.
+      intakeQuestions:
+        - key: use
+          label: How do you intend to use the room?
+          required: true
+      active: true

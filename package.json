@@ -11,7 +11,9 @@
     "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose",
     "og:facilities": "node scripts/generate-facility-og-images.mjs",
     "og:events": "node scripts/generate-social-image.mjs",
-    "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon–5pm\""
+    "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon\u20135pm\"",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:watch": "node --experimental-strip-types --test --watch test/*.test.ts"
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",

@@ -69,8 +69,37 @@ and Phase 3 checks rather than assuming local success covers them.
 
 ## Setup
 
+### `gcloud auth login` is not enough — and the error will not tell you that
+
+gcloud keeps **two separate credential stores**, and the booking code uses the one
+`gcloud auth login` does not touch:
+
+| Store | Refreshed by | Used by |
+|---|---|---|
+| CLI credential | `gcloud auth login` | `gcloud` commands, `gcloud auth print-access-token` |
+| Application Default Credentials | `gcloud auth application-default login` | **`google-auth-library`, i.e. this app** |
+
+So `gcloud` can be working perfectly from the shell while every calendar read from
+the dev server fails. The failure surfaces as:
+
+```
+unable to impersonate: {"error":"invalid_grant",
+  "error_description":"reauth related error (invalid_rapt)"}
+```
+
+which names neither store and reads like a permissions problem. It is not — it is an
+expired ADC. Fix:
+
+```sh
+gcloud auth application-default login
+```
+
+Worth knowing that ADC expires on its own schedule, so this will recur, and it will
+recur looking like something else.
+
 ```sh
 # One-off
+gcloud auth application-default login          # NOT `gcloud auth login` -- see above
 gcloud components install cloud-firestore-emulator
 node scripts/booking-dev-calendars.mjs --create   # makes the 3 dev calendars, prints their IDs
 

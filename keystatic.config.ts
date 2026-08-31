@@ -145,9 +145,79 @@ export default config({
               ),
               bookingCategory: fields.text({
                 label: 'Acuity booking category',
-                description: 'Must match the category name exactly in Acuity Scheduling (e.g. "Lounge - Small room").',
+                description: 'Must match the category name exactly in Acuity Scheduling (e.g. "Lounge - Small room"). Used by the old Acuity widget only.',
                 validation: { isRequired: true },
               }),
+              booking: fields.object(
+                {
+                  calendarId: fields.text({
+                    label: 'Google Calendar ID',
+                    description: 'The room calendar. Leave blank to keep this room on Acuity only.',
+                  }),
+                  shortName: fields.text({
+                    label: 'Short name',
+                    description: 'Used in calendar entries and emails, e.g. "Studio".',
+                  }),
+                  hourlyRatePence: fields.integer({
+                    label: 'Hourly rate (pence)',
+                    description: 'e.g. 750 for £7.50/hour, 1000 for £10.00/hour. Charged pro-rata per half hour.',
+                    validation: { min: 0 },
+                  }),
+                  openingFrom: fields.text({ label: 'Opens (HH:MM)', defaultValue: '08:00' }),
+                  openingTo: fields.text({ label: 'Closes (HH:MM)', defaultValue: '23:00' }),
+                  minDurationMins: fields.integer({
+                    label: 'Minimum booking (minutes)', defaultValue: 60, validation: { min: 15 },
+                  }),
+                  durationIncrementMins: fields.integer({
+                    label: 'Booking length steps (minutes)',
+                    description: 'Lengths offered above the minimum. 30 gives 1h, 1h30, 2h...',
+                    defaultValue: 30, validation: { min: 15 },
+                  }),
+                  maxDurationMins: fields.integer({
+                    label: 'Maximum booking (minutes)',
+                    description: 'A booking can never run past closing time or across midnight, whatever this says.',
+                    defaultValue: 900, validation: { min: 15 },
+                  }),
+                  slotGranularityMins: fields.integer({
+                    label: 'Start times every (minutes)',
+                    description: '15 means bookings start on the hour, quarter past, half past or quarter to.',
+                    defaultValue: 15, validation: { min: 5 },
+                  }),
+                  bufferMins: fields.integer({
+                    label: 'Gap between bookings (minutes)',
+                    description: 'Turnaround time forced before and after every booking. 0 lets bookings run back to back.',
+                    defaultValue: 0, validation: { min: 0 },
+                  }),
+                  minNoticeHours: fields.integer({
+                    label: 'Minimum notice (hours)',
+                    description: '0 means bookable right up to the next quarter-hour.',
+                    defaultValue: 0, validation: { min: 0 },
+                  }),
+                  maxAdvanceDays: fields.integer({
+                    label: 'How far ahead people can book (days)',
+                    defaultValue: 90, validation: { min: 1 },
+                  }),
+                  capacityNote: fields.text({
+                    label: 'Note shown on the booking form',
+                    description: 'Arrival instructions, capacity, access. Shown before payment and repeated in the confirmation email.',
+                    multiline: true,
+                  }),
+                  intakeQuestions: fields.array(
+                    fields.object({
+                      key: fields.text({ label: 'Field name (no spaces)' }),
+                      label: fields.text({ label: 'Question' }),
+                      required: fields.checkbox({ label: 'Required', defaultValue: false }),
+                    }),
+                    { label: 'Questions asked when booking', itemLabel: (props) => props.fields.label.value || 'Question' },
+                  ),
+                  active: fields.checkbox({
+                    label: 'Bookable on the new system',
+                    description: 'Untick to hide this room from the new booking form without deleting its settings.',
+                    defaultValue: false,
+                  }),
+                },
+                { label: 'Booking settings (new booking system)' },
+              ),
               body: richTextWithImages('Main content (shown below amenities, before booking)'),
             }),
             link: fields.object({
