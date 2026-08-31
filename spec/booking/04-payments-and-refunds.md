@@ -75,16 +75,19 @@ Per D4, the v1 policy is:
 
 | Change | Money |
 |---|---|
-| Cancel before start | Refund `paidPence` in full |
-| Cancel after start | Refund nothing. The slot has been used, or wasted |
+| Cancel more than 1 hour before start | Refund `paidPence` in full |
+| Cancel within 1 hour of start, or after it | Refund nothing |
 | Amend to a dearer slot | Charge the difference. Booking only moves if the charge succeeds |
 | Amend to a cheaper slot | Refund the difference |
 | Amend to the same price | No money moves |
 
-The function takes a `CANCELLATION_WINDOW_HOURS` config value, set to `0` for v1. Setting it
-to `48` later gives "free until 48 hours before, then nothing" with no code change. See the
-note in `00-overview.md` — this is the flagged commercial risk, built as decided but built to
-be changed.
+The function takes a `CANCELLATION_WINDOW_HOURS` config value, **set to `1` for v1**. Setting
+it to `24` or `48` later needs no code change.
+
+`refundFor` is also called **at checkout**, with `now = bookedAt`, purely to ask "would
+cancelling this right now refund anything?". When the answer is no — which happens whenever a
+booking is made inside the window, routine for Snooker — the booking form must say so before
+the card is charged. Same function, so the warning and the actual refund can never disagree.
 
 ### Partial refunds across multiple charges
 

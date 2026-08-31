@@ -59,14 +59,30 @@ rather than what anyone remembers the price being:
 | Lounge (Small room) | 3h = £30.00 | **£10.00/hour** |
 | Studio (Large room) | 4h = £40.00 | **£10.00/hour** |
 
-Three independent Snooker data points at different durations all agree, so £7.50/hour flat,
-billed in 30-minute increments, is solid.
+**All three confirmed by the DRA, 31 Aug 2026.** Snooker £7.50/hour; Studio and Lounge
+£10.00/hour each. The reading above matched in every case, including the Studio, which rested
+on a single observation and which the DRA has now confirmed is deliberately the same rate as
+the Lounge. Billed in 30-minute increments. No peak or weekend rate exists — `peak` stays
+empty for all three rooms in v1.
 
-**Confirm the Studio before launch.** There is only one data point, and it gives the Studio —
-75 m², vaulted ceiling, capacity 100 — the same hourly rate as the Lounge. That may well be
-deliberate, but it may equally be a promotional rate, an off-peak booking, or simply the one
-example that happened to be visible. Do not launch on a single observation; check it against
-the Acuity config export (`09`).
+### Per-room starting config
+
+| | Snooker | Studio | Lounge |
+|---|---|---|---|
+| `hourlyRatePence` | `750` | `1000` | `1000` |
+| `minNoticeHours` | **`0`** | `24` (to confirm) | `24` (to confirm) |
+| `intakeQuestions` | none | use of room | use of room |
+
+**Snooker's `minNoticeHours` is 0 on purpose.** The DRA confirms the room is booked
+last-minute as a matter of course — which is also why its calendar showed no forward bookings
+at all when we checked, and why that was not the missing-data problem it looked like. The
+24-hour default would have quietly destroyed the room's entire booking pattern while appearing
+to work perfectly: availability would render, bookings would succeed, and only the walk-up
+trade would vanish. Snooker must be bookable for a slot starting in ten minutes.
+
+This interacts with the 1-hour cancellation window (`00`, D4): a snooker booking made inside
+the hour is non-refundable the instant it is paid for. That must be disclosed at checkout —
+see `04-payments-and-refunds.md`.
 
 Bookings observed running from 09:00 to 22:00, so opening hours reach at least that far.
 

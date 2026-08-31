@@ -29,6 +29,8 @@ handed to Claude Code (or any coding agent) for spec-driven development.
 | `07-admin-and-reporting.md` | Owner's booking list, income analysis, CSV export |
 | `08-infrastructure.md` | GCP project, Firestore, service account, secrets, scheduler |
 | `09-cutover-from-acuity.md` | Parallel run, migration of live bookings, killing the subscription |
+| `10-terms.md` | Draft room hire terms for `/room-hire-terms` — needs committee sign-off |
+| `11-local-development.md` | Running a full click-through on localhost without touching live data |
 | `IMPLEMENTATION-PLAN.md` | Phased build order with file-level detail |
 | `setup-gcp.sh` | Idempotent gcloud script for everything in `08` |
 | `OPEN-QUESTIONS.md` | Things the DRA must decide or supply before launch |

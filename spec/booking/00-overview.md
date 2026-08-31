@@ -32,19 +32,27 @@ revisiting the specs that depend on it.
 | D1 | **Calendar is the occupancy source of truth; Firestore holds booking records** | Any event on a room calendar makes the room unavailable, whoever created it. Firestore never contradicts the calendar — it annotates it. |
 | D2 | **New dedicated GCP project for booking infra** | Cross-project IAM from the Cloud Run runtime SA. See `08-infrastructure.md`. |
 | D3 | **Pay in full at booking, by card, via Square** | No pending/unpaid bookings ever reach the calendar. A slot is either free or paid for. |
-| D4 | **Any cancellation before the start time is refunded in full** | Automatic Square refund. No cancellation window to configure, no partial-refund arithmetic on cancel. Amending to a cheaper slot refunds the difference; amending to a dearer one charges it. |
+| D4 | **Cancel more than 1 hour before the start: refunded in full. Inside 1 hour: no refund** | `CANCELLATION_WINDOW_HOURS = 1`. Automatic Square refund. Amending to a cheaper slot refunds the difference; amending to a dearer one charges it. |
 | D5 | **No accounts. Magic links + local storage** | Identity is "controls this email address". Tokens are signed, revocable, and scoped to a single booking. |
 
 ### A note on D4
 
-Full refund up to the start time is generous, and it means someone can hold a Saturday
-evening Studio slot and release it an hour before at no cost. That is a real revenue risk, not
-a hypothetical one — it's the standard reason venues have a cancellation window.
+Decided by the DRA (31 Aug 2026): cancel up to 1 hour before the start for a full refund.
+The rule lives in one policy function (`refundFor(booking, change, now)` in
+`src/lib/booking-policy.ts`) with the window as config, so changing 1 to 24 or 48 later is a
+config change and no refactor.
 
-Building it as decided, but the refund rule is implemented as a **single policy function**
-(`refundFor(booking, now)` in `src/lib/booking-policy.ts`) with the window as a config value,
-so introducing "free until 48h before, then nothing" later is a one-line config change and no
-refactor. Flagged for the DRA in `OPEN-QUESTIONS.md`.
+**One consequence to build for, not to discover.** A 1-hour cancellation window is shorter
+than most rooms' minimum booking notice, but *not* shorter than the Snooker Room's — snooker
+is booked last-minute by design (`02`), with `minNoticeHours: 0`. So a snooker booking made
+40 minutes before it starts is **already past its own cancellation deadline at the moment it
+is paid for**: non-refundable from the first second.
+
+That is a legitimate policy, but it is not something a hirer will infer. Where
+`refundFor(booking, 'cancel', bookedAt)` returns zero at the point of booking, checkout must
+say so plainly *before* the card is charged — "This booking starts within the hour, so it
+can't be refunded once confirmed" — rather than let someone discover it on the manage page.
+See `03-booking-flow.md` and `10-terms.md`.
 
 ## User flows
 

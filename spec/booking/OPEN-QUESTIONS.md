@@ -4,11 +4,9 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 
 ## Needed before the build can be configured
 
-1. **Prices — mostly answered, one to confirm.** Read out of live Acuity bookings on the
-   calendars: Snooker **£7.50/hour** (three data points, all consistent), Lounge **£10.00/hour**,
-   Studio **£10.00/hour**. The Studio rests on a single 4h = £40.00 booking and gives a 75 m²
-   hall the same rate as the small Lounge — plausible, but check it against the Acuity config
-   before launch. Also still unknown: whether any peak, weekend or off-peak rate exists.
+1. ~~**Prices.**~~ **ANSWERED 31 Aug 2026.** Snooker £7.50/hour, Studio £10.00/hour, Lounge
+   £10.00/hour — the Studio's single-data-point reading confirmed correct. No peak, weekend or
+   off-peak rate. Recorded in `02-availability-and-rules.md`.
 2. **Opening hours per room, per weekday.** Including whether the Snooker Room's hours depend
    on the bar being open — the facility copy mentions "drinks available from the bar downstairs
    when open", which implies a coupling worth being explicit about.
@@ -37,12 +35,12 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 
 ## Decisions worth revisiting
 
-11. **The full-refund-until-start policy (D4).** As built, a hirer can hold a Saturday evening
-    Studio slot and release it an hour before at no cost, and the DRA has no time to re-let it.
-    Every comparable venue has a cancellation window for exactly this reason. The code is
-    written so `CANCELLATION_WINDOW_HOURS = 48` is a config change and nothing more — the
-    decision can be reversed cheaply, but somebody should make it deliberately rather than
-    discover it in a bad month.
+11. ~~**The full-refund-until-start policy.**~~ **ANSWERED 31 Aug 2026:** cancel up to 1 hour
+    before the start for a full refund; nothing inside the hour. `CANCELLATION_WINDOW_HOURS = 1`.
+    One residual item, and it is a disclosure question rather than a policy one: because Snooker
+    has `minNoticeHours: 0`, a snooker booking made inside the hour is non-refundable
+    immediately. The build warns at checkout (`04`). Worth the DRA knowing that this case exists
+    and is intended, because it is the one a hirer is most likely to complain about.
 
 12. **Recurring bookings.** Out of scope for v1 (`00`), and the Studio copy already advertises
     "hourly or recurring hire". Regular hirers are probably the most valuable customers and are
@@ -55,3 +53,21 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 
 14. **VAT.** If the DRA is or becomes VAT-registered, room hire pricing and receipts need to say
     so. Currently assumed out of scope; confirm.
+
+## Added 31 Aug 2026
+
+17. **Insurance check on the hire terms — launch blocker.** `10-terms.md` drafts the room hire
+    terms. The cancellation, pricing and conduct clauses are the DRA's own call and are settled.
+    Clauses 9, 10 and 11 — responsibility for your group, under-18s and safeguarding, and
+    insurance and liability — are drafted to be sensible for a community centre but must be read
+    against the DRA's actual insurance policy before the page is published. This is the one part
+    of the build where being approximately right is worse than being late.
+
+18. **Minimum notice for the Studio and Lounge.** Snooker is settled at `0` (last-minute by
+    design). The other two default to 24 hours, which is a guess — it depends on whether hirers
+    need a key, a code or someone to let them in. If the rooms are self-access, 24 hours is
+    needlessly restrictive and will lose bookings.
+
+19. **The `bookings@meadowbrookdartington.org` address.** `10-terms.md` and every transactional
+    email point at it. It needs to exist, be monitored by someone, and be verified as a Brevo
+    sender with SPF and DKIM.
