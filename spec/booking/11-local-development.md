@@ -41,10 +41,16 @@ resolveCalendarId(room) = process.env[`BOOKING_CALENDAR_${room.key.toUpperCase()
 
 `.env` sets the three overrides; production sets none and uses the Keystatic values.
 
-**And a guard, because an env override is one typo from silently pointing at production.** On
-boot in dev, refuse to start if any resolved calendar ID matches a live room calendar. A
-hardcoded deny-list of the three production IDs, checked when `NODE_ENV !== 'production'`. It
-is five lines and it removes the whole category.
+**And a guard, because an env override is one typo from silently pointing at production.**
+`assertWritable(room)` in `config.ts` throws if a live room calendar is about to be *written*
+while `NODE_ENV !== 'production'`, against a hardcoded deny-list of the three production IDs.
+Every calendar write calls it.
+
+**Writes, not reads** — this started life as a boot-time check and was wrong that way. Reading a
+live calendar from a laptop is useful and harmless: it is exactly how Phase 1's availability
+output gets compared against Acuity. Refusing that would have blocked the acceptance test the
+phase exists to pass. It is the writes that put junk on a real room's calendar, so that is
+where the refusal belongs.
 
 ### 2. Emailing real people
 
