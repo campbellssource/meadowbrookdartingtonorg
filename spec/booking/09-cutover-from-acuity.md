@@ -11,12 +11,14 @@ somebody has paid for them.
 >
 > - **The disconnection question below still has to be answered**, just later — on the day
 >   Acuity is finally switched off, not before launch.
-> - **Double-booking across the two systems is now the live risk.** Both write to the same three
->   calendars, and the new system treats every calendar event as occupancy (D1), so an Acuity
->   booking correctly blocks a Meadowbrook one. **The reverse is the danger:** whether Acuity
->   respects events *it* did not create depends on its own busy-time settings. If it does not,
->   two people can pay for the same room. Verify this before advertising the new system —
->   book a slot in the new system and confirm Acuity then refuses it.
+> - **Double-booking across the two systems: resolved.** Both write to the same three calendars.
+>   The new system treats every calendar event as occupancy (D1), so an Acuity booking blocks a
+>   Meadowbrook one. The DRA confirms Acuity is configured to respect events it did not create,
+>   so the reverse holds too — which is what makes running both at once safe. The two systems
+>   stay in step through the calendars, with no integration between them.
+>
+>   Phase 1 already compares availability against Acuity across a fortnight; that check will
+>   show up any disagreement in the same pass, at no extra cost.
 > - Acuity remains a data processor while it runs, so it stays in the privacy policy (`12`).
 
 ## Establish this first
