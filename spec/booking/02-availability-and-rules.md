@@ -90,6 +90,8 @@ Everything below is DRA-confirmed (31 Aug 2026) and replaces the earlier default
 |---|---|
 | Opening hours | **08:00–23:00, every day.** No closed days, no weekday variation |
 | Rate | Flat. No peak, off-peak or weekend rate — `peak` is empty everywhere |
+| VAT | **None.** Prices are stated VAT-free, not VAT-inclusive — see below |
+| Maximum advance | **90 days** |
 | Minimum duration | **60 minutes** |
 | Duration increments | **30 minutes** — 1h, 1h30, 2h, 2h30 … |
 | Maximum duration | **A single day.** A booking may not span midnight |
@@ -103,14 +105,28 @@ Everything below is DRA-confirmed (31 Aug 2026) and replaces the earlier default
 |---|---|---|---|
 | `hourlyRatePence` | `750` | `1000` | `1000` |
 | `bufferMins` | **`0`** | **`30`** | **`30`** |
+| `maxAdvanceDays` | `90` | `90` | `90` |
 | `intakeQuestions` | none | use of room | use of room |
 
-⚠️ **One ambiguity worth settling before Phase 1 ships.** "30 min buffer between studio and
-lounge bookings" is built as **per-room**: 30 minutes either side of a Studio booking, and 30
-either side of a Lounge booking, each affecting only its own room. The other available reading
-— a *cross-room* buffer, where a Studio booking also holds the Lounge clear — is not
-implausible, because the facility copy says the Lounge adjoins the Studio and lends it
-furniture. The two produce visibly different availability. Logged as question 20.
+**Buffer semantics — settled 31 Aug 2026.** Per-room, as built: 30 minutes either side of a
+Studio booking and 30 either side of a Lounge booking, each affecting only its own room. Not a
+cross-room buffer. Snooker has none, deliberately — the DRA wants snooker sessions back to
+back, because players meeting in the doorway is a feature of the room rather than a scheduling
+problem.
+
+⚠️ **This is a change from current behaviour, not a replication of it.** A Studio booking
+already on the calendar runs 17:00–19:00 with the next starting 19:15 — a 15-minute gap, which
+a 30-minute buffer would forbid. So Acuity is not enforcing 30 minutes today. The new rule is
+stricter, which is a legitimate choice, but it has two consequences worth stating:
+
+- **Studio and Lounge availability will legitimately differ from Acuity's**, and Phase 1's
+  acceptance check has been adjusted accordingly (see `IMPLEMENTATION-PLAN.md`). Treating any
+  difference as a bug would send us hunting a fault that isn't there.
+- **It will refuse some bookings Acuity would have accepted.** Worth a moment's thought about
+  whether 30 minutes is right, given hirers are demonstrably booking 15 minutes apart today.
+
+Based on one observed pair, not a survey — a fuller count of historical gaps needs a working
+`gcloud` session and is worth running before Phase 1 sets the number in stone.
 
 ### Start times: the quarter-hour rule
 
@@ -236,3 +252,18 @@ Availability is read far more often than bookings are made, and the Calendar API
 - [ ] Slot generation on both 2027 BST transition days produces valid, non-duplicated instants.
 - [ ] An active hold removes the slot from availability for everyone else.
 - [ ] Setting `active: false` on a room removes it from booking without breaking its facility page.
+
+## VAT
+
+The DRA is not charging VAT (question 14, answered 31 Aug 2026) but expects it may need to
+later. One thing to record now, because it is cheap today and contentious later:
+
+**Today's prices are VAT-free, not VAT-inclusive at 0%.** If the DRA registers, the question
+"was £10.00 the gross or the net price?" decides whether hirers see a price rise or the DRA
+takes a 20% cut in income. Writing it down now means that is a decision rather than an
+argument.
+
+Implementation: `priceFor()` stays the single place a price is computed, so VAT becomes an
+additive step there rather than a change spread across the booking form, the emails and the
+reporting page. No VAT fields in the data model yet — `paymentPence` is what was charged, and
+that stays true either way.

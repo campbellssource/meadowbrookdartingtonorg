@@ -6,13 +6,10 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
 
 | # | Question | Blocks |
 |---|---|---|
-| 20 | Is the 30-min buffer per-room or across Studio/Lounge? | **Phase 1 code** — the only one that does |
-| 22 | How far ahead can someone book? | Phase 1 config |
 | 17 | Insurance check on hire terms clauses 9–11 | **Launch** |
 | 19 | `bookings@` exists, monitored, Brevo-verified | **Launch** |
 | 6 | Hire terms approved and published | **Launch** |
 | 23 | Which calendars are wired to the locks and scrubber | Confirmation email wording |
-| 14 | VAT | Launch, if applicable |
 | 7 | Privacy policy | DRA has deferred to post-go-live |
 | 12 | Recurring bookings | Deferred by design |
 
@@ -77,8 +74,9 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     The raffle POC's service account does also live there, which is worth separating one day,
     but the project itself is load-bearing.
 
-14. **VAT.** If the DRA is or becomes VAT-registered, room hire pricing and receipts need to say
-    so. Currently assumed out of scope; confirm.
+14. ~~**VAT.**~~ **ANSWERED 31 Aug 2026.** Not charging VAT for now; may need to later. Recorded
+    in `02` that today's prices are VAT-*free* rather than VAT-inclusive, because if the DRA
+    registers, whether £10.00 was gross or net decides who absorbs the 20%.
 
 ## Added 31 Aug 2026
 
@@ -110,8 +108,7 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     should **not** build a competing one. What remains is coverage (question 23) and a one-off
     tidy-up of the pre-tool backlog.
 
-22. **Maximum advance booking.** `maxAdvanceDays: 180` is still a guess. How far ahead should
-    someone be able to book the Studio?
+22. ~~**Maximum advance booking.**~~ **ANSWERED 31 Aug 2026.** 90 days, all rooms.
 
 23. **Which calendars are wired to the locks and the contact scrubber?** Both
     `calendartopasscode` functions name a single calendar — the Lounge. Nine Studio and Snooker

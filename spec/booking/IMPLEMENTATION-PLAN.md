@@ -35,8 +35,16 @@ Also: the three facility YAMLs gain their `booking` block, using real prices and
 slot generation on both 2027 BST transition days; buffer inflation; notice and advance windows;
 a closed day; a fully booked day.
 
-**Done when:** `/api/booking/availability` returns slots for a fortnight that match what Acuity
-shows, for all three rooms. Any disagreement is a rules bug — resolve it now.
+**Done when:** `/api/booking/availability` returns slots for a fortnight that reconcile with
+what Acuity shows, for all three rooms:
+
+- **Snooker must match exactly.** No buffer, no notice, same hours — any difference is a bug.
+- **Studio and Lounge will differ, and should.** The new 30-minute buffer is stricter than what
+  Acuity enforces today (`02`), so our availability will be a strict subset. Every difference
+  must be *explained by the buffer*. A difference the buffer does not explain is a bug.
+
+Stating it this way because the original criterion — "match Acuity" — would have failed a
+correct implementation and sent someone hunting a fault that wasn't there.
 
 ## Phase 2 — Booking, paid
 
