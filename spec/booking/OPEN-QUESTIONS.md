@@ -1,6 +1,20 @@
 # Open questions
 
-Things the DRA must decide or supply. None blocks starting the build; each blocks launch.
+Things the DRA must decide or supply. Struck-through items are settled; kept for the reasoning.
+
+**Genuinely open, as of 31 Aug 2026:**
+
+| # | Question | Blocks |
+|---|---|---|
+| 20 | Is the 30-min buffer per-room or across Studio/Lounge? | **Phase 1 code** — the only one that does |
+| 22 | How far ahead can someone book? | Phase 1 config |
+| 17 | Insurance check on hire terms clauses 9–11 | **Launch** |
+| 19 | `bookings@` exists, monitored, Brevo-verified | **Launch** |
+| 6 | Hire terms approved and published | **Launch** |
+| 23 | Which calendars are wired to the locks and scrubber | Confirmation email wording |
+| 14 | VAT | Launch, if applicable |
+| 7 | Privacy policy | DRA has deferred to post-go-live |
+| 12 | Recurring bookings | Deferred by design |
 
 ## Needed before the build can be configured
 
@@ -25,13 +39,16 @@ Things the DRA must decide or supply. None blocks starting the build; each block
    which is worth fixing regardless of this project — a consent checkbox pointing at a dead page
    is not much of a consent. The link is also referenced from the stale `src/content/pages/large-room.md`,
    which predates the Keystatic migration and is not what the site serves.
-   Needed: the actual wording (cancellation, room rules, liability, damage), published at
-   `/room-hire-terms`, before the new booking form reuses the same consent line.
-7. **Privacy policy update — drafted, needs approval and applying.** Full text in `12`. Reading
-   it turned up **two live inaccuracies that have nothing to do with this project**: the policy
-   names Stripe as the payment processor (it is Square) and Squarespace as the host (it is
-   Google Cloud Run). Both misstate where personal data goes and are worth correcting now
-   rather than at launch.
+   **Drafted 31 Aug 2026 in `10-terms.md`** — needs DRA approval, the insurance check (17), and
+   publishing at `/room-hire-terms`. Until it is published this remains live on the *current*
+   Acuity form, not just the new one. A branded 404 now catches the dead link, which is a better
+   dead end, but still a dead end.
+7. **Privacy policy update — drafted; DRA has deferred it to after go-live.** Full text ready to
+   apply in `12`. Noting for the record what is being carried until then, since the decision was
+   made knowing it: the policy names Stripe as the payment processor (it is Square) and
+   Squarespace as the host (it is Cloud Run), states a 90-day calendar retention that at least
+   two of the three calendars do not currently meet, and does not mention door passcodes at all.
+   None of it is new — all of it predates this project. Apply `12` when the DRA is ready.
 8. ~~**Owner notification address.**~~ **ANSWERED 31 Aug 2026.** Bookings to `bookings@`, gated
    by `BOOKING_NOTIFY_OWNER` so it can be switched off later; failures and alerts to `it@`,
    permanently and ungated.
@@ -55,9 +72,10 @@ Things the DRA must decide or supply. None blocks starting the build; each block
     currently handled by hand. The reporting page includes a repeat-booker breakdown (`07`)
     specifically so this decision gets made with a number attached to it.
 
-13. **The stray `calendartopasscode` project.** The raffle POC's service account lives there,
-    unrelated to anything else. Worth folding into a proper project or deleting once the raffle
-    is done — not part of this work, but noted while we were in the neighbourhood.
+13. ~~**The stray `calendartopasscode` project.**~~ **CORRECTED 31 Aug 2026 — it is not stray.**
+    It runs the building's door-passcode system off these calendars (`13`). Do not tidy it away.
+    The raffle POC's service account does also live there, which is worth separating one day,
+    but the project itself is load-bearing.
 
 14. **VAT.** If the DRA is or becomes VAT-registered, room hire pricing and receipts need to say
     so. Currently assumed out of scope; confirm.
@@ -71,10 +89,8 @@ Things the DRA must decide or supply. None blocks starting the build; each block
     against the DRA's actual insurance policy before the page is published. This is the one part
     of the build where being approximately right is worse than being late.
 
-18. **Minimum notice for the Studio and Lounge.** Snooker is settled at `0` (last-minute by
-    design). The other two default to 24 hours, which is a guess — it depends on whether hirers
-    need a key, a code or someone to let them in. If the rooms are self-access, 24 hours is
-    needlessly restrictive and will lose bookings.
+18. ~~**Minimum notice for the Studio and Lounge.**~~ **ANSWERED 31 Aug 2026.** Zero, the same as
+    Snooker. All three rooms are bookable up to the next quarter-hour.
 
 19. **The `bookings@meadowbrookdartington.org` address.** `10-terms.md` and every transactional
     email point at it. It needs to exist, be monitored by someone, and be verified as a Brevo
