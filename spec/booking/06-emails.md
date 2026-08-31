@@ -19,7 +19,24 @@ someone editing a template in a vendor UI. Every email ships a plain-text altern
 Brevo sender before launch, with SPF and DKIM aligned — transactional mail that lands in spam
 is worse than no mail, because the booker has paid and has no link.
 
-Reply-to is the DRA's monitored address, so a reply from a confused booker reaches a person.
+Reply-to is `bookings@meadowbrookdartington.org`, so a reply from a confused booker reaches a
+person rather than a no-reply void.
+
+## Where operational mail goes
+
+Two internal addresses, deliberately separate, because they have different half-lives:
+
+| Address | Gets | Lifespan |
+|---|---|---|
+| `bookings@meadowbrookdartington.org` | A copy of every booking, amendment and cancellation | **Expected to be switched off** once the system has proven itself |
+| `it@meadowbrookdartington.org` | Only things that went wrong | Permanent — this is the alerting channel |
+
+`BOOKING_NOTIFY_OWNER` (default `true`) gates the first. Turning it off is an env change, no
+deploy of new code. It must **not** gate the second: the day the DRA stops reading every
+booking is the day failure alerts start mattering more, not less.
+
+Both are Google Workspace groups, not mailboxes — so who reads them can change without a
+deploy.
 
 ## The emails
 
@@ -30,8 +47,10 @@ Reply-to is the DRA's monitored address, so a reply from a confused booker reach
 | 3 | Booking cancelled | booker | `Your booking has been cancelled — refund of £48.00 on its way` |
 | 4 | 24h before start | booker | `Tomorrow: Studio, 2pm–4pm` |
 | 5 | Magic link requested | booker | `Your Meadowbrook booking links` |
-| 6 | Any booking change | owner | `[Booking] New / Amended / Cancelled — Studio, Sat 5 Sep` |
-| 7 | System alert | owner | `[Booking] Needs attention — MB-7K2QX4` |
+| 6 | Any booking change | `bookings@` | `[Booking] New / Amended / Cancelled — Studio, Sat 5 Sep` |
+| 7 | Payment failed | `it@` | `[Booking][FAIL] Payment declined — Studio, Sat 5 Sep 2pm` |
+| 8 | Checkout abandoned | `it@` | `[Booking][ABANDONED] Hold expired unpaid — Studio, Sat 5 Sep 2pm` |
+| 9 | Needs attention | `it@` | `[Booking][ALERT] MB-7K2QX4 — calendar and record disagree` |
 
 ### 1 — Confirmation
 
@@ -100,3 +119,60 @@ Dates always with the weekday, because that is what people actually check.
 - [ ] The cancellation email states both the refund amount and the expected timescale.
 - [ ] No booking email contains an unsubscribe link or touches the newsletter list.
 - [ ] SPF, DKIM and DMARC pass for `bookings@meadowbrookdartington.org` (verify with a real send before launch).
+
+## 7, 8 and 9 — the failure emails
+
+These exist so that a booking the DRA never hears about is not the same as a booking that never
+happened. Both are invisible in the current Acuity setup, and both are how you find out the
+payment step is broken before a week of takings has quietly evaporated.
+
+### 7 — Payment failed
+
+Sent when Square returns anything other than a completed payment. Include the room, the
+requested slot, the Square error `code` and `category`, and the booker's email.
+
+**Never include** the card token, the `sourceId`, or any part of a card number. The existing
+`api/donate.ts` already logs only non-identifying fields — follow it exactly.
+
+Rate-limited to one email per 5 minutes per error code, so a Square outage produces a handful
+of alerts rather than several hundred. The suppressed count goes in the next one.
+
+### 8 — Checkout abandoned
+
+Someone reserved a slot, reached the payment step, and never completed. Worth knowing: a
+handful is normal human behaviour, a sudden run of them means the payment form is broken for
+somebody, and that is otherwise a silent failure.
+
+**Detecting it needs care, because the obvious mechanism destroys the evidence.** Holds are
+swept by a Firestore TTL on `expiresAt` (`08`), and TTL deletion is silent — no hook, no
+notification. If the hold is deleted the moment it lapses, there is nothing left to report.
+
+So the hold carries two timestamps:
+
+| Field | Meaning |
+|---|---|
+| `holdExpiresAt` | When the slot is released back to others. Minutes |
+| `expiresAt` | When the *record* is deleted, by TTL. **24 hours** |
+
+The hourly reconcile job (`08`) finds holds where `holdExpiresAt < now`, `status == 'held'`
+and `abandonedReportedAt == null`, emails a digest, and stamps `abandonedReportedAt`. TTL
+clears the record a day later. The slot is still freed on time — `holdExpiresAt` governs
+availability, `expiresAt` governs only cleanup.
+
+Digest, not one-per-event: an hour of abandonments is one email listing them.
+
+### 9 — Needs attention
+
+The `needsReview` cases from `01`: a booking whose calendar event has vanished, times that
+disagree between Firestore and the calendar, an orphaned Square payment with no booking. One
+email per booking reference, not repeated hourly — stamp `alertedAt` and only re-alert if the
+condition changes.
+
+## Acceptance criteria for the failure path
+
+- [ ] A declined sandbox payment sends one email to `it@` and none to `bookings@`.
+- [ ] A hold left to lapse produces exactly one abandoned-checkout email, in the following hour.
+- [ ] That hold's slot is bookable again as soon as `holdExpiresAt` passes, long before the email.
+- [ ] `BOOKING_NOTIFY_OWNER=false` silences 6 and leaves 7, 8 and 9 flowing.
+- [ ] No failure email contains a card token, `sourceId` or PAN.
+- [ ] Twenty consecutive declines with the same code produce one email, not twenty.

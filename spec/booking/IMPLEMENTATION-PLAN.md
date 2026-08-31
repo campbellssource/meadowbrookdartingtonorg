@@ -103,6 +103,13 @@ in `history`, and reporting totals reconcile against the CSV for the same period
 | `src/pages/api/booking/cron/reconcile.ts` | The table in `01` |
 | `src/pages/api/booking/webhooks/square.ts` | Orphan recovery, ledger truth |
 
+Also in this phase, because it is a scheduled job and because a privacy policy will promise it:
+
+- **Calendar PII purge.** Strips the booker's name and contact details from room-calendar events
+  more than 90 days old, leaving the occupancy block intact. Required by the retention clause
+  drafted in `12`; see open question 21. Idempotent, and it must never delete an event — only
+  rewrite its summary and description.
+
 **Done when:** both jobs run on schedule and are idempotent; a request without a valid OIDC
 token is rejected; a deliberately orphaned payment is recovered or refunded, with an alert.
 

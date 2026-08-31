@@ -10,10 +10,15 @@ issued that refund".
 **Sign in with Google, restricted to the DRA Workspace.**
 
 - OAuth 2.0 authorisation-code flow against the `meadowbrookdartington.org` Workspace.
+- **Allowlist, not domain check.** `BOOKING_ADMIN_EMAILS`, comma-separated. Launch value:
+  `michael.campbell@meadowbrookdartington.org`. A Workspace-domain check alone would admit
+  every account the DRA ever creates, including shared and service mailboxes; an explicit list
+  is one env var to edit and is auditable at a glance.
+- Compare **case-insensitively** on the verified `email` claim, and require `email_verified`.
+- An authenticated Google account that is not on the list gets a plain "no access" page, not a
+  redirect loop back to sign-in — the single most confusing way to fail a login.
 - Verify the ID token's signature, `aud`, `exp`, and `hd == meadowbrookdartington.org`. The
   `hd` claim is checked on the **verified token**, never on a value from the client.
-- Additionally require the email to be in `BOOKING_ADMIN_EMAILS` (comma-separated env var), so
-  a new Workspace account doesn't automatically get access to the money.
 - Session in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie, 12-hour expiry.
 - Every state-changing admin action writes the acting email into the booking's `history`.
 

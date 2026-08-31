@@ -3,6 +3,22 @@
 The risk here is not the code. It is the bookings that already exist, and the fact that
 somebody has paid for them.
 
+> **Updated 31 Aug 2026 — the DRA will run both systems in parallel** rather than cutting over,
+> keeping Acuity live while the new system takes real bookings. That removes most of the risk
+> this file was written to manage, and it is the right call.
+>
+> Two things it does **not** remove, and one it adds:
+>
+> - **The disconnection question below still has to be answered**, just later — on the day
+>   Acuity is finally switched off, not before launch.
+> - **Double-booking across the two systems is now the live risk.** Both write to the same three
+>   calendars, and the new system treats every calendar event as occupancy (D1), so an Acuity
+>   booking correctly blocks a Meadowbrook one. **The reverse is the danger:** whether Acuity
+>   respects events *it* did not create depends on its own busy-time settings. If it does not,
+>   two people can pay for the same room. Verify this before advertising the new system —
+>   book a slot in the new system and confirm Acuity then refuses it.
+> - Acuity remains a data processor while it runs, so it stays in the privacy policy (`12`).
+
 ## Establish this first
 
 Before anything else, answer one question, because the whole plan depends on it:

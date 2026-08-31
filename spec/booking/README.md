@@ -31,6 +31,7 @@ handed to Claude Code (or any coding agent) for spec-driven development.
 | `09-cutover-from-acuity.md` | Parallel run, migration of live bookings, killing the subscription |
 | `10-terms.md` | Draft room hire terms for `/room-hire-terms` — needs committee sign-off |
 | `11-local-development.md` | Running a full click-through on localhost without touching live data |
+| `12-privacy-policy.md` | Privacy policy changes — plus two live inaccuracies found while checking |
 | `IMPLEMENTATION-PLAN.md` | Phased build order with file-level detail |
 | `setup-gcp.sh` | Idempotent gcloud script for everything in `08` |
 | `OPEN-QUESTIONS.md` | Things the DRA must decide or supply before launch |

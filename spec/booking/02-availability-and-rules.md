@@ -32,11 +32,12 @@ booking: {
   openingHours: [                // per weekday; omit a day to close it entirely
     { day: 'mon', from: '09:00', to: '22:00' }
   ]
-  slotGranularityMins: integer   // grid the start times sit on. Default 30
-  minDurationMins:     integer   // Default 60
-  maxDurationMins:     integer   // Default 480
-  bufferMins:          integer   // gap forced before and after every booking. Default 0
-  minNoticeHours:      integer   // can't book something starting sooner than this. Default 24
+  slotGranularityMins: integer   // grid the start times sit on. 15 everywhere
+  minDurationMins:     integer   // 60 everywhere
+  durationIncrementMins: integer // steps above the minimum. 30 everywhere
+  maxDurationMins:     integer   // 900 (08:00-23:00); real cap is closing time
+  bufferMins:          integer   // gap forced before and after every booking. 0 snooker, 30 studio/lounge
+  minNoticeHours:      integer   // 0 everywhere; the quarter-hour rule is the real floor
   maxAdvanceDays:      integer   // can't book further out than this. Default 180
   capacityNote:        string    // free text shown on the booking form
   intakeQuestions: [             // per-room custom fields; empty for the Snooker Room
@@ -73,18 +74,76 @@ empty for all three rooms in v1.
 | `minNoticeHours` | **`0`** | `24` (to confirm) | `24` (to confirm) |
 | `intakeQuestions` | none | use of room | use of room |
 
-**Snooker's `minNoticeHours` is 0 on purpose.** The DRA confirms the room is booked
-last-minute as a matter of course — which is also why its calendar showed no forward bookings
-at all when we checked, and why that was not the missing-data problem it looked like. The
-24-hour default would have quietly destroyed the room's entire booking pattern while appearing
-to work perfectly: availability would render, bookings would succeed, and only the walk-up
-trade would vanish. Snooker must be bookable for a slot starting in ten minutes.
+**Snooker's `minNoticeHours` is 0 on purpose** — and so, the DRA has since confirmed, is every
+other room's. All three are bookable right up to the next quarter-hour. Snooker's empty forward
+calendar was never missing data; the room is booked last-minute as a matter of course. A
+24-hour default would have quietly destroyed that pattern while appearing to work perfectly:
+availability would render, bookings would succeed, and only the walk-up trade would vanish.
 
-This interacts with the 1-hour cancellation window (`00`, D4): a snooker booking made inside
-the hour is non-refundable the instant it is paid for. That must be disclosed at checkout —
-see `04-payments-and-refunds.md`.
+## The confirmed ruleset
 
-Bookings observed running from 09:00 to 22:00, so opening hours reach at least that far.
+Everything below is DRA-confirmed (31 Aug 2026) and replaces the earlier defaults.
+
+### Identical across all three rooms
+
+| Rule | Value |
+|---|---|
+| Opening hours | **08:00–23:00, every day.** No closed days, no weekday variation |
+| Rate | Flat. No peak, off-peak or weekend rate — `peak` is empty everywhere |
+| Minimum duration | **60 minutes** |
+| Duration increments | **30 minutes** — 1h, 1h30, 2h, 2h30 … |
+| Maximum duration | **A single day.** A booking may not span midnight |
+| Start times | **:00, :15, :30, :45 only** — `slotGranularityMins: 15` |
+| Minimum notice | **None**, subject to the quarter-hour rule below |
+| Cancellation | Full refund up to 1 hour before the start (`00`, D4) |
+
+### Per room
+
+| | Snooker | Studio | Lounge |
+|---|---|---|---|
+| `hourlyRatePence` | `750` | `1000` | `1000` |
+| `bufferMins` | **`0`** | **`30`** | **`30`** |
+| `intakeQuestions` | none | use of room | use of room |
+
+⚠️ **One ambiguity worth settling before Phase 1 ships.** "30 min buffer between studio and
+lounge bookings" is built as **per-room**: 30 minutes either side of a Studio booking, and 30
+either side of a Lounge booking, each affecting only its own room. The other available reading
+— a *cross-room* buffer, where a Studio booking also holds the Lounge clear — is not
+implausible, because the facility copy says the Lounge adjoins the Studio and lends it
+furniture. The two produce visibly different availability. Logged as question 20.
+
+### Start times: the quarter-hour rule
+
+Minimum notice is zero, but a booking cannot start in the quarter-hour you are already
+standing in. Concretely:
+
+> **The earliest bookable start is the smallest quarter-hour boundary strictly after `now`.**
+
+At 14:07 the earliest start is 14:15. At 14:00:20 it is 14:15, not 14:00 — the 14:00 block has
+begun. Defining it as *strictly after* rather than *at or after* costs at most fifteen minutes
+and removes a whole class of clock-skew bug: the browser's clock, the server's clock and
+Google's clock disagree by seconds, and "at or after" turns those seconds into a slot that
+renders as bookable but fails at payment.
+
+Maximum duration is bounded by closing time, not by a fixed number: a booking must end by
+23:00 on the day it starts. `maxDurationMins: 900` (08:00→23:00) is therefore a ceiling that
+only the very first slot of the day can reach.
+
+### How the rules interact — the cases to test
+
+The rules are simple individually and less so together:
+
+- **Buffer plus 15-minute grid.** A Studio booking 14:00–15:00 blocks 13:30–15:30. The next
+  bookable start is 15:30, not 15:00 and not 15:15.
+- **Zero notice plus a 1-hour cancellation window.** Any booking made less than an hour before
+  it starts is non-refundable the moment it is paid for. With zero minimum notice this is now
+  reachable in *every* room, not just Snooker, and the earliest possible start is 15 minutes
+  away. Checkout must say so before charging (`04`, `10`).
+- **Duration increments versus start grid.** Starts move in 15s, durations in 30s. 14:15 + 1h30
+  = 15:45 is valid. A 45-minute booking is not, at any start.
+- **Buffer at the edges of the day.** A booking ending at 23:00 needs no buffer after it; one
+  starting at 08:00 needs none before. Buffer is clipped at opening hours, not treated as a
+  reason to make the first and last slots unbookable.
 
 ## Computing availability
 
@@ -101,7 +160,8 @@ Server-side, per day in the range:
 4. **Inflate every busy block by `bufferMins`** on both sides.
 5. **Generate candidate starts** on the `slotGranularityMins` grid within opening hours.
 6. **Drop candidates** that: overlap an inflated busy block for the minimum duration; start
-   sooner than `minNoticeHours` from now; or start later than `maxAdvanceDays` from today.
+   at or before the current quarter-hour boundary (the rule above); or start later than
+   `maxAdvanceDays` from today.
 7. For each surviving start, compute the **maximum bookable duration** — the run of free time
    from that start, capped at `maxDurationMins` and at closing time.
 
@@ -164,11 +224,15 @@ Availability is read far more often than bookings are made, and the Calendar API
 
 ## Acceptance criteria
 
-- [ ] A closed weekday returns `open: false` and no slots.
+- [ ] Every day is open 08:00–23:00; no day returns `open: false`.
 - [ ] A calendar event created by hand disappears from availability within 60 seconds.
-- [ ] `bufferMins: 15` leaves no bookable start within 15 minutes either side of an existing booking.
-- [ ] `minNoticeHours: 24` makes tomorrow morning unbookable this evening.
-- [ ] A Saturday booking straddling a peak boundary is priced per increment, not per booking.
+- [ ] Every offered start falls on :00, :15, :30 or :45.
+- [ ] Every offered duration is 60 minutes or more, in 30-minute steps. No 45-minute option exists.
+- [ ] At 14:07 the earliest start offered is 14:15. At 14:00:20 it is still 14:15.
+- [ ] A Studio booking 14:00–15:00 makes 15:30 the next bookable start, not 15:00 or 15:15.
+- [ ] The same booking in the Snooker Room makes 15:00 bookable — `bufferMins: 0`.
+- [ ] No offered slot can run past 23:00, and no booking spans midnight.
+- [ ] The 08:00 start and a slot ending at 23:00 are both bookable — buffer is clipped, not applied, at the edges of the day.
 - [ ] Slot generation on both 2027 BST transition days produces valid, non-duplicated instants.
 - [ ] An active hold removes the slot from availability for everyone else.
 - [ ] Setting `active: false` on a room removes it from booking without breaking its facility page.

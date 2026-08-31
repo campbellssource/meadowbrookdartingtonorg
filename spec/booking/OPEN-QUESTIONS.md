@@ -7,14 +7,15 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 1. ~~**Prices.**~~ **ANSWERED 31 Aug 2026.** Snooker £7.50/hour, Studio £10.00/hour, Lounge
    £10.00/hour — the Studio's single-data-point reading confirmed correct. No peak, weekend or
    off-peak rate. Recorded in `02-availability-and-rules.md`.
-2. **Opening hours per room, per weekday.** Including whether the Snooker Room's hours depend
-   on the bar being open — the facility copy mentions "drinks available from the bar downstairs
-   when open", which implies a coupling worth being explicit about.
-3. **Minimum and maximum booking length per room.** Is a 30-minute snooker booking allowed? Can
-   the Studio be taken for a whole day?
-4. **Buffer between bookings.** Does the Studio need turnaround time between hirers?
-5. **Minimum notice and maximum advance.** Can someone book the Lounge for this evening? Can
-   they book next August?
+2. ~~**Opening hours.**~~ **ANSWERED 31 Aug 2026.** 08:00–23:00, every day, all three rooms. No
+   weekday variation and no coupling to the bar's hours.
+3. ~~**Booking length.**~~ **ANSWERED 31 Aug 2026.** Minimum 1 hour everywhere, in 30-minute
+   steps; maximum is a single day and no booking may span midnight.
+4. ~~**Buffer.**~~ **ANSWERED 31 Aug 2026** — but see question 20, which is the one word of it
+   that is ambiguous.
+5. ~~**Minimum notice.**~~ **ANSWERED 31 Aug 2026.** None, other than that a booking cannot start
+   in the quarter-hour already in progress. Maximum advance still unstated — `maxAdvanceDays`
+   defaults to 180; say if that is wrong.
 
 ## Needed before launch
 
@@ -26,12 +27,19 @@ Things the DRA must decide or supply. None blocks starting the build; each block
    which predates the Keystatic migration and is not what the site serves.
    Needed: the actual wording (cancellation, room rules, liability, damage), published at
    `/room-hire-terms`, before the new booking form reuses the same consent line.
-7. **Privacy policy update.** Booking data: what is stored, where, for how long, shared with
-   whom. The policy is a Google Doc, so this is an edit outside the repo.
-8. **Which address receives owner notifications and system alerts** (`06`).
-9. **Which Workspace accounts get `/admin` access** — the `BOOKING_ADMIN_EMAILS` allowlist (`07`).
-10. **Acuity's calendar-sync behaviour on disconnection** — the test described in `09`. This one
-    has teeth: get it wrong and paid-for bookings vanish from the calendars.
+7. **Privacy policy update — drafted, needs approval and applying.** Full text in `12`. Reading
+   it turned up **two live inaccuracies that have nothing to do with this project**: the policy
+   names Stripe as the payment processor (it is Square) and Squarespace as the host (it is
+   Google Cloud Run). Both misstate where personal data goes and are worth correcting now
+   rather than at launch.
+8. ~~**Owner notification address.**~~ **ANSWERED 31 Aug 2026.** Bookings to `bookings@`, gated
+   by `BOOKING_NOTIFY_OWNER` so it can be switched off later; failures and alerts to `it@`,
+   permanently and ungated.
+9. ~~**`/admin` access.**~~ **ANSWERED 31 Aug 2026.** `michael.campbell@meadowbrookdartington.org`.
+10. ~~**Acuity disconnection risk.**~~ **DOWNGRADED 31 Aug 2026.** The DRA will run both systems
+    in parallel rather than cutting over, so this stops being a launch blocker. It becomes a
+    question for whenever Acuity is actually switched off — still worth testing then, because
+    the failure mode (paid bookings vanishing from the calendars) is unchanged. See `09`.
 
 ## Decisions worth revisiting
 
@@ -71,3 +79,21 @@ Things the DRA must decide or supply. None blocks starting the build; each block
 19. **The `bookings@meadowbrookdartington.org` address.** `10-terms.md` and every transactional
     email point at it. It needs to exist, be monitored by someone, and be verified as a Brevo
     sender with SPF and DKIM.
+
+## Added 31 Aug 2026, second pass
+
+20. **Is the 30-minute buffer per-room or between the Studio and the Lounge?** Built as
+    per-room: 30 minutes either side of a Studio booking, 30 either side of a Lounge booking,
+    neither affecting the other. The alternative reading — a Studio booking also holding the
+    Lounge clear — is credible, because the rooms adjoin and the Lounge lends the Studio
+    furniture. The two produce visibly different availability, and the wrong one will look
+    correct right up until two hirers arrive at once. One sentence settles it.
+
+21. **The 90-day calendar purge is a promise that needs code.** The draft privacy policy (`12`)
+    says personal details are removed from the room calendar 90 days after a booking. Nothing
+    currently does that — it needs a scheduled job that strips the name and contact detail from
+    old calendar events while leaving the occupancy block intact. Either it gets built, or the
+    policy should not promise it. Not in any phase yet.
+
+22. **Maximum advance booking.** `maxAdvanceDays: 180` is still a guess. How far ahead should
+    someone be able to book the Studio?
