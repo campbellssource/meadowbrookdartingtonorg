@@ -222,6 +222,22 @@ export async function deleteEvent(calendarId: string, eventId: string): Promise<
   }
 }
 
+/**
+ * Busy intervals with one event excluded.
+ *
+ * Amending needs "free, ignoring my own booking" -- otherwise a hirer extending
+ * from one hour to two is blocked by themselves. `freeBusy` returns intervals with
+ * no ids, so it cannot express that; `events.list` can.
+ */
+export async function fetchBusyExcluding(
+  calendarId: string, timeMin: Date, timeMax: Date, excludeEventId: string | null,
+): Promise<Interval[]> {
+  const events = await listEvents(calendarId, timeMin, timeMax);
+  return events
+    .filter((e) => e.id !== excludeEventId)
+    .map((e) => ({ start: e.start, end: e.end }));
+}
+
 /** Every event in a window, used by the cleanup script and the reconcile job. */
 export async function listEvents(calendarId: string, timeMin: Date, timeMax: Date): Promise<CalendarEvent[]> {
   const out: CalendarEvent[] = [];

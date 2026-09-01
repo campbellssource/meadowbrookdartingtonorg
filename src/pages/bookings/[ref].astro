@@ -1,55 +1,75 @@
 ---
-// Confirmation page. Phase 2 shows the booking; amend and cancel arrive in Phase 3
-// behind a magic-link token, which is why nothing here is actionable yet.
+// Manage a booking: view, amend, cancel.
+//
+// Authorisation is the magic-link token (D5). It arrives as ?t= from the email,
+// is exchanged for a scoped HttpOnly cookie, and is then stripped from the address
+// bar by the client -- tokens in URLs leak into history, Referer headers and
+// screenshots. The cookie is what makes a refresh work afterwards.
 import Layout from '../../layouts/Layout.astro';
-import { getBooking } from '../../lib/booking/store.ts';
+import { authorise, BOOKING_HEADERS } from '../../lib/booking/session.ts';
+import { getRoomConfig } from '../../lib/booking/config-reader.ts';
 import { normaliseReference } from '../../lib/booking/reference.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
 import { instantToLocalTime } from '../../lib/booking/time.ts';
+import { refundFor } from '../../lib/booking/policy.ts';
 
 export const prerender = false;
 
+for (const [k, v] of Object.entries(BOOKING_HEADERS)) Astro.response.headers.set(k, v);
+
 const ref = normaliseReference(Astro.params.ref ?? '');
-const booking = ref ? await getBooking(ref) : null;
+const COOKIE = 'mb_booking_token';
+const urlToken = Astro.url.searchParams.get('t');
+const token = urlToken ?? Astro.cookies.get(COOKIE)?.value ?? null;
+
+const auth = ref ? await authorise(ref, token) : { ok: false as const, status: 404 as const, message: 'We cannot find that booking.' };
+
+if (auth.ok && urlToken) {
+  Astro.cookies.set(COOKIE, urlToken, {
+    httpOnly: true, sameSite: 'lax', path: '/bookings',
+    secure: Astro.url.protocol === 'https:',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+}
+
+const booking = auth.ok ? auth.booking : null;
+const room = booking ? await getRoomConfig(booking.room) : null;
+const start = booking?.start.toDate();
+const end = booking?.end.toDate();
+const now = new Date();
+
+const refundIfCancelled = booking
+  ? refundFor({ paidPence: booking.paidPence, currentPence: booking.pricePence, start: start!, change: 'cancel' }, now).refundPence
+  : 0;
+const started = start ? start <= now : false;
+const canManage = booking?.status === 'confirmed' && !started;
 
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', {
   timeZone: 'Europe/London', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
 }).replace(',', '');
-
-const start = booking?.start.toDate();
-const end = booking?.end.toDate();
-const durationWords = (mins: number) => {
-  const h = Math.floor(mins / 60); const m = mins % 60;
-  return h && m ? `${h} hours ${m} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${m} minutes`;
+const durationWords = (m: number) => {
+  const h = Math.floor(m / 60); const r = m % 60;
+  return h && r ? `${h} hours ${r} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${r} minutes`;
 };
 const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
 ---
 
-<Layout
-  title={booking ? `Booking ${ref}` : 'Booking not found'}
-  description="Your Meadowbrook room booking."
-  noindex={true}
->
-  {!booking ? (
+<Layout title={booking ? `Booking ${ref}` : 'Booking'} description="Your Meadowbrook room booking." noindex={true}>
+  {!auth.ok ? (
     <section class="mw-zone-hero">
       <div class="mw-wrap">
-        <span class="mw-eyebrow">Not found</span>
-        <h1>We can't find that booking.</h1>
-        <p>
-          The reference may have been mistyped, or the booking may have been cancelled.
-          If you think it should be here, <a href="/contact">get in touch</a>.
-        </p>
+        <span class="mw-eyebrow">{auth.status === 401 ? 'Link needed' : 'Not available'}</span>
+        <h1>{auth.status === 404 ? "We can't find that booking." : 'We need your booking link.'}</h1>
+        <p>{auth.message}</p>
+        <p><a href="/bookings/find" class="mw-btn mw-btn-primary">Email me a new link</a></p>
       </div>
     </section>
   ) : (
     <>
       <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
         <div class="mw-wrap">
-          <span class="mw-eyebrow">
-            {booking.status === 'confirmed' ? 'Confirmed' : booking.status}
-          </span>
-          <h1>You're booked in.</h1>
-          <p>We've emailed a copy to {booking.customer.email}.</p>
+          <span class="mw-eyebrow">{booking!.status === 'cancelled' ? 'Cancelled' : started ? 'Past booking' : 'Confirmed'}</span>
+          <h1>{booking!.status === 'cancelled' ? 'This booking was cancelled.' : "You're booked in."}</h1>
         </div>
       </section>
 
@@ -57,35 +77,68 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
         <div class="mw-wrap" style="max-width: 640px;">
           <div class="bc-card">
             <dl class="bc-list">
-              <div><dt>Room</dt><dd>{booking.room === 'large-room' ? 'Studio' : booking.room === 'small-room' ? 'Lounge' : 'Snooker Room'}</dd></div>
-              <div><dt>When</dt><dd>{fmt(start!)}<br />{instantToLocalTime(start!)}–{instantToLocalTime(end!)}</dd></div>
-              <div><dt>Length</dt><dd>{durationWords(booking.durationMins)}</dd></div>
-              <div><dt>Paid</dt><dd>{formatPence(booking.paidPence)}</dd></div>
+              <div><dt>Room</dt><dd>{room?.shortName ?? booking!.room}</dd></div>
+              <div><dt>When</dt><dd id="bc-when">{fmt(start!)}<br />{instantToLocalTime(start!)}–{instantToLocalTime(end!)}</dd></div>
+              <div><dt>Length</dt><dd id="bc-length">{durationWords(booking!.durationMins)}</dd></div>
+              <div><dt>Paid</dt><dd id="bc-paid">{formatPence(booking!.paidPence)}</dd></div>
               <div><dt>Reference</dt><dd class="bc-ref">{ref}</dd></div>
-              {doorCode && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
+              {doorCode && booking!.status === 'confirmed' && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
             </dl>
           </div>
 
-          {doorCode && (
+          {doorCode && booking!.status === 'confirmed' && (
             <p class="bc-note">
               Your door entry code is <strong>{doorCode}</strong> — the last four digits of your
-              mobile number. It works on the entrance and upstairs doors for the length of your
-              booking.
+              mobile number. It works for the length of your booking.
             </p>
           )}
 
-          {!booking.calendarEventId && (
-            <p class="bc-warn">
-              Your booking is confirmed and paid. We're still finishing one step behind the
-              scenes — if you don't receive your door code shortly, please
-              <a href="/contact"> get in touch</a>.
+          {canManage && (
+            <div class="bc-actions">
+              <button class="mw-btn mw-btn-primary" id="bc-amend-open">Change the time</button>
+              <button class="mw-btn mw-btn-secondary" id="bc-cancel-open">Cancel booking</button>
+            </div>
+          )}
+
+          {canManage && (
+            <p class="bc-note">
+              {refundIfCancelled > 0
+                ? `Cancel now and you'll be refunded ${formatPence(refundIfCancelled)} in full. That drops to nothing within an hour of the start time.`
+                : 'This booking starts within the hour, so cancelling now would not be refunded.'}
+              {' '}To change room instead, cancel this booking and make a new one.
             </p>
           )}
 
-          <p class="bc-note">
-            Need to change or cancel? Use the link in your confirmation email. You can cancel
-            for a full refund up to 1 hour before the start time.
-          </p>
+          {started && booking!.status === 'confirmed' && (
+            <p class="bc-note">This booking has started or already happened, so it can no longer be changed.</p>
+          )}
+
+          <!-- Amend -->
+          <div class="bc-panel" id="bc-amend" hidden>
+            <h2>Change the time</h2>
+            <label class="bc-field"><span>Date</span><input type="date" id="bc-date" /></label>
+            <div id="bc-slots" class="bc-slots"><p class="bc-muted">Loading…</p></div>
+            <div id="bc-durations" hidden></div>
+            <div id="bc-amend-quote" class="bc-quote" hidden></div>
+            <div class="bc-actions">
+              <button class="mw-btn mw-btn-primary" id="bc-amend-confirm" hidden>Confirm change</button>
+              <button class="mw-btn mw-btn-ghost" id="bc-amend-close">Never mind</button>
+            </div>
+          </div>
+
+          <!-- Cancel -->
+          <div class="bc-panel" id="bc-cancel" hidden>
+            <h2>Cancel this booking</h2>
+            <p id="bc-cancel-quote" class="bc-quote-inline">Checking…</p>
+            <p class="bc-muted">This cannot be undone. To rebook you would need to make a new booking.</p>
+            <div class="bc-actions">
+              <button class="mw-btn mw-btn-primary" id="bc-cancel-confirm">Yes, cancel it</button>
+              <button class="mw-btn mw-btn-ghost" id="bc-cancel-close">Keep my booking</button>
+            </div>
+          </div>
+
+          <p class="bc-error" id="bc-error" role="alert" hidden></p>
+          <p class="bc-ok" id="bc-ok" role="status" hidden></p>
 
           <p style="margin-top: var(--space-6);">
             <a href="/facilities" class="mw-btn mw-btn-secondary">Back to facilities</a>
@@ -96,6 +149,128 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
   )}
 </Layout>
 
+{auth.ok && (
+  <script define:vars={{ ref, token, roomSlug: booking!.room, canManage }}>
+    // The token has been exchanged for a scoped HttpOnly cookie, so it can leave
+    // the address bar without breaking a refresh. Tokens in URLs end up in browser
+    // history, Referer headers and pasted screenshots.
+    if (new URL(location.href).searchParams.has('t')) {
+      const clean = new URL(location.href);
+      clean.searchParams.delete('t');
+      history.replaceState({}, '', clean.toString());
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const errEl = $('bc-error'); const okEl = $('bc-ok');
+    const showErr = (m) => { errEl.textContent = m; errEl.hidden = false; okEl.hidden = true; };
+    const showOk = (m) => { okEl.textContent = m; okEl.hidden = false; errEl.hidden = true; };
+    const clear = () => { errEl.hidden = true; okEl.hidden = true; };
+    const money = (p) => `£${(p / 100).toFixed(2)}`;
+
+    if (canManage) {
+      const state = { start: null, durationMins: null };
+
+      const post = async (path, body) => {
+        const res = await fetch(path, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref, token, ...body }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Something went wrong.');
+        return data;
+      };
+
+      // --- amend ---
+      $('bc-amend-open').addEventListener('click', () => {
+        clear(); $('bc-cancel').hidden = true; $('bc-amend').hidden = false;
+        if (!$('bc-date').value) $('bc-date').value = new Date().toISOString().slice(0, 10);
+        loadSlots();
+      });
+      $('bc-amend-close').addEventListener('click', () => { $('bc-amend').hidden = true; clear(); });
+      $('bc-date').addEventListener('change', loadSlots);
+
+      async function loadSlots() {
+        const date = $('bc-date').value;
+        const box = $('bc-slots');
+        box.innerHTML = '<p class="bc-muted">Loading…</p>';
+        $('bc-durations').hidden = true; $('bc-amend-quote').hidden = true;
+        $('bc-amend-confirm').hidden = true;
+        try {
+          const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          const day = data.days[0];
+          if (!day.open || !day.slots.length) { box.innerHTML = '<p class="bc-muted">Nothing free that day.</p>'; return; }
+          box.innerHTML = day.slots.map((s, i) => `<button class="bc-slot" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
+          box.querySelectorAll('.bc-slot').forEach((b) => b.addEventListener('click', () => {
+            box.querySelectorAll('.bc-slot').forEach((x) => x.classList.remove('sel'));
+            b.classList.add('sel');
+            pickDurations(day.slots[Number(b.dataset.i)]);
+          }));
+        } catch (e) { box.innerHTML = `<p class="bc-muted">${e.message}</p>`; }
+      }
+
+      function pickDurations(slot) {
+        state.start = slot.start;
+        const box = $('bc-durations');
+        box.hidden = false;
+        box.innerHTML = '<p class="bc-label">How long?</p><div class="bc-durs">'
+          + slot.durations.map((d, i) => {
+              const h = Math.floor(d.mins / 60); const m = d.mins % 60;
+              return `<button class="bc-dur" data-i="${i}"><b>${h ? h + 'h' : ''}${m ? ' ' + m + 'm' : ''}</b>${money(d.pricePence)}</button>`;
+            }).join('') + '</div>';
+        box.querySelectorAll('.bc-dur').forEach((b) => b.addEventListener('click', async () => {
+          state.durationMins = slot.durations[Number(b.dataset.i)].mins;
+          try {
+            const q = await post('/api/booking/amend', { start: state.start, durationMins: state.durationMins });
+            $('bc-amend-quote').textContent = q.message;
+            $('bc-amend-quote').hidden = false;
+            $('bc-amend-confirm').hidden = q.chargePence > 0;
+            if (q.chargePence > 0) {
+              showErr('Paying more for a longer booking needs a card, which is not built yet. '
+                + 'Choose a shorter or equal slot, or contact us.');
+            } else { clear(); }
+          } catch (e) { showErr(e.message); }
+        }));
+      }
+
+      $('bc-amend-confirm').addEventListener('click', async () => {
+        clear();
+        try {
+          const r = await post('/api/booking/amend', {
+            start: state.start, durationMins: state.durationMins, confirm: true,
+          });
+          showOk(r.refundPence > 0
+            ? `Changed. ${money(r.refundPence)} is on its way back to your card.`
+            : 'Your booking has been changed.');
+          setTimeout(() => location.reload(), 1400);
+        } catch (e) { showErr(e.message); }
+      });
+
+      // --- cancel ---
+      $('bc-cancel-open').addEventListener('click', async () => {
+        clear(); $('bc-amend').hidden = true; $('bc-cancel').hidden = false;
+        try {
+          const q = await post('/api/booking/cancel', {});
+          $('bc-cancel-quote').textContent = q.message;
+        } catch (e) { showErr(e.message); }
+      });
+      $('bc-cancel-close').addEventListener('click', () => { $('bc-cancel').hidden = true; clear(); });
+      $('bc-cancel-confirm').addEventListener('click', async () => {
+        clear();
+        try {
+          const r = await post('/api/booking/cancel', { confirm: true });
+          showOk(r.refundPence > 0
+            ? `Cancelled. ${money(r.refundPence)} is on its way back to your card, usually within 5 to 10 working days.`
+            : 'Cancelled.');
+          $('bc-cancel').hidden = true;
+          setTimeout(() => location.reload(), 1800);
+        } catch (e) { showErr(e.message); }
+      });
+    }
+  </script>
+)}
+
 <style>
   .bc-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
   .bc-list { margin: 0; display: grid; gap: 14px; }
@@ -104,7 +279,28 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
   .bc-list dd { margin: 0; font-size: 15px; font-weight: 600; }
   .bc-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.04em; }
   .bc-note { margin: 18px 0 0; font-size: 14px; color: var(--fg-soft); line-height: 1.6; }
-  .bc-warn { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; font-size: 14px;
-    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .bc-muted { color: var(--ink-mute); font-size: 14px; }
+  .bc-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+  .bc-panel { margin-top: 22px; background: var(--bone); border-radius: var(--r-lg); padding: 22px; }
+  .bc-panel h2 { font-size: 18px; margin: 0 0 14px; }
+  .bc-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .bc-field span { font-size: 13px; font-weight: 600; }
+  .bc-field input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1.5px solid var(--sand);
+    border-radius: 10px; background: #fff; color: var(--ink); }
+  .bc-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bc-slot { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 8px 12px; border: 0;
+    border-radius: var(--r-pill); background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+  .bc-slot.sel { background: var(--green); color: #fff; }
+  .bc-label { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
+  .bc-durs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bc-dur { display: inline-flex; gap: 8px; align-items: baseline; font: inherit; font-size: 14px;
+    padding: 10px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  .bc-quote, .bc-quote-inline { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px;
+    background: var(--paper-deep); font-size: 14px; font-weight: 600; }
+  .bc-error { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #FCECE7;
+    color: #8A2C0D; font-weight: 600; font-size: 14px; }
+  .bc-ok { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #E8F3DF;
+    color: #33581D; font-weight: 600; font-size: 14px; }
   @media (max-width: 560px) { .bc-list > div { grid-template-columns: 1fr; gap: 2px; } }
 </style>

@@ -138,6 +138,7 @@ const toInterval = (d: { start: Timestamp; end: Timestamp }): Interval =>
  */
 async function promisedIntervals(
   tx: FirebaseFirestore.Transaction, room: string, localDate: LocalDate, now: Date,
+  excludeRef?: string,
 ): Promise<Interval[]> {
   const database = await getDb();
   const [bookingSnap, holdSnap] = await Promise.all([
@@ -147,6 +148,8 @@ async function promisedIntervals(
 
   const out: Interval[] = [];
   for (const doc of bookingSnap.docs) {
+    // A booking being amended must not block itself.
+    if (excludeRef && doc.id === excludeRef) continue;
     const b = doc.data() as Booking;
     if (b.status === 'held' || b.status === 'confirmed') out.push(toInterval(b));
   }
@@ -162,6 +165,8 @@ export interface TakeHoldInput {
   start: Date;
   end: Date;
   now?: Date;
+  /** Set when amending: the booking being moved must not block its own move. */
+  excludeRef?: string;
 }
 
 export interface HeldSlot { holdId: string; bookingRef: string; expiresAt: Date }
@@ -188,7 +193,7 @@ export async function takeHold(input: TakeHoldInput): Promise<HeldSlot> {
   const holdRef = database.collection('holds').doc();
 
   await database.runTransaction(async (tx) => {
-    const promised = await promisedIntervals(tx, room.slug, localDate, now);
+    const promised = await promisedIntervals(tx, room.slug, localDate, now, input.excludeRef);
     const blocked = inflate(promised, room.bufferMins);
     for (const b of blocked) {
       if (start.getTime() < b.end.getTime() && b.start.getTime() < end.getTime()) {
