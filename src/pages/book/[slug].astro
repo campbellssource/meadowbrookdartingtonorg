@@ -1,0 +1,321 @@
+---
+// The booking page. Not linked from anywhere yet — the facility pages still embed
+// the Acuity widget, and both systems run in parallel (spec/booking/09).
+import Layout from '../../layouts/Layout.astro';
+import { getRoomConfig } from '../../lib/booking/config-reader.ts';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const room = slug ? await getRoomConfig(slug) : null;
+if (!room) return Astro.redirect('/facilities', 302);
+
+const env = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
+const squareSdkUrl = env === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
+const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+
+// The sandbox validates the card form's postal field as a US ZIP. That is a
+// sandbox artefact, not a real requirement — production wants GB. Derived rather
+// than hardcoded so nobody later "fixes" production to match the sandbox.
+const billingCountry = env === 'sandbox' ? 'US' : 'GB';
+
+const today = new Date().toISOString().slice(0, 10);
+const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
+---
+
+<Layout title={`Book the ${room.shortName}`} description={`Book the ${room.shortName} at Meadowbrook, ${rate} per hour.`} noindex={true}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">{rate} per hour</span>
+      <h1>Book the {room.shortName}.</h1>
+      {room.capacityNote && <p>{room.capacityNote}</p>}
+    </div>
+  </section>
+
+  <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+    <div class="mw-wrap bk-wrap">
+
+      <ol class="bk-steps">
+        <li class="bk-step active" data-step="1"><span>1</span> Pick a time</li>
+        <li class="bk-step" data-step="2"><span>2</span> Your details</li>
+        <li class="bk-step" data-step="3"><span>3</span> Pay</li>
+      </ol>
+
+      <!-- Step 1 -->
+      <div class="bk-panel" id="bk-1">
+        <label class="bk-field">
+          <span>Date</span>
+          <input type="date" id="bk-date" value={today} min={today} />
+        </label>
+        <div id="bk-slots" class="bk-slots"><p class="bk-muted">Loading…</p></div>
+        <div id="bk-durations" class="bk-durations" hidden></div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="bk-panel" id="bk-2" hidden>
+        <p class="bk-chosen" id="bk-chosen"></p>
+        <label class="bk-field"><span>Your name</span><input type="text" id="bk-name" autocomplete="name" required /></label>
+        <label class="bk-field"><span>Email</span><input type="email" id="bk-email" autocomplete="email" required /></label>
+        <label class="bk-field">
+          <span>Mobile number</span>
+          <input type="tel" id="bk-phone" autocomplete="tel" required />
+          <small>Your door entry code is the last 4 digits of this number.</small>
+        </label>
+        {room.intakeQuestions.map((q) => (
+          <label class="bk-field">
+            <span>{q.label}</span>
+            <textarea id={`bk-q-${q.key}`} rows="2" required={q.required}></textarea>
+          </label>
+        ))}
+        <button class="mw-btn mw-btn-primary" id="bk-to-3">Continue to payment</button>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="bk-panel" id="bk-3" hidden>
+        <p class="bk-chosen" id="bk-chosen-2"></p>
+        <div id="bk-refund-warning" class="bk-warn" hidden></div>
+        <label class="bk-terms">
+          <input type="checkbox" id="bk-terms" />
+          <span>I agree to the <a href="/room-hire-terms" target="_blank" rel="noopener">room hire terms</a>.</span>
+        </label>
+        <div id="card-container" class="bk-card"></div>
+        <p class="bk-muted bk-small">Payments are processed securely by Square. We never store your card details.</p>
+        <button class="mw-btn mw-btn-primary mw-btn-lg" id="bk-pay" disabled>Pay <span id="bk-total"></span></button>
+      </div>
+
+      <p class="bk-error" id="bk-error" role="alert" hidden></p>
+    </div>
+  </section>
+</Layout>
+
+<script src={squareSdkUrl} is:inline></script>
+<script define:vars={{ squareAppId, squareLocationId, billingCountry, slug }}>
+  const $ = (id) => document.getElementById(id);
+  const errorEl = $('bk-error');
+  const state = { slot: null, durationMins: null, pricePence: null, card: null };
+
+  const money = (p) => `£${(p / 100).toFixed(2)}`;
+  const showError = (m) => { errorEl.textContent = m; errorEl.hidden = false; errorEl.scrollIntoView({ block: 'center' }); };
+  const clearError = () => { errorEl.hidden = true; };
+
+  function goto(step) {
+    for (const n of [1, 2, 3]) $(`bk-${n}`).hidden = n !== step;
+    document.querySelectorAll('.bk-step').forEach((el) => {
+      el.classList.toggle('active', Number(el.dataset.step) === step);
+      el.classList.toggle('done', Number(el.dataset.step) < step);
+    });
+    clearError();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const describe = () => {
+    const d = new Date(state.slot);
+    const end = new Date(d.getTime() + state.durationMins * 60000);
+    const fmt = (x) => x.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `${d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}, `
+      + `${fmt(d)}–${fmt(end)} · ${money(state.pricePence)}`;
+  };
+
+  async function loadSlots() {
+    const date = $('bk-date').value;
+    const box = $('bk-slots');
+    box.innerHTML = '<p class="bk-muted">Loading…</p>';
+    $('bk-durations').hidden = true;
+    try {
+      const res = await fetch(`/api/booking/availability?room=${slug}&from=${date}&to=${date}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Could not load availability.');
+      const day = data.days[0];
+      if (!day.open || day.slots.length === 0) {
+        box.innerHTML = '<p class="bk-muted">Nothing available that day. Try another date.</p>';
+        return;
+      }
+      box.innerHTML = day.slots.map((s, i) =>
+        `<button class="bk-slot" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
+      box.querySelectorAll('.bk-slot').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          box.querySelectorAll('.bk-slot').forEach((b) => b.classList.remove('sel'));
+          btn.classList.add('sel');
+          showDurations(day.slots[Number(btn.dataset.i)]);
+        });
+      });
+    } catch (err) {
+      box.innerHTML = `<p class="bk-error-inline">${err.message}</p>`;
+    }
+  }
+
+  function showDurations(slot) {
+    state.slot = slot.start;
+    const box = $('bk-durations');
+    box.hidden = false;
+    box.innerHTML = '<p class="bk-label">How long?</p><div class="bk-durs">'
+      + slot.durations.map((d, i) => {
+          const h = Math.floor(d.mins / 60); const m = d.mins % 60;
+          const label = h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+          return `<button class="bk-dur" data-i="${i}"><b>${label}</b>${money(d.pricePence)}</button>`;
+        }).join('') + '</div>';
+    box.querySelectorAll('.bk-dur').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const d = slot.durations[Number(btn.dataset.i)];
+        state.durationMins = d.mins;
+        state.pricePence = d.pricePence;
+        $('bk-chosen').textContent = describe();
+        $('bk-chosen-2').textContent = describe();
+        $('bk-total').textContent = money(d.pricePence);
+        goto(2);
+      });
+    });
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  $('bk-date').addEventListener('change', loadSlots);
+  loadSlots();
+
+  $('bk-to-3').addEventListener('click', async () => {
+    const name = $('bk-name').value.trim();
+    const email = $('bk-email').value.trim();
+    const phone = $('bk-phone').value.trim();
+    if (name.length < 2) return showError('Please give your name.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError('Please enter a valid email address.');
+    if (phone.replace(/\D/g, '').length < 10) return showError('Please give a mobile number — it becomes your door code.');
+
+    // The refund warning uses the same rule the refund itself will: within an
+    // hour of the start, cancelling returns nothing, and the hirer is told
+    // BEFORE the card is charged rather than discovering it afterwards.
+    const mins = (new Date(state.slot).getTime() - Date.now()) / 60000;
+    const warn = $('bk-refund-warning');
+    if (mins <= 60) {
+      warn.textContent = 'This booking starts within the hour, so it cannot be refunded once confirmed.';
+      warn.hidden = false;
+    } else {
+      warn.hidden = true;
+    }
+    goto(3);
+    await mountCard();
+  });
+
+  async function mountCard() {
+    if (state.card) return;
+    try {
+      const payments = await Square.payments(squareAppId, squareLocationId);
+      state.card = await payments.card();
+      await state.card.attach('#card-container');
+      $('bk-pay').disabled = !$('bk-terms').checked;
+    } catch (err) {
+      console.error('booking: card form failed', err);
+      showError('The payment form could not load. Please refresh and try again.');
+    }
+  }
+
+  $('bk-terms').addEventListener('change', (e) => { $('bk-pay').disabled = !e.target.checked || !state.card; });
+
+  $('bk-pay').addEventListener('click', async () => {
+    clearError();
+    const btn = $('bk-pay');
+    btn.disabled = true; btn.textContent = 'Processing…';
+
+    const name = $('bk-name').value.trim();
+    const email = $('bk-email').value.trim();
+    const [givenName, ...rest] = name.split(/\s+/);
+
+    let result;
+    try {
+      // Copied from /donate's corrected version. verificationDetails here is what
+      // runs SCA inline; the token carries the verification, so the server charge
+      // needs nothing extra. Omitting it is what produces
+      // CARD_DECLINED_VERIFICATION_REQUIRED from UK issuers.
+      result = await state.card.tokenize({
+        amount: (state.pricePence / 100).toFixed(2),
+        currencyCode: 'GBP',
+        intent: 'CHARGE',
+        customerInitiated: true,
+        sellerKeyedIn: false,
+        billingContact: {
+          givenName,
+          ...(rest.length ? { familyName: rest.join(' ') } : {}),
+          email,
+          countryCode: billingCountry,
+        },
+      });
+    } catch (err) {
+      console.error('booking: tokenize failed', err);
+      showError('We could not verify your card with your bank. Please try again or use a different card.');
+      btn.disabled = false; btn.innerHTML = `Pay <span id="bk-total">${money(state.pricePence)}</span>`;
+      return;
+    }
+
+    if (result.status !== 'OK') {
+      console.error('booking: tokenize not OK', result.status, result.errors);
+      showError(result.errors?.[0]?.message ?? 'Card details invalid. Please check and try again.');
+      btn.disabled = false; btn.innerHTML = `Pay <span id="bk-total">${money(state.pricePence)}</span>`;
+      return;
+    }
+
+    const customer = { name, email, phone: $('bk-phone').value.trim() };
+    const notes = Array.from(document.querySelectorAll('[id^="bk-q-"]'))
+      .map((el) => `${el.previousElementSibling?.textContent ?? ''} ${el.value}`.trim())
+      .filter((s) => s.length > 1).join('\n');
+    if (notes) customer.notes = notes;
+
+    try {
+      const res = await fetch('/api/booking/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room: slug, start: state.slot, durationMins: state.durationMins,
+          pricePence: state.pricePence, customer, sourceId: result.token, acceptedTerms: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Booking failed.');
+      window.location.href = `/bookings/${data.bookingRef}`;
+    } catch (err) {
+      showError(err.message);
+      btn.disabled = false; btn.innerHTML = `Pay <span id="bk-total">${money(state.pricePence)}</span>`;
+    }
+  });
+</script>
+
+<style>
+  .bk-wrap { max-width: 640px; }
+  .bk-steps { display: flex; gap: 10px; list-style: none; margin: 0 0 24px; padding: 0; font-size: 13px; flex-wrap: wrap; }
+  .bk-step { display: flex; align-items: center; gap: 8px; color: var(--ink-mute); font-weight: 600; }
+  .bk-step span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--paper-deep); color: var(--ink-soft); font-size: 12px; }
+  .bk-step.active { color: var(--ink); }
+  .bk-step.active span { background: var(--green); color: #fff; }
+  .bk-step.done span { background: var(--green-dark); color: #fff; }
+  .bk-panel { background: var(--bone); border-radius: var(--r-lg); padding: 22px; }
+  .bk-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+  .bk-field > span { font-size: 13px; font-weight: 600; }
+  .bk-field small { font-size: 12px; color: var(--ink-mute); }
+  .bk-field input, .bk-field textarea { font: inherit; font-size: 15px; padding: 11px 13px;
+    border: 1.5px solid var(--sand); border-radius: 10px; background: #fff; color: var(--ink); }
+  .bk-field input:focus, .bk-field textarea:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+  .bk-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .bk-slot { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 8px 12px; border: 0;
+    border-radius: var(--r-pill); background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+  .bk-slot.sel { background: var(--green); color: #fff; }
+  .bk-durations { margin-top: 18px; }
+  .bk-label { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+  .bk-durs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bk-dur { display: inline-flex; gap: 8px; align-items: baseline; font: inherit; font-size: 14px;
+    padding: 10px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  .bk-dur:hover { border-color: var(--green); }
+  .bk-chosen { margin: 0 0 18px; padding: 12px 14px; background: var(--paper-deep);
+    border-radius: 10px; font-size: 14px; font-weight: 600; }
+  .bk-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; font-size: 14px;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .bk-terms { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 18px; font-size: 14px; }
+  .bk-terms input { margin-top: 3px; width: 18px; height: 18px; }
+  .bk-card { margin-bottom: 12px; min-height: 90px; }
+  .bk-small { font-size: 12px; }
+  .bk-muted { color: var(--ink-mute); font-size: 14px; }
+  .bk-error { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #FCECE7;
+    color: #8A2C0D; font-weight: 600; font-size: 14px; }
+  .bk-error-inline { color: var(--ember); font-size: 14px; }
+</style>

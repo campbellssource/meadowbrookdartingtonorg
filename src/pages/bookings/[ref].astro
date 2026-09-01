@@ -1,0 +1,110 @@
+---
+// Confirmation page. Phase 2 shows the booking; amend and cancel arrive in Phase 3
+// behind a magic-link token, which is why nothing here is actionable yet.
+import Layout from '../../layouts/Layout.astro';
+import { getBooking } from '../../lib/booking/store.ts';
+import { normaliseReference } from '../../lib/booking/reference.ts';
+import { formatPence } from '../../lib/booking/pricing.ts';
+import { instantToLocalTime } from '../../lib/booking/time.ts';
+
+export const prerender = false;
+
+const ref = normaliseReference(Astro.params.ref ?? '');
+const booking = ref ? await getBooking(ref) : null;
+
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', {
+  timeZone: 'Europe/London', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+}).replace(',', '');
+
+const start = booking?.start.toDate();
+const end = booking?.end.toDate();
+const durationWords = (mins: number) => {
+  const h = Math.floor(mins / 60); const m = mins % 60;
+  return h && m ? `${h} hours ${m} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${m} minutes`;
+};
+const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
+---
+
+<Layout
+  title={booking ? `Booking ${ref}` : 'Booking not found'}
+  description="Your Meadowbrook room booking."
+  noindex={true}
+>
+  {!booking ? (
+    <section class="mw-zone-hero">
+      <div class="mw-wrap">
+        <span class="mw-eyebrow">Not found</span>
+        <h1>We can't find that booking.</h1>
+        <p>
+          The reference may have been mistyped, or the booking may have been cancelled.
+          If you think it should be here, <a href="/contact">get in touch</a>.
+        </p>
+      </div>
+    </section>
+  ) : (
+    <>
+      <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+        <div class="mw-wrap">
+          <span class="mw-eyebrow">
+            {booking.status === 'confirmed' ? 'Confirmed' : booking.status}
+          </span>
+          <h1>You're booked in.</h1>
+          <p>We've emailed a copy to {booking.customer.email}.</p>
+        </div>
+      </section>
+
+      <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+        <div class="mw-wrap" style="max-width: 640px;">
+          <div class="bc-card">
+            <dl class="bc-list">
+              <div><dt>Room</dt><dd>{booking.room === 'large-room' ? 'Studio' : booking.room === 'small-room' ? 'Lounge' : 'Snooker Room'}</dd></div>
+              <div><dt>When</dt><dd>{fmt(start!)}<br />{instantToLocalTime(start!)}–{instantToLocalTime(end!)}</dd></div>
+              <div><dt>Length</dt><dd>{durationWords(booking.durationMins)}</dd></div>
+              <div><dt>Paid</dt><dd>{formatPence(booking.paidPence)}</dd></div>
+              <div><dt>Reference</dt><dd class="bc-ref">{ref}</dd></div>
+              {doorCode && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
+            </dl>
+          </div>
+
+          {doorCode && (
+            <p class="bc-note">
+              Your door entry code is <strong>{doorCode}</strong> — the last four digits of your
+              mobile number. It works on the entrance and upstairs doors for the length of your
+              booking.
+            </p>
+          )}
+
+          {!booking.calendarEventId && (
+            <p class="bc-warn">
+              Your booking is confirmed and paid. We're still finishing one step behind the
+              scenes — if you don't receive your door code shortly, please
+              <a href="/contact"> get in touch</a>.
+            </p>
+          )}
+
+          <p class="bc-note">
+            Need to change or cancel? Use the link in your confirmation email. You can cancel
+            for a full refund up to 1 hour before the start time.
+          </p>
+
+          <p style="margin-top: var(--space-6);">
+            <a href="/facilities" class="mw-btn mw-btn-secondary">Back to facilities</a>
+          </p>
+        </div>
+      </section>
+    </>
+  )}
+</Layout>
+
+<style>
+  .bc-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
+  .bc-list { margin: 0; display: grid; gap: 14px; }
+  .bc-list > div { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; }
+  .bc-list dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .bc-list dd { margin: 0; font-size: 15px; font-weight: 600; }
+  .bc-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.04em; }
+  .bc-note { margin: 18px 0 0; font-size: 14px; color: var(--fg-soft); line-height: 1.6; }
+  .bc-warn { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; font-size: 14px;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  @media (max-width: 560px) { .bc-list > div { grid-template-columns: 1fr; gap: 2px; } }
+</style>

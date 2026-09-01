@@ -87,6 +87,23 @@ async function cleanup(): Promise<void> {
     }
   }
   ok(removed === 0 ? 'nothing to clean' : `removed ${removed} test event(s)`);
+
+  // Test bookings in Firestore, found by their own marker rather than by a list
+  // of references anyone had to remember.
+  const db = await getDb();
+  const tests = await db.collection('bookings').where('isTest', '==', true).get();
+  info(`Firestore: ${tests.size} test booking(s)`);
+  for (const doc of tests.docs) {
+    console.log(`      removed ${doc.id}  ${doc.data().localDate}`);
+    await doc.ref.delete();
+  }
+
+  const holds = await db.collection('holds').get();
+  if (holds.size) {
+    info(`Firestore: ${holds.size} stale hold(s)`);
+    for (const doc of holds.docs) await doc.ref.delete();
+  }
+  ok('Firestore clean');
 }
 
 /**

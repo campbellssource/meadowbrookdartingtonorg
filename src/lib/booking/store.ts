@@ -15,6 +15,7 @@ import { inflate } from './availability.ts';
 import { instantToLocalDate, MINUTE } from './time.ts';
 import type { Interval, LocalDate } from './time.ts';
 import type { RoomBookingConfig } from './config.ts';
+import { env } from './env.ts';
 
 export type BookingStatus = 'held' | 'confirmed' | 'cancelled' | 'orphaned';
 
@@ -58,6 +59,12 @@ export interface Booking {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   history: HistoryEntry[];
+  /**
+   * Set outside production, so cleanup can find test bookings without trusting a
+   * list of references someone remembered to keep. Same principle as the calendar's
+   * [TEST EVENT] marker: the record says what it is.
+   */
+  isTest?: boolean;
 }
 
 export interface Hold {
@@ -88,13 +95,13 @@ let db: Firestore | null = null;
 
 export async function getDb(): Promise<Firestore> {
   if (db) return db;
-  const projectId = process.env.BOOKING_PROJECT_ID ?? 'meadowbrook-booking';
+  const projectId = env('BOOKING_PROJECT_ID') ?? 'meadowbrook-booking';
   const settings: Settings = { projectId };
 
   // The Workspace blocks service-account keys, so local dev impersonates through
   // your own ADC. On Cloud Run this is unset and the runtime SA is used directly.
-  const target = process.env.BOOKING_IMPERSONATE_SA;
-  if (target && !process.env.FIRESTORE_EMULATOR_HOST) {
+  const target = env('BOOKING_IMPERSONATE_SA');
+  if (target && !env('FIRESTORE_EMULATOR_HOST')) {
     const sourceClient = await new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     }).getClient();
@@ -247,6 +254,7 @@ export async function confirmBooking(input: ConfirmInput): Promise<Booking> {
     createdAt: now,
     updatedAt: now,
     history: [{ at: now, action: 'created', actor: 'booker' }],
+    ...(process.env.NODE_ENV !== 'production' ? { isTest: true } : {}),
   };
 
   const batch = database.batch();

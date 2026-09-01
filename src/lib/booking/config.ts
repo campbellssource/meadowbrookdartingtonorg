@@ -10,6 +10,7 @@
 // without pulling in the CMS, its dependency tree, and a working content directory.
 
 import type { LocalTime } from './time.ts';
+import { env } from './env.ts';
 
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -86,7 +87,7 @@ const envKey = (slug: string): string =>
  * pointed at throwaway calendars without touching content.
  */
 export function resolveCalendarId(slug: string, configured: string): string {
-  return process.env[envKey(slug)] ?? configured;
+  return env(envKey(slug)) ?? configured;
 }
 
 /**
