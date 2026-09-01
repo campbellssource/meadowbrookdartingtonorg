@@ -12,7 +12,7 @@ Firestore. This file is what stops that.
 
 | Piece | Locally | Notes |
 |---|---|---|
-| **Google Calendar** | Real API, **dev calendars** | Verified working via ADC impersonation (`08`). Points at throwaway calendars, never the live rooms. |
+| **Google Calendar** | Real API, **real room calendars** | Every test event marked `[TEST EVENT]`; deletion refuses anything unmarked. See below. |
 | **Square** | Real API, **sandbox** | Full tokenisation and 3-D Secure with test cards. Refunds work. |
 | **Firestore** | **Emulator** | `FIRESTORE_EMULATOR_HOST` is honoured by the client library automatically — no code branch. |
 | **Email (Brevo)** | **Console transport** | Rendered email printed to the terminal. Nothing is sent. |
@@ -26,31 +26,37 @@ money, the availability arithmetic — runs against the real API.
 
 ### 1. Writing test bookings onto live room calendars
 
-The obvious failure. A dozen "Test Booking" events on the real Studio calendar is not just
-untidy — under D1 the calendar *is* the source of truth for occupancy, so junk events make real
-rooms look busy and block real hirers.
+**Decided 31 Aug 2026 — test against the real calendars, and mark every test event.** The DRA is
+comfortable with this, and it has a real advantage over throwaway dev calendars: the door-lock
+system (`13`) watches the *live* calendars, so a booking written anywhere else proves nothing
+about whether a hirer can actually get in. Testing on the real thing is the only way that
+integration is ever exercised before a paying customer meets it.
 
-**Fix.** Three dev calendars, created by and owned by `booking-app` itself (it can call
-`calendars.insert`; it needs no sharing to use what it owns, and can share them back to a human
-with `acl.insert` if you want to watch them). Calendar IDs resolve through:
+The rules, which are the DRA's:
 
-```
-resolveCalendarId(room) = process.env[`BOOKING_CALENDAR_${room.key.toUpperCase()}`]
-                       ?? room.calendarId   // from Keystatic
-```
+1. **Book a few weeks out**, so a test never collides with a real hirer.
+2. **Every test event carries `[TEST EVENT]`** in its summary and description.
+3. **Tidy up afterwards.**
 
-`.env` sets the three overrides; production sets none and uses the Keystatic values.
+Marking is what makes tidying safe. Cleanup that deletes "the events we made" relies on our own
+records being right; cleanup that refuses to delete anything without `[TEST EVENT]` in it cannot
+destroy a real booking even if our records are wrong, the wrong calendar is targeted, or the
+date maths is off. The marker is checked against the event **fetched back from Google**, not
+against what we believe we wrote.
 
-**And a guard, because an env override is one typo from silently pointing at production.**
-`assertWritable(room)` in `config.ts` throws if a live room calendar is about to be *written*
-while `NODE_ENV !== 'production'`, against a hardcoded deny-list of the three production IDs.
-Every calendar write calls it.
+Two guards in `calendar.ts`, both of which throw rather than warn:
 
-**Writes, not reads** — this started life as a boot-time check and was wrong that way. Reading a
-live calendar from a laptop is useful and harmless: it is exactly how Phase 1's availability
-output gets compared against Acuity. Refusing that would have blocked the acceptance test the
-phase exists to pass. It is the writes that put junk on a real room's calendar, so that is
-where the refusal belongs.
+| Guard | Rule |
+|---|---|
+| `assertWritableEvent` | Outside production, an event written to a live room calendar **must** carry the marker |
+| `assertDeletableEvent` | Outside production, an event on a live room calendar **cannot** be deleted unless the fetched copy carries the marker |
+
+Last-minute scenarios are fine on the real calendars too — the DRA is content with that, and a
+`[TEST EVENT]` an hour out is no more dangerous than one a fortnight out.
+
+**Note this really does provision a door code.** A test booking on the Lounge creates a TTLock
+passcode on both locks. That is the point — it is the integration we most need to prove — but it
+means test events should be cleaned up rather than left to accumulate codes.
 
 ### 2. Emailing real people
 
@@ -107,7 +113,6 @@ recur looking like something else.
 # One-off
 gcloud auth application-default login          # NOT `gcloud auth login` -- see above
 gcloud components install cloud-firestore-emulator
-node scripts/booking-dev-calendars.mjs --create   # makes the 3 dev calendars, prints their IDs
 
 # Every session
 npm run dev:booking     # emulator + astro dev, concurrently
@@ -120,9 +125,6 @@ BOOKING_PROJECT_ID=meadowbrook-booking
 BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com
 FIRESTORE_EMULATOR_HOST=localhost:8080
 BOOKING_EMAIL_TRANSPORT=console
-BOOKING_CALENDAR_SNOOKER=<dev calendar id>
-BOOKING_CALENDAR_STUDIO=<dev calendar id>
-BOOKING_CALENDAR_LOUNGE=<dev calendar id>
 PUBLIC_BOOKING_SQUARE_ENVIRONMENT=sandbox
 PUBLIC_BOOKING_SQUARE_APPLICATION_ID=<sandbox app id>
 PUBLIC_BOOKING_SQUARE_LOCATION_ID=<sandbox location id>
@@ -151,11 +153,11 @@ production untested.
 
 The route to walk before calling any phase done:
 
-1. `/facilities/snooker-room` → availability grid renders from the dev calendar.
-2. Drop an event on the dev calendar by hand → refresh → that slot has gone. *(Proves D1.)*
+1. `/facilities/snooker-room` → availability grid renders from the room calendar.
+2. Drop an event on the calendar by hand → refresh → that slot has gone. *(Proves D1.)*
 3. Book a slot → pay with `4310 0000 0000 0055` → complete the 3-D Secure challenge.
-4. Terminal prints the confirmation email. Dev calendar has one new event. Emulator has one
-   booking, `status: confirmed`.
+4. Terminal prints the confirmation email. The room calendar has one new `[TEST EVENT]`.
+   Emulator has one booking, `status: confirmed`.
 5. Follow the manage link from the terminal → amend to a **longer** slot → pay the difference.
 6. Amend to a **shorter** slot → partial refund. Check it in the Square sandbox dashboard.
 7. Cancel → full refund, calendar event gone, booking `status: cancelled`, history intact.
@@ -173,7 +175,9 @@ that exercises `minNoticeHours: 0` and the cancellation window interacting, and 
 - [ ] `npm run dev:booking` starts the emulator and the dev server together.
 - [ ] With `.env` as above, the nine steps complete without touching a live calendar, a real
       inbox, or production Firestore.
-- [ ] Dev boot fails loudly if a resolved calendar ID is a production room calendar.
+- [ ] Outside production, writing an unmarked event to a live room calendar throws.
+- [ ] Outside production, deleting an unmarked event from a live room calendar throws.
+- [ ] The delete guard checks the event fetched back from Google, not our own record of it.
 - [ ] The email send function throws, rather than sending, if `BOOKING_EMAIL_TRANSPORT` is unset
       outside production.
-- [ ] `scripts/booking-dev-calendars.mjs --destroy` cleans up the dev calendars.
+- [ ] `npm run booking:cleanup` removes every `[TEST EVENT]` and nothing else.

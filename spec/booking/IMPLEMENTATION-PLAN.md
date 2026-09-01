@@ -52,10 +52,11 @@ before the 17:00 booking (one hour, ending exactly on the buffer edge), nothing 
 after the 19:15–21:00 booking, and 22:00 for the final hour. Snooker and Lounge 57 starts that
 day, Studio 34.
 
-**Not yet done: the side-by-side against Acuity.** The engine has been checked against the
-calendars, which is not the same thing as checking it against what Acuity *offers*. That
-comparison is the one that would catch a rule we have subtly wrong rather than a calendar we
-have read wrong. Cheap now, expensive after Phase 2 puts money behind it.
+**The Acuity side-by-side was dropped, 31 Aug 2026**, at the DRA's direction: Acuity's rules are
+arbitrary and not a specification worth conforming to. The rules we implement are the DRA's
+stated ones, tested directly (75 unit tests) rather than by comparison. Snooker would have
+matched; Studio and Lounge never would have, because the 30-minute buffer is deliberately
+stricter than Acuity's 15.
 
 ## Phase 2 — Booking, paid
 
