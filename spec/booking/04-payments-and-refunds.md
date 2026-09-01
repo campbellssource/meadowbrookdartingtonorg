@@ -51,6 +51,72 @@ a hold ID we can always ask Square what happened, rather than guessing.
 `CARD_DECLINED_VERIFICATION_REQUIRED` gets the same clearer message `/donate` already uses.
 Copy that handling; don't re-derive it.
 
+## What `/donate` learned the hard way — read this before writing the card form
+
+The DRA reports (31 Aug 2026) that `/donate` **needed substantial work after it went live**,
+because the sandbox did not surface problems that production did. That is the single most
+useful piece of information available about this integration, and it changes how Phase 2 should
+be tested.
+
+### 1. The sandbox is not a faithful rehearsal
+
+Reported symptoms:
+
+- **Extra payment steps appeared in production** that dev had barely exercised — 3-D Secure
+  challenge flows.
+- **Mastercard worked while Visa did not.** Card networks behave differently under SCA and the
+  sandbox does not reproduce that spread.
+- **The sandbox expects US billing details** — a ZIP code where production wants a UK postcode.
+
+So passing every sandbox test is *not* evidence the card form works. Plan accordingly rather
+than being surprised twice.
+
+### 2. Therefore: a real-money test is part of Phase 2, not an afterthought
+
+Before the booking form is advertised to anyone:
+
+1. Switch booking to **production** Square credentials.
+2. Make a **real booking with a real card**, for a real amount, on a real slot.
+3. Repeat with **a Visa and a Mastercard** — the DRA has already been bitten by exactly this.
+4. **Cancel it and confirm the refund lands**, which also tests the refund path with real money.
+5. Only then open it up.
+
+A £7.50 snooker booking is a cheap way to buy that certainty. Put it in the phase checklist so
+it cannot be skipped.
+
+### 3. Billing country differs between environments
+
+`/donate` sends `billingContact.countryCode: 'GB'`, which is right for production. In the
+sandbox the postal-code field validates as a US ZIP. Derive it from the environment rather than
+hardcoding, so sandbox testing is not a fight:
+
+```
+const billingCountry = env === 'sandbox' ? 'US' : 'GB';
+```
+
+and be explicit in the code comment that this divergence is a sandbox artefact, not a real
+requirement — otherwise someone will later "fix" production to match the sandbox.
+
+### 4. Copy the tokenize call from `/donate` exactly
+
+It is the version that works in production after being corrected there:
+
+```js
+await card.tokenize({
+  amount: (pence / 100).toFixed(2),
+  currencyCode: 'GBP',
+  intent: 'CHARGE',
+  customerInitiated: true,
+  sellerKeyedIn: false,
+  billingContact: { givenName, familyName, email, countryCode },
+});
+```
+
+`verificationDetails` passed to `tokenize()` is what runs SCA inline; the returned token already
+carries the verification, so the server-side charge needs nothing extra. Omitting this is what
+produces `CARD_DECLINED_VERIFICATION_REQUIRED` from UK issuers under PSD2. Log the real error on
+failure — an SCA failure with a generic message is undiagnosable.
+
 ## Refunds
 
 Refunds are money moving the other way and get the same care as charges.

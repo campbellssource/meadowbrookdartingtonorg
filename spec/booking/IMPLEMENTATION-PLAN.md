@@ -79,6 +79,12 @@ Square in **sandbox** throughout this phase.
 event and one email — and two concurrent attempts at the same slot produce one 201, one 409,
 and exactly one charge. Write that concurrency test; it is the reason the transaction exists.
 
+**And then, before anyone is told the form exists:** a real booking, real card, real money, on
+production Square credentials — with **both a Visa and a Mastercard** — cancelled afterwards to
+prove the refund. `/donate` needed significant post-launch work because the sandbox did not
+reproduce 3-D Secure behaviour, and Visa failed where Mastercard worked (`04`). Sandbox green is
+not evidence. £7.50 buys the certainty.
+
 ## Phase 3 — Manage: magic links, amend, cancel
 
 Everything in `05`, and the refund half of `04`.
