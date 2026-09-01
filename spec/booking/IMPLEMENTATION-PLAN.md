@@ -58,7 +58,7 @@ stated ones, tested directly (75 unit tests) rather than by comparison. Snooker 
 matched; Studio and Lounge never would have, because the 30-minute buffer is deliberately
 stricter than Acuity's 15.
 
-## Phase 2 — Booking, paid
+## Phase 2 — Booking, paid ✅ DONE 1 Sep 2026 (sandbox)
 
 The write path from `03` and the charge from `04`.
 
@@ -78,6 +78,12 @@ Square in **sandbox** throughout this phase.
 **Done when:** a sandbox booking produces one payment, one Firestore record, one calendar
 event and one email — and two concurrent attempts at the same slot produce one 201, one 409,
 and exactly one charge. Write that concurrency test; it is the reason the transaction exists.
+
+**Status.** A full click-through completed in the browser on 1 Sep 2026: slot picked, sandbox
+card paid, confirmation shown. The booking produced one Square payment, one Firestore record
+(`status: confirmed`, one payment entry), one `[TEST EVENT]` calendar event parseable by the
+door system, and two emails. Cleanup removed all of it; both collections are empty. 129 unit
+tests, plus the 8-way concurrency check against real Firestore.
 
 **And then, before anyone is told the form exists:** a real booking, real card, real money, on
 production Square credentials — with **both a Visa and a Mastercard** — cancelled afterwards to
