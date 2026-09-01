@@ -136,6 +136,32 @@ BOOKING_CRON_SECRET=<openssl rand -base64 32>
 Add `http://localhost:4321/admin/auth/callback` to the OAuth client's authorised redirect URIs
 alongside the production one, so `/admin` signs in locally through the real flow.
 
+## Use `localhost`, not `127.0.0.1`
+
+Square's Web Payments SDK refuses to load, and its message names neither the cause nor the fix:
+
+> Web Payments SDK can only be embedded on sites that use HTTPS and have a secure context
+
+Its actual check, read out of the bundle, is:
+
+```js
+if (!location.hostname.endsWith('localhost') && location.protocol !== 'https:') throw
+```
+
+So `127.0.0.1` is refused even though browsers treat it as a secure context — the SDK does a
+hostname string test, not a `window.isSecureContext` test. **Astro's dev server prints
+`http://127.0.0.1:4321/`**, so following the link it gives you lands on the broken one.
+
+Open `http://localhost:4321` instead. Same server, and the card form loads.
+
+`/book/[slug]` detects this and says so with the corrected URL, rather than letting Square's
+message send you looking for a certificate problem.
+
+**Testing on a real phone needs more than this.** A phone on the LAN reaches the dev server by
+IP, which fails the same check, so the payment step cannot be exercised over plain HTTP from a
+phone. Slot picking and the details step work fine; for the card form you need an HTTPS tunnel
+(`cloudflared tunnel --url http://localhost:4321` or similar) or a deployed preview.
+
 ## Square sandbox test cards
 
 | Outcome | Card |

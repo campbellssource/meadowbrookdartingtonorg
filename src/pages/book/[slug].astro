@@ -208,6 +208,21 @@ const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
         showError('The payment form could not load — the payment provider script is blocked or unreachable.');
         return;
       }
+      // Square's own check is:
+      //   !location.hostname.endsWith('localhost') && location.protocol !== 'https:'
+      // so 127.0.0.1 is refused even though browsers treat it as a secure context --
+      // it is a hostname string test, not an isSecureContext test. Astro's dev server
+      // prints the 127.0.0.1 URL, so following the link it gives you lands here.
+      // Caught explicitly because Square's message names neither the cause nor the fix.
+      const loc = window.location;
+      if (loc.protocol !== 'https:' && !loc.hostname.endsWith('localhost')) {
+        const fixed = `${loc.protocol}//localhost:${loc.port}${loc.pathname}`;
+        showError(
+          `Square's payment form only loads over HTTPS or on "localhost" — this page is on `
+          + `${loc.hostname}. Open ${fixed} instead.`,
+        );
+        return;
+      }
       if (!squareAppId || !squareLocationId) {
         console.error('booking: Square not configured', { squareAppId, squareLocationId });
         showError('Payments are not configured for this site yet.');
