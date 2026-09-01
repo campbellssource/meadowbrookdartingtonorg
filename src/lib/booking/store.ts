@@ -288,3 +288,128 @@ export async function recordOrphan(
     orphanDetail: detail,
   }, { merge: true });
 }
+
+// --- Magic-link tokens ---------------------------------------------------
+
+export interface TokenRecord {
+  ref: string;
+  email: string;
+  issuedAt: Timestamp;
+  revokedAt: Timestamp | null;
+  /** Rolling one-hour window for the use limit. */
+  windowStart: Timestamp;
+  uses: number;
+}
+
+/** Uses allowed per token per hour. A leaked link becomes noisy rather than useful. */
+export const TOKEN_USES_PER_HOUR = 20;
+
+export async function recordToken(jti: string, ref: string, email: string): Promise<void> {
+  const database = await getDb();
+  const now = Timestamp.now();
+  await database.collection('tokens').doc(jti).set({
+    ref, email, issuedAt: now, revokedAt: null, windowStart: now, uses: 0,
+  } satisfies TokenRecord);
+}
+
+/** Revokes every token for a booking. Used on cancellation and on re-issue. */
+export async function revokeTokensFor(ref: string): Promise<number> {
+  const database = await getDb();
+  const snap = await database.collection('tokens').where('ref', '==', ref).get();
+  const live = snap.docs.filter((d) => (d.data() as TokenRecord).revokedAt === null);
+  if (live.length === 0) return 0;
+  const batch = database.batch();
+  for (const doc of live) batch.update(doc.ref, { revokedAt: Timestamp.now() });
+  await batch.commit();
+  return live.length;
+}
+
+export type TokenCheck =
+  | { ok: true }
+  | { ok: false; reason: 'unknown' | 'revoked' | 'rate-limited' };
+
+/**
+ * Checks a token against its stored record and counts the use.
+ *
+ * The counter is incremented inside a transaction rather than read-then-written,
+ * so hammering the link cannot race past the limit.
+ */
+export async function useToken(jti: string, now = new Date()): Promise<TokenCheck> {
+  const database = await getDb();
+  const ref = database.collection('tokens').doc(jti);
+  return database.runTransaction(async (tx): Promise<TokenCheck> => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { ok: false, reason: 'unknown' };
+    const rec = snap.data() as TokenRecord;
+    if (rec.revokedAt) return { ok: false, reason: 'revoked' };
+
+    const windowAge = now.getTime() - rec.windowStart.toDate().getTime();
+    if (windowAge > 3_600_000) {
+      tx.update(ref, { windowStart: Timestamp.fromDate(now), uses: 1 });
+      return { ok: true };
+    }
+    if (rec.uses >= TOKEN_USES_PER_HOUR) return { ok: false, reason: 'rate-limited' };
+    tx.update(ref, { uses: rec.uses + 1 });
+    return { ok: true };
+  });
+}
+
+/** Bookings for an email address that have not yet ended. Powers /bookings/find. */
+export async function upcomingBookingsFor(email: string, now = new Date()): Promise<
+  { ref: string; booking: Booking }[]
+> {
+  const database = await getDb();
+  const snap = await database.collection('bookings')
+    .where('customer.email', '==', email.toLowerCase()).get();
+  return snap.docs
+    .map((d) => ({ ref: d.id, booking: d.data() as Booking }))
+    .filter(({ booking }) => booking.status === 'confirmed' && booking.end.toDate() > now);
+}
+
+export interface ApplyChangeInput {
+  ref: string;
+  start?: Date;
+  end?: Date;
+  pricePence?: number;
+  status?: BookingStatus;
+  calendarEventId?: string | null;
+  payment?: Omit<Payment, 'at'>;
+  history: Omit<HistoryEntry, 'at'>;
+}
+
+/**
+ * Applies an amendment or cancellation.
+ *
+ * `payments` is append-only and `paidPence` is recomputed from it in the same
+ * write, so the ledger and the derived total can never disagree.
+ */
+export async function applyChange(input: ApplyChangeInput): Promise<Booking> {
+  const database = await getDb();
+  const docRef = database.collection('bookings').doc(input.ref);
+  return database.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    if (!snap.exists) throw new Error(`No booking ${input.ref}`);
+    const b = snap.data() as Booking;
+    const now = Timestamp.now();
+
+    const payments = input.payment ? [...b.payments, { ...input.payment, at: now }] : b.payments;
+    const paidPence = payments.reduce((sum, p) => {
+      if (p.status !== 'completed') return sum;
+      return p.kind === 'charge' ? sum + p.amountPence : sum - p.amountPence;
+    }, 0);
+
+    const next: Partial<Booking> = {
+      payments, paidPence, updatedAt: now,
+      history: [...b.history, { ...input.history, at: now }],
+      ...(input.start ? { start: Timestamp.fromDate(input.start), localDate: instantToLocalDate(input.start) } : {}),
+      ...(input.end ? { end: Timestamp.fromDate(input.end) } : {}),
+      ...(input.start && input.end
+        ? { durationMins: Math.round((input.end.getTime() - input.start.getTime()) / MINUTE) } : {}),
+      ...(input.pricePence !== undefined ? { pricePence: input.pricePence } : {}),
+      ...(input.status ? { status: input.status } : {}),
+      ...(input.calendarEventId !== undefined ? { calendarEventId: input.calendarEventId } : {}),
+    };
+    tx.update(docRef, next);
+    return { ...b, ...next } as Booking;
+  });
+}

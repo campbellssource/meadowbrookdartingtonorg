@@ -171,6 +171,86 @@ export function confirmationEmail(b: BookingSummary): Email {
   };
 }
 
+/**
+ * Cancellation. States the refund in cash and how long it takes to appear.
+ *
+ * The "5 to 10 working days" line is the single most effective support-ticket
+ * prevention in the system: without it, every cancellation risks a "where is my
+ * money" email three days later.
+ */
+export function cancellationEmail(b: BookingSummary, refundPence: number): Email {
+  const when = `${longDate(b.start)}, ${instantToLocalTime(b.start)}–${instantToLocalTime(b.end)}`;
+  const money = refundPence > 0
+    ? `We are refunding ${formatPence(refundPence)} to the card you paid with. `
+      + `Refunds usually take 5 to 10 working days to appear on your statement.`
+    : `No refund is due, because this booking was cancelled within an hour of its start time.`;
+  const text = [
+    'Your booking has been cancelled.', '',
+    b.roomName, when, `Reference: ${b.reference}`, '',
+    money, '',
+    'If this was a mistake, please book again — we cannot reinstate a cancelled booking.',
+  ].join('\n');
+  return {
+    to: b.customerEmail,
+    subject: refundPence > 0
+      ? `Booking cancelled — refund of ${formatPence(refundPence)} on its way`
+      : `Booking cancelled — ${b.roomName}, ${shortDate(b.start)}`,
+    html: wrap('Your booking has been cancelled', `
+      <table style="width:100%;border-collapse:collapse;font-size:15px;">
+        <tr><td style="padding:6px 0;color:#5B4E42;">Room</td><td style="padding:6px 0;font-weight:600;">${b.roomName}</td></tr>
+        <tr><td style="padding:6px 0;color:#5B4E42;">Was</td><td style="padding:6px 0;">${when}</td></tr>
+        <tr><td style="padding:6px 0;color:#5B4E42;">Reference</td><td style="padding:6px 0;font-family:ui-monospace,monospace;">${b.reference}</td></tr>
+      </table>
+      <p style="margin:20px 0 0;">${money}</p>`),
+    text,
+  };
+}
+
+/** Amendment. Shows what changed and what money moved, if any. */
+export function amendmentEmail(b: BookingSummary, delta: { chargePence: number; refundPence: number }): Email {
+  const when = `${longDate(b.start)}, ${instantToLocalTime(b.start)}–${instantToLocalTime(b.end)}`;
+  const money = delta.chargePence > 0
+    ? `We have charged a further ${formatPence(delta.chargePence)} for the longer booking.`
+    : delta.refundPence > 0
+      ? `We are refunding ${formatPence(delta.refundPence)}. Refunds usually take 5 to 10 working days to appear.`
+      : 'The price is unchanged.';
+  const text = [
+    'Your booking has been changed.', '',
+    b.roomName, `Now: ${when}`, `Total: ${formatPence(b.pricePence)}`,
+    `Reference: ${b.reference}`, '', money, '',
+    'Change or cancel again:', b.manageUrl,
+  ].join('\n');
+  return {
+    to: b.customerEmail,
+    subject: `Your booking has been changed — ${b.roomName}, ${shortDate(b.start)}, ${instantToLocalTime(b.start)}`,
+    html: wrap('Your booking has been changed', `
+      <table style="width:100%;border-collapse:collapse;font-size:15px;">
+        <tr><td style="padding:6px 0;color:#5B4E42;">Room</td><td style="padding:6px 0;font-weight:600;">${b.roomName}</td></tr>
+        <tr><td style="padding:6px 0;color:#5B4E42;">Now</td><td style="padding:6px 0;font-weight:600;">${when}</td></tr>
+        <tr><td style="padding:6px 0;color:#5B4E42;">Total</td><td style="padding:6px 0;">${formatPence(b.pricePence)}</td></tr>
+        <tr><td style="padding:6px 0;color:#5B4E42;">Reference</td><td style="padding:6px 0;font-family:ui-monospace,monospace;">${b.reference}</td></tr>
+      </table>
+      <p style="margin:20px 0 0;">${money}</p>
+      <p style="margin:20px 0 0;"><a href="${b.manageUrl}" style="color:#4D7A33;">Change or cancel again</a></p>`),
+    text, ics: icsFor(b, 1),
+  };
+}
+
+/** Links to your upcoming bookings, for someone who lost the email. */
+export function findLinksEmail(to: string, items: { roomName: string; start: Date; url: string }[]): Email {
+  const lines = items.map((i) => `${i.roomName} — ${longDate(i.start)}, ${instantToLocalTime(i.start)}\n${i.url}`);
+  const text = ['Here are your upcoming Meadowbrook bookings.', '', ...lines].join('\n\n');
+  return {
+    to,
+    subject: 'Your Meadowbrook booking links',
+    html: wrap('Your bookings', items.map((i) => `
+      <p style="margin:0 0 16px;"><strong>${i.roomName}</strong><br>
+      ${longDate(i.start)}, ${instantToLocalTime(i.start)}<br>
+      <a href="${i.url}" style="color:#4D7A33;">Open this booking</a></p>`).join('')),
+    text,
+  };
+}
+
 /** Copy to the DRA. Gated by BOOKING_NOTIFY_OWNER so it can be switched off later. */
 export function ownerNotificationEmail(b: BookingSummary, action: 'New' | 'Amended' | 'Cancelled'): Email {
   const when = `${longDate(b.start)}, ${instantToLocalTime(b.start)}–${instantToLocalTime(b.end)}`;

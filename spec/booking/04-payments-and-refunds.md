@@ -155,6 +155,37 @@ cancelling this right now refund anything?". When the answer is no — which hap
 booking is made inside the window, routine for Snooker — the booking form must say so before
 the card is charged. Same function, so the warning and the actual refund can never disagree.
 
+### Pending refunds, and why `paidPence` looks wrong until Phase 5
+
+Observed in the sandbox on 1 Sep 2026 and true in production: **Square returns a refund as
+`PENDING`, not `COMPLETED`.** `paidPence` is derived from completed ledger entries only, which
+is right — money that has not moved should not be counted as moved — so a just-cancelled
+booking reads:
+
+```
+charge  2000p  completed
+refund  2000p  pending
+paidPence = 2000
+```
+
+That is correct at the instant of cancellation and **wrong an hour later**, because nothing
+currently transitions the entry. Until the `refund.updated` webhook lands in Phase 5:
+
+- every refunded booking keeps a `paidPence` that overstates what the DRA holds, and
+- the income report (`07`) would inherit that overstatement.
+
+Two consequences worth stating rather than discovering:
+
+- **Phase 5's webhook is not optional polish.** It is what makes the ledger eventually true.
+  Do not ship reporting to the treasurer before it.
+- **The reconcile job should also sweep pending payments**, not only orphans — a webhook that
+  is missed (delivery failure, a deploy mid-flight) otherwise leaves an entry pending forever.
+  Query Square by refund id and settle it.
+
+Nothing to fix in the cancel path itself: refusing to count pending money is the conservative
+and correct behaviour, and the alternative — assuming a refund succeeded — is how a charity ends
+up with books that do not balance.
+
 ### Partial refunds across multiple charges
 
 A booking amended upward twice has several charges in its ledger. Refunds are applied

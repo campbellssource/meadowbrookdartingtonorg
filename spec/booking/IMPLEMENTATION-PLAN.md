@@ -135,6 +135,11 @@ in `history`, and reporting totals reconcile against the CSV for the same period
 | `src/pages/api/booking/cron/reconcile.ts` | The table in `01` |
 | `src/pages/api/booking/webhooks/square.ts` | Orphan recovery, ledger truth |
 
+The Square webhook in this phase is load-bearing, not polish: refunds come back `PENDING`, and
+`paidPence` stays overstated until `refund.updated` settles the ledger entry (`04`). The
+reconcile job must also sweep entries left pending by a missed webhook. **Do not give the
+treasurer a reporting page before this phase lands.**
+
 **Done when:** both jobs run on schedule and are idempotent; a request without a valid OIDC
 token is rejected; a deliberately orphaned payment is recovered or refunded, with an alert.
 

@@ -14,8 +14,9 @@ import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
 import {
-  takeHold, releaseHold, confirmBooking, recordOrphan, SlotUnavailableError,
+  takeHold, releaseHold, confirmBooking, recordOrphan, recordToken, SlotUnavailableError,
 } from '../../../lib/booking/store.ts';
+import { issue } from '../../../lib/booking/token.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
 import { confirmationEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { refundableAtBooking } from '../../../lib/booking/policy.ts';
@@ -203,8 +204,21 @@ export const POST: APIRoute = async ({ request, url }) => {
       ]);
     }
 
-    // 9 — email. Also best-effort: a failed send must not fail a paid booking.
-    const manageUrl = new URL(`/bookings/${bookingRef}`, url.origin).toString();
+    // 9 — issue the magic link, then email. Both best-effort: a failure here must
+    // not fail a paid booking, and /bookings/find can re-issue a link later.
+    let manageUrl = new URL(`/bookings/${bookingRef}`, url.origin).toString();
+    try {
+      const { token, jti } = issue(bookingRef, email, end);
+      await recordToken(jti, bookingRef, email);
+      manageUrl = `${manageUrl}?t=${token}`;
+    } catch (err) {
+      console.error('booking/create: could not issue magic link', err);
+      await alert('[ALERT] Booking has no manage link', [
+        `Reference: ${bookingRef}`, `Booker: ${email}`,
+        'The booking is paid and confirmed but the booker cannot self-serve.',
+        'They can request a link at /bookings/find.',
+      ]);
+    }
     const summary = {
       reference: bookingRef, roomName: room.shortName, start, end, durationMins,
       pricePence, customerName: name, customerEmail: email, manageUrl,
