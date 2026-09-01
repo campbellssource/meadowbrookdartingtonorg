@@ -46,60 +46,74 @@ locked building.
 the watch is on the live calendars — so this needs one deliberate test against a real calendar,
 in a slot nobody wants, before the system takes real money.
 
-### 2. Contact scrubbing works — on the Lounge
+### 2. All three rooms are wired to locks — question 23, answered from source
 
-`cleanupExpiredContacts` deletes the synced Google Contact 7 days after a booking ends, and the
-`calendarWebhook` contact sync also strips the detail from the **calendar event description**.
-It is recent, so it has no backfill: bookings from before it was deployed still carry whatever
-Acuity wrote.
+Read out of `config/lockMappings.js` on 31 Aug 2026, so this is the configuration
+itself rather than an inference:
 
-Measured on the Lounge, taking "still has a `Name:` field" as unscrubbed:
+| Room | Locks |
+|---|---|
+| Lounge | Entrance (`3670800`), Upstairs (`3536180`) |
+| Studio | Entrance, Upstairs |
+| **Snooker** | Entrance, Upstairs, **Snooker Room Lock (`25730366`)** |
 
-| Lounge booking | Age | Scrubbed? |
-|---|---|---|
-| 2 Jul 2026 | 59d | No — predates the tool |
-| 5 Jul 2026 | 56d | No — predates the tool |
-| 6 Aug 2026 | 24d | **Yes** — name, email and price gone |
+**This corrects an earlier reading in this file.** The single `GOOGLE_CALENDAR_ID`
+environment variable is a fallback, not the configuration: watch channels are registered per
+calendar from the mappings above, and the webhook resolves which calendar fired from the
+channel ID. All three rooms provision door codes. The Snooker Room has a third lock the other
+two do not.
 
-So the tool does what it says. The residue is historical, exactly as expected for something
-new.
+### 3. The door code is the last four digits of the booker's phone number
 
-### 3. The Studio and Snooker Room look uncovered ⚠️
+`utils/phoneExtractor.js`, `extractPasscodeFromDescription`. The description is matched against
+`Phone:\s*(\+?\d{10,})` and the passcode is `digits.slice(-4)`.
 
-This is the part recency does **not** explain. Both functions carry `GOOGLE_CALENDAR_ID` set to
-a single calendar — the Lounge. Taking bookings that ended 8–16 days ago — past the 7-day
-retention, and after the function's last update on 14 Aug — every one still carries the full
-Acuity block, name and mobile number included:
+Three consequences the booking system has to live with:
 
-| Room | Bookings in window | Still carrying a name |
-|---|---|---|
-| Lounge | 0 | — (no bookings to judge by) |
-| Studio | 1 | 1 |
-| Snooker | 8 | 8 |
+- **The phone number must be contiguous digits.** `07725 972868` fails `\d{10,}` at five
+  digits, so the booking gets no door code at all — and nothing about the booking looks wrong.
+  `event-format.ts` strips separators for exactly this reason.
+- **A hirer's door code is derived from their own phone number.** That is a sensible design
+  (it is memorable and needs no separate communication), but it is a fact about personal data
+  that the privacy policy does not currently mention (`12`).
+- **Codes can collide**, which is the failure already visible in the logs: two people whose
+  numbers end in the same four digits, or a collision with a manually-set code.
 
-Nine for nine. These are recent enough that the tool was already running, so if those calendars
-were in scope they would have been scrubbed. Combined with the single-calendar env var, the
-likeliest reading is that **only the Lounge is wired up**.
+### 4. Nothing scrubs the calendar event descriptions — a correction
 
-Worth confirming rather than assuming — `updateTime` is a deploy timestamp, not proof of when
-scrubbing began, and there may be watch channels the env vars do not show. But if it holds, the
-Snooker Room is the calendar carrying the most personal data and the least scrubbing.
+`services/calendarService.js` never patches or updates an event; the system is **read-only** on
+the calendars. `cleanupExpiredContacts` deletes **Google Contacts** records via the People API
+seven days after a booking ends. It does not touch the calendar.
 
-**Question for the DRA.** Logged as question 23. It also decides whether door passcodes are
-issued for all three rooms or only the Lounge — the same env var governs both.
+This corrects a claim made earlier in this file. The evidence for "scrubbing works on the
+Lounge" was a single Lounge event whose description was only `Phone: +440000002216` — no date,
+no `Name:`, no `Price:`. That is much better explained as a **hand-made event created to grant
+someone a door code** (last four digits, `2216`) than as a scrubbed Acuity booking. Reading the
+source settles it: no code path writes to a calendar event.
 
-### 4. Extend that tool rather than building a second one
+So the position is:
 
-`12` proposed a PII purge inside the booking system. That was written before this system was
-found, and it is now the wrong shape: two independent jobs rewriting the same calendar events,
-on different schedules, with different ideas of what a booking is.
+| | Status |
+|---|---|
+| Google Contacts created per booking | Deleted after 7 days ✅ |
+| Calendar event descriptions (name, phone, email, price) | **Never removed, on any calendar** |
 
-Better: **extend `calendartopasscode`'s existing scrubber to all three calendars.** It already
-does the work, already holds the calendar credentials, and already knows the Acuity format. The
-booking system should not grow a competing purge.
+Both things the DRA said are true — there *is* a cleanup job, and it does work — but it cleans
+Contacts, not calendars. Names and mobile numbers on the room calendars go back as far as the
+calendars do.
 
-That leaves the historical backlog — everything from before the tool — as a separate one-off
-tidy-up, not a recurring job.
+### 5. A calendar purge still has to be built by somebody
+
+Since nothing currently rewrites calendar events, the retention promise in `12` has no
+implementation anywhere. Two options, and the choice is the DRA's:
+
+- **Extend `calendartopasscode`.** It already holds calendar credentials and knows the Acuity
+  format — but it is deliberately read-only on calendars today, and giving it write access to
+  the thing it watches is a meaningful change to a system that currently cannot damage them.
+- **Build it in the booking system.** Write access is needed there anyway.
+
+Either way it is one job, not two, and it must only ever rewrite `summary` and `description` —
+never delete. Question 21, reinstated.
 
 ### 5. Our 90-day purge must not break it
 
@@ -130,10 +144,11 @@ it belongs to the `calendartopasscode` project, not this one.
 
 ## Acceptance criteria
 
-- [ ] The event format written in Phase 2 is verified against `calendarWebhook`'s parser.
+- [x] ~~The event format is verified against `calendarWebhook`'s parser~~ — `event-format.ts`,
+      with `test/booking-event-format.test.ts` asserting against copies of its actual regexes.
 - [ ] One real-calendar booking is confirmed to provision a passcode on both locks.
-- [ ] It is confirmed which rooms are wired to the locks and the scrubber (question 23).
-- [ ] Scrubbing covers all three calendars, wherever that job ends up living.
+- [x] ~~Confirm which rooms are wired to the locks~~ — all three; Snooker has a third lock.
+- [ ] A calendar-description purge exists somewhere and covers all three calendars.
 - [ ] The historical backlog is dealt with as a one-off.
 - [ ] The PII purge rewrites events and never deletes them.
 - [ ] A deletion request is honoured in Firestore *and* in the synced Google Contacts.

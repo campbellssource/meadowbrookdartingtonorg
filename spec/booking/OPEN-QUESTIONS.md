@@ -6,10 +6,10 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
 
 | # | Question | Blocks |
 |---|---|---|
+| 21 | Who builds the calendar-description purge | Privacy policy wording |
 | 17 | Insurance check on hire terms clauses 9–11 | **Launch** |
 | 19 | `bookings@` exists, monitored, Brevo-verified | **Launch** |
 | 6 | Hire terms approved and published | **Launch** |
-| 23 | Which calendars are wired to the locks and scrubber | Confirmation email wording |
 | 7 | Privacy policy | DRA has deferred to post-go-live |
 | 12 | Recurring bookings | Deferred by design |
 
@@ -103,17 +103,17 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     furniture. The two produce visibly different availability, and the wrong one will look
     correct right up until two hirers arrive at once. One sentence settles it.
 
-21. ~~**The 90-day calendar purge needs code.**~~ **CORRECTED 31 Aug 2026.** A scrubber already
-    exists, in the `calendartopasscode` project, and it works — see `13`. The booking system
-    should **not** build a competing one. What remains is coverage (question 23) and a one-off
-    tidy-up of the pre-tool backlog.
+21. **The calendar purge needs code — REINSTATED 31 Aug 2026.** I withdrew this on the strength
+    of a scrubber that turns out to clean Google *Contacts*, not calendars. Reading
+    `calendartopasscode`'s source settles it: nothing in it ever writes to a calendar event.
+    Contacts are deleted after 7 days and that works; calendar descriptions keep names, phone
+    numbers and email addresses indefinitely, on all three calendars. So the retention promise
+    in `12` still has no implementation. See `13` for who should build it.
 
 22. ~~**Maximum advance booking.**~~ **ANSWERED 31 Aug 2026.** 90 days, all rooms.
 
-23. **Which calendars are wired to the locks and the contact scrubber?** Both
-    `calendartopasscode` functions name a single calendar — the Lounge. Nine Studio and Snooker
-    bookings that ended over a week ago still carry full names and mobile numbers, which points
-    the same way. If it holds, two consequences: the Snooker Room is carrying the most personal
-    data with the least scrubbing, and Studio and Snooker hirers are getting into the building
-    some way other than an automatic passcode — which the new system's confirmation emails must
-    not contradict. Evidence in `13`.
+23. ~~**Which calendars are wired to the locks?**~~ **ANSWERED 31 Aug 2026 from source.** All
+    three, via `config/lockMappings.js`. Lounge and Studio open the Entrance and Upstairs locks;
+    Snooker opens those plus a third Snooker Room lock. My earlier inference that only the Lounge
+    was wired up was wrong — the single-calendar env var is a fallback, not the configuration.
+    The door code is the last four digits of the booker's phone number (`13`).
