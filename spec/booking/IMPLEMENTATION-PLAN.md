@@ -13,7 +13,7 @@ and writes then reads a document in Firestore — using ADC impersonation, with 
 That end-to-end check is the whole point of the phase. The calendar share is the step most
 likely to be missed, and it fails silently by making every room look free.
 
-## Phase 1 — Rules and availability, read-only
+## Phase 1 — Rules and availability, read-only ✅ DONE 31 Aug 2026
 
 No writes, no money. The riskiest logic in the system, built where it can't hurt anyone.
 
@@ -45,6 +45,17 @@ what Acuity shows, for all three rooms:
 
 Stating it this way because the original criterion — "match Acuity" — would have failed a
 correct implementation and sent someone hunting a fault that wasn't there.
+
+**Status.** Built and verified against the live calendars. 75 unit tests; `/booking-preview`
+renders the engine for checking by eye. Studio on 3 Sep 2026 offers 15:30 as the last start
+before the 17:00 booking (one hour, ending exactly on the buffer edge), nothing until 21:30
+after the 19:15–21:00 booking, and 22:00 for the final hour. Snooker and Lounge 57 starts that
+day, Studio 34.
+
+**Not yet done: the side-by-side against Acuity.** The engine has been checked against the
+calendars, which is not the same thing as checking it against what Acuity *offers*. That
+comparison is the one that would catch a rule we have subtly wrong rather than a calendar we
+have read wrong. Cheap now, expensive after Phase 2 puts money behind it.
 
 ## Phase 2 — Booking, paid
 
