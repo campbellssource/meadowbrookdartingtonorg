@@ -1,0 +1,174 @@
+---
+// Read-only preview of the Phase 1 availability engine.
+//
+// Not linked from anywhere and noindex: this is a testing tool, not a booking
+// form. Nothing here writes, charges or reserves anything -- it renders what
+// /api/booking/availability returns so the rules can be checked by eye against
+// Acuity and against the room calendars.
+import Layout from '../layouts/Layout.astro';
+export const prerender = false;
+
+const rooms = [
+  { slug: 'snooker-room', name: 'Snooker Room', note: 'no buffer — back-to-back allowed' },
+  { slug: 'large-room',   name: 'Studio',       note: '30 min buffer' },
+  { slug: 'small-room',   name: 'Lounge',       note: '30 min buffer' },
+];
+const today = new Date().toISOString().slice(0, 10);
+---
+
+<Layout title="Booking preview" description="Internal preview of the booking availability engine." noindex={true}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Phase 1 · read-only</span>
+      <h1>Availability preview.</h1>
+      <p>
+        Live data from the real room calendars. Nothing here books, holds or charges
+        anything — it is the rules engine rendered so you can check it by eye.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+    <div class="mw-wrap">
+      <div class="bp-controls">
+        <div class="bp-rooms" role="tablist" aria-label="Room">
+          {rooms.map((r, i) => (
+            <button class:list={['bp-room', { active: i === 0 }]} data-slug={r.slug} role="tab"
+                    aria-selected={i === 0 ? 'true' : 'false'}>
+              <span class="n">{r.name}</span><span class="s">{r.note}</span>
+            </button>
+          ))}
+        </div>
+        <div class="bp-dates">
+          <label>From <input type="date" id="bp-from" value={today} /></label>
+          <label>Days
+            <select id="bp-days">
+              <option value="1">1</option>
+              <option value="3" selected>3</option>
+              <option value="7">7</option>
+              <option value="14">14</option>
+            </select>
+          </label>
+          <button class="mw-btn mw-btn-primary mw-btn-sm" id="bp-go">Refresh</button>
+        </div>
+      </div>
+
+      <p class="bp-url" id="bp-url" aria-live="polite"></p>
+      <div id="bp-out" class="bp-out"><p class="bp-muted">Loading…</p></div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const out = document.getElementById('bp-out')!;
+  const urlEl = document.getElementById('bp-url')!;
+  const fromEl = document.getElementById('bp-from') as HTMLInputElement;
+  const daysEl = document.getElementById('bp-days') as HTMLSelectElement;
+  let slug = 'snooker-room';
+
+  const addDays = (iso: string, n: number) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+  const dayName = (iso: string) =>
+    new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  async function load() {
+    const from = fromEl.value;
+    const to = addDays(from, Number(daysEl.value) - 1);
+    const url = `/api/booking/availability?room=${slug}&from=${from}&to=${to}`;
+    urlEl.textContent = `GET ${url}`;
+    out.innerHTML = '<p class="bp-muted">Loading…</p>';
+
+    let data: any;
+    try {
+      const res = await fetch(url);
+      data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    } catch (err) {
+      out.innerHTML = `<p class="bp-err">${(err as Error).message}</p>`;
+      return;
+    }
+
+    const head = `<p class="bp-meta"><strong>${data.shortName}</strong> · ${money(data.hourlyRatePence)}/hour`
+      + `${data.capacityNote ? ` · <span class="bp-muted">${data.capacityNote}</span>` : ''}</p>`;
+
+    out.innerHTML = head + data.days.map((day: any) => {
+      if (!day.open) return `<div class="bp-day"><h3>${dayName(day.date)}</h3><p class="bp-muted">Closed</p></div>`;
+      if (day.slots.length === 0) {
+        return `<div class="bp-day"><h3>${dayName(day.date)}</h3><p class="bp-muted">No availability</p></div>`;
+      }
+      const chips = day.slots.map((s: any, i: number) =>
+        `<button class="bp-slot" data-day="${day.date}" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
+      return `<div class="bp-day"><h3>${dayName(day.date)} <span class="bp-count">${day.slots.length} starts</span></h3>`
+        + `<div class="bp-slots">${chips}</div><div class="bp-detail" data-for="${day.date}"></div></div>`;
+    }).join('');
+
+    out.querySelectorAll<HTMLButtonElement>('.bp-slot').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const day = data.days.find((d: any) => d.date === btn.dataset.day);
+        const slot = day.slots[Number(btn.dataset.i)];
+        out.querySelectorAll('.bp-slot').forEach((b) => b.classList.remove('sel'));
+        btn.classList.add('sel');
+        const panel = out.querySelector(`.bp-detail[data-for="${btn.dataset.day}"]`)!;
+        panel.innerHTML = `<p class="bp-detail-h">${slot.start.slice(11, 16)} — up to ${slot.maxDurationMins} min</p>`
+          + `<div class="bp-durs">${slot.durations.map((d: any) =>
+              `<span class="bp-dur"><b>${d.mins >= 60 ? `${Math.floor(d.mins / 60)}h${d.mins % 60 ? ` ${d.mins % 60}m` : ''}` : `${d.mins}m`}</b>${money(d.pricePence)}</span>`).join('')}</div>`;
+      });
+    });
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.bp-room').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.bp-room').forEach((x) => {
+        x.classList.remove('active'); x.setAttribute('aria-selected', 'false');
+      });
+      b.classList.add('active'); b.setAttribute('aria-selected', 'true');
+      slug = b.dataset.slug!;
+      load();
+    });
+  });
+  document.getElementById('bp-go')!.addEventListener('click', load);
+  fromEl.addEventListener('change', load);
+  daysEl.addEventListener('change', load);
+  load();
+</script>
+
+<style>
+  .bp-controls { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+  .bp-rooms { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bp-room { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 16px; border: 0;
+    border-radius: var(--r-lg); background: var(--bone); color: var(--ink); cursor: pointer; font: inherit;
+    box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow var(--dur-fast) var(--ease-natural); }
+  .bp-room .n { font-weight: 600; font-size: 15px; }
+  .bp-room .s { font-size: 11px; color: var(--ink-mute); }
+  .bp-room.active { box-shadow: inset 0 0 0 1.5px var(--green-dark); }
+  .bp-dates { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .bp-dates label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-mute); }
+  .bp-dates input, .bp-dates select { font: inherit; font-size: 14px; padding: 9px 12px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--sand); background: var(--bone); color: var(--ink); }
+  .bp-url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink-mute);
+    margin: 0 0 18px; word-break: break-all; }
+  .bp-meta { margin: 0 0 18px; font-size: 15px; }
+  .bp-muted { color: var(--ink-mute); }
+  .bp-err { color: var(--ember); font-weight: 600; }
+  .bp-day { padding: 16px 0; border-top: 1px solid var(--paper-deep); }
+  .bp-day h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; display: flex; gap: 10px; align-items: baseline; }
+  .bp-count { font-size: 12px; font-weight: 500; color: var(--ink-mute); }
+  .bp-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bp-slot { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 7px 11px; border: 0;
+    border-radius: var(--r-pill); background: var(--bone); color: var(--ink); cursor: pointer;
+    box-shadow: inset 0 0 0 1.5px transparent; }
+  .bp-slot:hover { box-shadow: inset 0 0 0 1.5px var(--sand); }
+  .bp-slot.sel { background: var(--green); color: #fff; }
+  .bp-detail:not(:empty) { margin-top: 12px; padding: 12px 14px; background: var(--bone); border-radius: var(--r-lg); }
+  .bp-detail-h { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  .bp-durs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bp-dur { display: inline-flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 6px 12px;
+    border-radius: var(--r-pill); background: var(--paper-deep); }
+  .bp-dur b { font-weight: 700; }
+  @media (max-width: 700px) { .bp-controls { flex-direction: column; align-items: stretch; } }
+</style>
