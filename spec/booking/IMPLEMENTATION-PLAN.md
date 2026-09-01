@@ -132,6 +132,20 @@ in `history`, and reporting totals reconcile against the CSV for the same period
 **Done when:** both jobs run on schedule and are idempotent; a request without a valid OIDC
 token is rejected; a deliberately orphaned payment is recovered or refunded, with an alert.
 
+## Phase 5b — UI polish
+
+Collected feedback on the booking flow, batched and worked through in one pass. See
+`14-ui-feedback.md`, which is also where notes should be added as they come up.
+
+Separate from Phase 6 because it has a different reviewer: the DRA looking at it, rather than a
+test suite. Deliberately **before** the accessibility pass, so that pass audits the final shape
+rather than one that is about to change.
+
+Bugs do not wait for this phase — anything broken or misleading is fixed when found.
+
+**Done when:** every note in `14` is done or explicitly declined, and the flow has been driven
+on a real phone.
+
 ## Phase 6 — Hardening
 
 Not optional, and easier to schedule as its own phase than to squeeze into the others.
