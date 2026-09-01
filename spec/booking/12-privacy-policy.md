@@ -82,9 +82,14 @@ Booking the Lounge provisions a **door passcode on the building's smart locks**,
 contact record (`13`). That is processing of personal data for physical access control, and the
 policy does not mention it. It needs a sentence, whether or not the booking system ships:
 
-> **Building access:** For some rooms, your booking automatically generates a door entry code so
-> that you can access the building. The code is created when you book and removed once your
-> booking has finished.
+> **Building access:** Your booking automatically generates a door entry code so that you can
+> access the building. The code is the last four digits of the phone number you give us. It is
+> created when you book and removed once your booking has finished.
+
+Say that the code comes from their phone number. It is how the system works, the hirer will
+notice anyway, and two people whose numbers end in the same four digits get the same code —
+which the DRA has considered and accepted (31 Aug 2026), but which a hirer cannot consider if
+nobody tells them.
 
 ### Section 2 — What Personal Information We Collect
 
@@ -114,38 +119,31 @@ Add to the service-provider list:
 
 ### Section 7 — Data Retention
 
-The current text says booking contact details are kept "in a calendar for 90 days". That will
-no longer be the whole picture, because a paid booking is also a financial record. Suggested
-replacement:
+**Reworded 31 Aug 2026 at the DRA's direction: no retention period is stated for the calendar
+entry.** The current policy promises 90 days and nothing implements that (`13`, question 21).
+Rather than publish a second promise nothing keeps, this states the criteria instead — which
+Article 13 explicitly allows where a fixed period cannot be given, and which has the advantage
+of being true.
 
-> **Room bookings.** We keep the booking record — including your name, contact details, the
-> booking itself and the payment reference — for **7 years**, because a paid booking forms part
-> of the charity's financial records and we are required to retain those. Your name and contact
-> details are removed from the room's Google Calendar **90 days** after the booking has taken
-> place; the calendar entry itself remains, showing only that the room was in use. Secure
-> booking-access links expire and are deleted. Where a booking is started but never paid for,
-> the details are deleted within 24 hours.
+Replace the room-booking sentence with:
 
-⚠️ **Corrected 31 Aug 2026.** An earlier draft of this file said nothing removed personal
-detail from the calendars. That was wrong — a scrubber exists, in the `calendartopasscode`
-project (`13`), and it works. Two things still need settling before the policy can promise a
-retention period:
+> **Room bookings.** We keep the booking record — your name, contact details, the booking itself
+> and the payment reference — for **7 years**, because a paid booking forms part of the charity's
+> financial records and we are required to retain those.
+>
+> Your booking also appears as an entry on the room's own calendar, which our volunteers use to
+> see what the building is doing. We keep those entries for as long as we need them to run and
+> account for the rooms, and we review them periodically. Contact details synced to help us
+> identify you are removed **7 days** after your booking ends.
+>
+> Secure booking-access links expire and are deleted. Where a booking is started but never paid
+> for, the details are deleted within 24 hours.
 
-- **It appears to cover the Lounge only.** Nine Studio and Snooker bookings that ended over a
-  week ago still carry full names and mobile numbers. Evidence and caveats in `13`, question 23.
-- **It has no backfill**, which is normal for something recent — but it means the calendars hold
-  a tail of older bookings with full contact details, the oldest around four months back. A
-  one-off tidy-up, not a recurring job.
+Three of those four are periods the code actually enforces. The calendar sentence is the one
+that deliberately does not commit to a number, because nothing yet deletes anything there.
 
-The retention period the policy states must be one that actually holds across **all three**
-calendars. Until scrubbing is confirmed to cover them, "90 days" would be a promise the Snooker
-Room in particular does not keep. Fix the coverage, then state the number.
-
-Note also that the current policy's "90 days" is inaccurate in the direction people care about
-least in principle and most in practice: data is being kept *longer* than promised, not shorter.
-
-Confirm the 7 years with whoever prepares the DRA's accounts — 6 is also defensible depending
-on the basis used. Pick one and let the code match it.
+**When the purge is built** (a later phase, at the DRA's direction), come back and put a period
+in — a stated period is better than criteria when you can honour it.
 
 ### A new section — Our Legal Basis
 

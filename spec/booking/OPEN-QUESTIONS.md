@@ -6,7 +6,6 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
 
 | # | Question | Blocks |
 |---|---|---|
-| 21 | Who builds the calendar-description purge | Privacy policy wording |
 | 17 | Insurance check on hire terms clauses 9–11 | **Launch** |
 | 19 | `bookings@` exists, monitored, Brevo-verified | **Launch** |
 | 6 | Hire terms approved and published | **Launch** |
@@ -103,12 +102,12 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     furniture. The two produce visibly different availability, and the wrong one will look
     correct right up until two hirers arrive at once. One sentence settles it.
 
-21. **The calendar purge needs code — REINSTATED 31 Aug 2026.** I withdrew this on the strength
-    of a scrubber that turns out to clean Google *Contacts*, not calendars. Reading
-    `calendartopasscode`'s source settles it: nothing in it ever writes to a calendar event.
-    Contacts are deleted after 7 days and that works; calendar descriptions keep names, phone
-    numbers and email addresses indefinitely, on all three calendars. So the retention promise
-    in `12` still has no implementation. See `13` for who should build it.
+21. **The calendar purge — DEFERRED to a later phase, 31 Aug 2026.** Nothing rewrites calendar
+    event descriptions; the existing cleanup job handles Google Contacts only. Names, phone
+    numbers and email addresses therefore persist on all three calendars indefinitely. The DRA
+    has chosen to defer building the purge and to reword the privacy policy so it states no
+    calendar retention period rather than one nothing keeps (`12`). Tracked as **Phase 8**.
+    Revisit the policy wording when it is built.
 
 22. ~~**Maximum advance booking.**~~ **ANSWERED 31 Aug 2026.** 90 days, all rooms.
 
@@ -117,3 +116,10 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     Snooker opens those plus a third Snooker Room lock. My earlier inference that only the Lounge
     was wired up was wrong — the single-calendar env var is a fallback, not the configuration.
     The door code is the last four digits of the booker's phone number (`13`).
+
+24. ~~**Door codes derived from phone numbers.**~~ **ACCEPTED 31 Aug 2026.** The door code is the
+    last four digits of the booker's phone number (`13`). Two consequences the DRA has weighed
+    and accepted: a code is guessable by anyone who knows the hirer's mobile, and two hirers
+    whose numbers share their last four digits get the same code. Recorded because it is now a
+    known and accepted risk rather than an undiscovered one — and because the privacy policy
+    should still tell hirers where their code comes from.

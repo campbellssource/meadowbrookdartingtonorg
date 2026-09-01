@@ -129,13 +129,6 @@ in `history`, and reporting totals reconcile against the CSV for the same period
 | `src/pages/api/booking/cron/reconcile.ts` | The table in `01` |
 | `src/pages/api/booking/webhooks/square.ts` | Orphan recovery, ledger truth |
 
-Also in this phase, because it is a scheduled job and because a privacy policy will promise it:
-
-- **Calendar PII purge.** Strips the booker's name and contact details from room-calendar events
-  more than 90 days old, leaving the occupancy block intact. Required by the retention clause
-  drafted in `12`; see open question 21. Idempotent, and it must never delete an event — only
-  rewrite its summary and description.
-
 **Done when:** both jobs run on schedule and are idempotent; a request without a valid OIDC
 token is rejected; a deliberately orphaned payment is recovered or refunded, with an alert.
 
@@ -173,3 +166,23 @@ values and return values. Everything that can be tested without a network should
 **The two invariants worth repeating:**
 1. The calendar decides whether a room is free. Never compute availability from Firestore alone.
 2. The server prices. A price from a client is a log line, never an input.
+
+## Phase 8 — Calendar PII purge (deferred)
+
+Deferred by the DRA on 31 Aug 2026, and not a launch blocker. Nothing currently removes personal
+detail from calendar event descriptions — the existing `calendartopasscode` cleanup handles
+Google Contacts only (`13`). Until this is built, the privacy policy states criteria rather than
+a retention period (`12`).
+
+A job that walks room-calendar events older than some agreed age and rewrites `summary` and
+`description` to remove the name, phone number and email, leaving the occupancy block and the
+booking reference intact.
+
+**Must never delete an event.** The door system reacts to cancellations, so a delete would look
+like one. Rewrite only.
+
+Open when this is picked up: whether it lives here or in `calendartopasscode` (`13`), and the
+one-off backfill for events already on the calendars — the oldest are around four months back.
+
+**Done when:** an event older than the cutoff carries no name, phone or email; its times and
+booking reference are unchanged; the job is idempotent; and re-running it changes nothing.
