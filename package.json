@@ -13,7 +13,9 @@
     "og:events": "node scripts/generate-social-image.mjs",
     "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon\u20135pm\"",
     "test": "node --experimental-strip-types --test test/*.test.ts",
-    "test:watch": "node --experimental-strip-types --test --watch test/*.test.ts"
+    "test:watch": "node --experimental-strip-types --test --watch test/*.test.ts",
+    "booking:check": "node --experimental-strip-types scripts/booking-test-events.ts",
+    "booking:cleanup": "node --experimental-strip-types scripts/booking-test-events.ts --cleanup"
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",
