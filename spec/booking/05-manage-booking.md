@@ -124,6 +124,21 @@ anything happens.
 Refund before releasing the slot, because a released slot can be rebooked by someone else
 within seconds and then the refund failure has no clean unwind.
 
+## After cancelling, the link is revoked but the page must not refuse
+
+Cancelling revokes the booking's tokens, which is correct — a cancelled booking's
+link should not stay live. But the booker lands back on that page immediately
+afterwards, and refusing them there reads as though the cancellation failed, at
+exactly the moment they are least sure it worked.
+
+So a token that is **cryptographically valid but revoked**, for a booking that is
+**cancelled**, renders the cancellation's own outcome: what was refunded, when it
+will appear, and a link to book again. A revoked token still proves the holder had
+the link, which is enough to show them the result of their own action.
+
+Everything else still refuses: a tampered token, a token for another booking, an
+expired one, or no token at all.
+
 ## Acceptance criteria
 
 - [ ] A valid token opens the booking; a tampered one is rejected with 403.
@@ -135,5 +150,7 @@ within seconds and then the refund failure has no clean unwind.
 - [ ] A failed amend-up charge leaves time, duration, calendar event and money untouched.
 - [ ] Cancelling states the exact refund before confirming, and the confirm step is explicit.
 - [ ] A failed refund leaves the booking confirmed and the slot held.
+- [ ] After cancelling, the page confirms the cancellation rather than asking for a link.
+- [ ] A tampered token still refuses, even for a cancelled booking.
 - [ ] Clearing local storage loses no access — the emailed link still works.
 - [ ] No token value appears in any log line.

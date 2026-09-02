@@ -107,6 +107,7 @@ page can stay as a direct link for people who arrive from an email.
 | 18 | Two Continue buttons at the payment step, one dead | 2 Sep 2026 | **Done** — `.mw-btn` sets `display`, which beat `[hidden]` |
 | 19 | Sub-brand display font on the booking form — those faces are for large display text only | 2 Sep 2026 | **Done** — widget headings use the body font |
 | 20 | "Reserve this space" should be "Book the Snooker Room" | 2 Sep 2026 | **Done** — heading names the room |
+| 21 | After cancelling you land on "We need your booking link" | 2 Sep 2026 | **Done** — the page now confirms the cancellation and offers to rebook |
 
 ## Known rough edges, unprompted
 

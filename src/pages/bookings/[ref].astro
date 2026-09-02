@@ -7,6 +7,8 @@
 // screenshots. The cookie is what makes a refresh work afterwards.
 import Layout from '../../layouts/Layout.astro';
 import { authorise, BOOKING_HEADERS } from '../../lib/booking/session.ts';
+import { verify } from '../../lib/booking/token.ts';
+import { getBooking } from '../../lib/booking/store.ts';
 import { getRoomConfig } from '../../lib/booking/config-reader.ts';
 import { normaliseReference } from '../../lib/booking/reference.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
@@ -22,7 +24,21 @@ const COOKIE = 'mb_booking_token';
 const urlToken = Astro.url.searchParams.get('t');
 const token = urlToken ?? Astro.cookies.get(COOKIE)?.value ?? null;
 
-const auth = ref ? await authorise(ref, token) : { ok: false as const, status: 404 as const, message: 'We cannot find that booking.' };
+let auth = ref ? await authorise(ref, token) : { ok: false as const, status: 404 as const, message: 'We cannot find that booking.' };
+
+// Cancelling revokes the booking's tokens, which is right -- a cancelled booking's
+// link should not stay live. But it also means the page the booker lands on
+// immediately afterwards refuses them, which reads as though the cancellation
+// failed. A revoked token is still cryptographically ours and still proves the
+// holder had the link, so it is enough to show a cancelled booking's own outcome.
+let cancelledView: Awaited<ReturnType<typeof getBooking>> = null;
+if (!auth.ok && token) {
+  const v = verify(token);
+  if (v.ok && v.payload.ref === ref) {
+    const b = await getBooking(ref!);
+    if (b?.status === 'cancelled') cancelledView = b;
+  }
+}
 
 if (auth.ok && urlToken) {
   Astro.cookies.set(COOKIE, urlToken, {
@@ -32,11 +48,16 @@ if (auth.ok && urlToken) {
   });
 }
 
-const booking = auth.ok ? auth.booking : null;
+const booking = auth.ok ? auth.booking : cancelledView;
 const room = booking ? await getRoomConfig(booking.room) : null;
 const start = booking?.start.toDate();
 const end = booking?.end.toDate();
 const now = new Date();
+
+// What was actually returned, for a booking that has already been cancelled.
+const refundedPence = booking?.payments
+  ?.filter((p) => p.kind === 'refund')
+  .reduce((s, p) => s + p.amountPence, 0) ?? 0;
 
 const refundIfCancelled = booking
   ? refundFor({ paidPence: booking.paidPence, currentPence: booking.pricePence, start: start!, change: 'cancel' }, now).refundPence
@@ -67,7 +88,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 ---
 
 <Layout title={booking ? `Booking ${ref}` : 'Booking'} description="Your Meadowbrook room booking." noindex={true}>
-  {!auth.ok ? (
+  {!auth.ok && !cancelledView ? (
     <section class="mw-zone-hero">
       <div class="mw-wrap">
         <span class="mw-eyebrow">{auth.status === 401 ? 'Link needed' : 'Not available'}</span>
@@ -101,6 +122,20 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
               {doorCode && booking!.status === 'confirmed' && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
             </dl>
           </div>
+
+          {booking!.status === 'cancelled' && (
+            <>
+              <p class="bc-note">
+                This booking has been cancelled and the room released.
+                {refundedPence > 0
+                  ? ` We're refunding ${formatPence(refundedPence)} to the card you paid with — refunds usually take 5 to 10 working days to appear.`
+                  : ' No refund was due, because it was cancelled within an hour of the start time.'}
+              </p>
+              <p style="margin-top: var(--space-5);">
+                <a href={`/facilities/${booking!.room}`} class="mw-btn mw-btn-primary">Make another booking</a>
+              </p>
+            </>
+          )}
 
           {doorCode && booking!.status === 'confirmed' && (
             <p class="bc-note">
