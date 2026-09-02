@@ -11,7 +11,7 @@ import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, CalendarError } from '../../../lib/booking/calendar.ts';
 import { computeAvailability, datesBetween } from '../../../lib/booking/availability.ts';
 import { londonToInstant, instantToLocalDate, addMinutes } from '../../../lib/booking/time.ts';
-import { rateLimit } from '../../../lib/booking/store.ts';
+import { cached, rateLimitLocal, AVAILABILITY_TTL_MS } from '../../../lib/booking/cache.ts';
 
 export const prerender = false;
 
@@ -47,10 +47,12 @@ export const GET: APIRoute = async ({ url, clientAddress }) => {
     return json({ error: `Range too wide: ${dates.length} days, maximum ${MAX_DAYS}` }, 400);
   }
 
-  // Every call spends Google Calendar quota. Browsing a fortnight is perhaps
-  // twenty requests, so this is far above normal use and well below scraping.
-  const limit = await rateLimit(`avail:ip:${clientAddress ?? 'unknown'}`, 200, 60);
-  if (!limit.allowed) return json({ error: 'Too many requests. Please slow down.' }, 429);
+  // In-process rather than Firestore-backed: this runs on every date click, and a
+  // transaction per request was most of the endpoint's latency. The limit protects
+  // Google Calendar quota, where an approximate per-instance count is plenty.
+  if (!rateLimitLocal(`avail:${clientAddress ?? 'unknown'}`, 200, 60)) {
+    return json({ error: 'Too many requests. Please slow down.' }, 429);
+  }
 
   let room;
   try {
@@ -68,7 +70,13 @@ export const GET: APIRoute = async ({ url, clientAddress }) => {
   const timeMax = addMinutes(londonToInstant(dates[dates.length - 1], '23:59'), pad);
 
   try {
-    const busy = await fetchBusy(room.calendarId, timeMin, timeMax);
+    // Keyed by the exact window, so a different range is a different entry. A
+    // stale answer can only cause a refusal at purchase, never a double booking.
+    const busy = await cached(
+      `busy|${room.slug}|${timeMin.toISOString()}|${timeMax.toISOString()}`,
+      AVAILABILITY_TTL_MS,
+      () => fetchBusy(room.calendarId, timeMin, timeMax),
+    );
     const result = computeAvailability({ room, from, to, busy, now: new Date() });
 
     return json({

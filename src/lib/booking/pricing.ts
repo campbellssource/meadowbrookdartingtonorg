@@ -14,10 +14,13 @@ import { instantToLocalTime, minutesOfDay, addMinutes, MINUTE } from './time.ts'
 /** Billing granularity. Bookings are charged in half hours. */
 export const BILLING_INCREMENT_MINS = 30;
 
+// Constructed once. Building an Intl.DateTimeFormat is expensive, and pricing a
+// day of availability calls this thousands of times.
+const weekdayFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', weekday: 'short' });
+
 function weekdayOf(instant: Date): Weekday {
   // getUTCDay is wrong near midnight in BST, so ask for the London day directly.
-  const name = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', weekday: 'short' })
-    .format(instant).toLowerCase().slice(0, 3);
+  const name = weekdayFmt.format(instant).toLowerCase().slice(0, 3);
   return (WEEKDAYS.includes(name as Weekday) ? name : 'mon') as Weekday;
 }
 
@@ -28,6 +31,11 @@ function weekdayOf(instant: Date): Weekday {
  * code change.
  */
 export function rateAt(room: RoomBookingConfig, instant: Date): number {
+  // No peak rules means the rate cannot vary, so none of the date arithmetic below
+  // can change the answer. All three rooms are flat-rate today, and pricing a day
+  // of availability asks this about ten thousand times.
+  if (room.peak.length === 0) return room.hourlyRatePence;
+
   const day = weekdayOf(instant);
   const mins = minutesOfDay(instantToLocalTime(instant));
   for (const rule of room.peak) {

@@ -101,3 +101,34 @@ test('formatPence', () => {
   assert.equal(formatPence(1125), '£11.25');
   assert.equal(formatPence(15000), '£150.00');
 });
+
+describe('the flat-rate short circuit does not change any price', () => {
+  // rateAt() returns early when a room has no peak rules, because pricing a day
+  // of availability calls it ~10,000 times and the date arithmetic cannot change
+  // the answer. These pin that the shortcut is genuinely equivalent.
+  test('flat-rate rooms price identically at every hour of the day', () => {
+    for (const room of [SNOOKER, STUDIO]) {
+      for (let h = 8; h < 23; h += 1) {
+        const at = londonToInstant('2027-07-15', `${String(h).padStart(2, '0')}:00`);
+        assert.equal(rateAt(room, at), room.hourlyRatePence, `${room.slug} at ${h}:00`);
+      }
+    }
+  });
+
+  test('and across a DST boundary, where the shortcut skips timezone work', () => {
+    for (const day of ['2027-03-28', '2027-10-31']) {
+      const at = londonToInstant(day, '12:00');
+      assert.equal(rateAt(SNOOKER, at), 750, day);
+      assert.equal(priceFor(SNOOKER, at, addMinutes(at, 120)), 1500, day);
+    }
+  });
+
+  test('a room WITH peak rules still takes the slow path', () => {
+    const peaky = room({
+      hourlyRatePence: 1000,
+      peak: [{ days: ['thu'], from: '18:00', to: '22:00', hourlyRatePence: 2000 }],
+    });
+    assert.equal(rateAt(peaky, at('19:00')), 2000, 'the shortcut must not swallow peak rates');
+    assert.equal(rateAt(peaky, at('12:00')), 1000);
+  });
+});

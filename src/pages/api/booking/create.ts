@@ -7,6 +7,7 @@
 // room away, whereas a payment whose calendar event lands late is recoverable.
 
 import type { APIRoute } from 'astro';
+import { invalidateRoom } from '../../../lib/booking/cache.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, createEvent, CalendarError } from '../../../lib/booking/calendar.ts';
 import { buildEvent, doorCodeFor } from '../../../lib/booking/event-format.ts';
@@ -252,6 +253,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
       ]);
     }
 
+    invalidateRoom(room.slug);
     // 10
     return json({ bookingRef, manageUrl, pricePence, calendarEventId }, 201);
   } catch (err) {

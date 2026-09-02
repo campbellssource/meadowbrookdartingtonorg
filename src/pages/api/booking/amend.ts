@@ -8,6 +8,7 @@
 // calendar. Those are cancel-and-rebook, and the UI says so.
 
 import type { APIRoute } from 'astro';
+import { invalidateRoom } from '../../../lib/booking/cache.ts';
 import { authorise, BOOKING_HEADERS } from '../../../lib/booking/session.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusyExcluding, updateEvent, createEvent, CalendarError } from '../../../lib/booking/calendar.ts';
@@ -230,6 +231,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       if (envBool('BOOKING_NOTIFY_OWNER', true)) await send(ownerNotificationEmail(summary, 'Amended'));
     } catch (err) { console.error('booking/amend: email failed', err); }
 
+    invalidateRoom(room.slug);
     return json({
       amended: true, start: start.toISOString(), durationMins,
       pricePence: newPrice, paidPence: updated.paidPence,

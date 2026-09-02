@@ -6,10 +6,17 @@
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
 import { toRoomConfig } from './config.ts';
+import { cached, CONFIG_TTL_MS } from './cache.ts';
 import type { RoomBookingConfig, StoredBooking } from './config.ts';
 
 /** Every bookable room that is configured and active. */
 export async function getBookableRooms(): Promise<RoomBookingConfig[]> {
+  // Reading every facility off disk on each request is most of the latency in an
+  // availability call, for content that changes when someone edits the CMS.
+  return cached('rooms|all', CONFIG_TTL_MS, loadBookableRooms);
+}
+
+async function loadBookableRooms(): Promise<RoomBookingConfig[]> {
   const reader = createReader(process.cwd(), keystaticConfig);
   const facilities = await reader.collections.facilities.all();
   const out: RoomBookingConfig[] = [];

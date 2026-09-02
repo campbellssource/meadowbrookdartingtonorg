@@ -7,6 +7,7 @@
 // which a human can fix calmly.
 
 import type { APIRoute } from 'astro';
+import { invalidateRoom } from '../../../lib/booking/cache.ts';
 import { authorise, BOOKING_HEADERS } from '../../../lib/booking/session.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
@@ -152,6 +153,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     console.error('booking/cancel: email failed', err);
   }
 
+  invalidateRoom(booking.room);
   return json({
     cancelled: true, refundPence: decision.refundPence, paidPence: updated.paidPence,
   });
