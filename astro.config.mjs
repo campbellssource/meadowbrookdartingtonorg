@@ -10,9 +10,19 @@ export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   security: {
+    // Astro rejects POST form submissions whose Origin is not listed here. With
+    // only the production hostnames, every form on the dev server fails with
+    // "Cross-site POST form submissions are forbidden" -- which reads like a bug
+    // in the form rather than a config restriction.
+    //
+    // Keyed off argv rather than NODE_ENV: NODE_ENV is unset in the shell here, so
+    // relying on it would silently ship localhost as an allowed origin.
     allowedDomains: [
       { hostname: 'meadowbrookdartington.org', protocol: 'https' },
       { hostname: 'www.meadowbrookdartington.org', protocol: 'https' },
+      ...(process.argv.includes('dev')
+        ? [{ hostname: 'localhost' }, { hostname: '127.0.0.1' }]
+        : []),
     ],
   },
   redirects: {

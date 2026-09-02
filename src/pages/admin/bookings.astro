@@ -25,7 +25,21 @@ const to = view === 'past' ? now : new Date(now.getTime() + 365 * 86400000);
 const rooms = await getBookableRooms();
 const roomName = (slug: string) => rooms.find((r) => r.slug === slug)?.shortName ?? slug;
 
-let all = await listBookings(from, to);
+// A database failure here is almost always credentials, and a bare 500 sends
+// whoever is on call looking in the wrong place. Say so instead.
+let all: Awaited<ReturnType<typeof listBookings>> = [];
+let dataError: string | null = null;
+try {
+  all = await listBookings(from, to);
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error('admin: could not read bookings', message);
+  dataError = /invalid_rapt|invalid_grant|impersonate|UNAUTHENTICATED|PERMISSION_DENIED/i.test(message)
+    ? 'Could not reach the booking database: the credentials have expired. '
+      + 'Locally, run `gcloud auth application-default login`. In production, check the '
+      + 'Cloud Run service account still has roles/datastore.user on meadowbrook-booking.'
+    : `Could not reach the booking database. ${message.slice(0, 200)}`;
+}
 if (view === 'past') all = all.reverse();
 const filtered = all.filter(({ ref, booking: b }) => {
   if (roomFilter && b.room !== roomFilter) return false;
@@ -81,6 +95,7 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
         <a class="ad-csv" href={`/api/admin/export?${p.toString()}`}>Download CSV</a>
       </form>
 
+      {dataError && <p class="ad-fail">{dataError}</p>}
       {needsReview.length > 0 && (
         <p class="ad-warn">
           <strong>{needsReview.length} booking{needsReview.length === 1 ? '' : 's'} paid but not on the calendar.</strong>
@@ -287,5 +302,7 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
   .ad-danger { border-color: #E0A38F; color: #8A2C0D; }
   .ad-result { margin-top: 12px; font-size: 13px; font-weight: 600; }
   .ad-empty { color: var(--fg-soft); }
+  .ad-fail { margin: 16px 0 0; padding: 14px 16px; border-radius: 10px; font-size: 14px;
+    line-height: 1.6; background: #FCECE7; color: #8A2C0D; border: 1.5px solid #E0A38F; }
   @media (max-width: 860px) { .ad-detail-grid { grid-template-columns: 1fr; gap: 18px; } }
 </style>
