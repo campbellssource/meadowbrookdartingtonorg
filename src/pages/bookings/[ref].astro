@@ -70,6 +70,9 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
         <div class="mw-wrap">
           <span class="mw-eyebrow">{booking!.status === 'cancelled' ? 'Cancelled' : started ? 'Past booking' : 'Confirmed'}</span>
           <h1>{booking!.status === 'cancelled' ? 'This booking was cancelled.' : "You're booked in."}</h1>
+          {booking!.status !== 'cancelled' && (
+            <p>{booking!.customer.name.split(/\s+/)[0]}, here's everything about your booking.</p>
+          )}
         </div>
       </section>
 
@@ -77,6 +80,7 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
         <div class="mw-wrap" style="max-width: 640px;">
           <div class="bc-card">
             <dl class="bc-list">
+              <div><dt>Booked for</dt><dd>{booking!.customer.name}</dd></div>
               <div><dt>Room</dt><dd>{room?.shortName ?? booking!.room}</dd></div>
               <div><dt>When</dt><dd id="bc-when">{fmt(start!)}<br />{instantToLocalTime(start!)}–{instantToLocalTime(end!)}</dd></div>
               <div><dt>Length</dt><dd id="bc-length">{durationWords(booking!.durationMins)}</dd></div>

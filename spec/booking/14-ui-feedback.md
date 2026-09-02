@@ -25,6 +25,7 @@ immediately rather than collected here.
 | # | Note | Raised | Status |
 |---|---|---|---|
 | 1 | Door-code explanation was on the phone field at step 2; belongs only on the confirmation | 1 Sep 2026 | **Done** — moved to confirmation |
+| 2 | `/bookings/:ref` should show the booker's name | 2 Sep 2026 | **Done** — "Booked for" row plus a first-name greeting |
 
 ## Known rough edges, unprompted
 
