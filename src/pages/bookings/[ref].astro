@@ -366,6 +366,9 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 </Layout>
 
 <style>
+  /* Same trap as the booking widget: .mw-btn sets display, which beats the
+     browser's [hidden] rule, so el.hidden on a button does nothing. */
+  .bc-actions [hidden], .bc-panel [hidden] { display: none !important; }
   .bc-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
   .bc-list { margin: 0; display: grid; gap: 14px; }
   .bc-list > div { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; }

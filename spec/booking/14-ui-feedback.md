@@ -20,6 +20,27 @@ because UI notes contradict each other and a batch can be reconciled where a str
 Anything that is a **bug** (something broken, wrong or misleading) jumps the queue and is fixed
 immediately rather than collected here.
 
+## Three CSS traps this flow hit, all silent
+
+Worth knowing before building anything else on this site. None produced an error.
+
+**1. Scoped styles do not reach runtime-created elements.** Astro scopes CSS by adding
+`data-astro-cid-*` to elements *in the template*. Anything built with `innerHTML` never gets it,
+so `.bw-day { … }` compiles to `.bw-day[data-astro-cid-x]` and matches nothing. The calendar,
+time and duration chips were unstyled for days without anyone noticing, which is why a selected
+day looked the same as an unselected one. Fix: anchor to a container that is in the template and
+mark the child `:global()`. `test/astro-script-placement.test.ts` now fails the build on it.
+
+**2. `.mw-btn` sets `display`, which beats `[hidden]`.** The browser's `[hidden] { display: none }`
+is a low-specificity UA rule; a class selector that sets `display` overrides it. So `el.hidden =
+true` on any `.mw-btn` does nothing — which is how a second, dead "Continue" survived onto the
+payment step. Any component that toggles a button with `hidden` needs
+`[hidden] { display: none !important }` of its own.
+
+**3. `.mw-btn-primary` inherits the zone accent.** It is `background: var(--accent, var(--green))`,
+and `zone-snooker` sets `--accent: var(--bone)`. On a white card that is white on white until
+hover. Inside the booking widget the primary action is pinned to green regardless of the room.
+
 ## Zone themes — the thing to check before styling anything
 
 The facility pages carry a `zone-*` class that repaints the page: `zone-snooker` sets
@@ -74,6 +95,10 @@ page can stay as a direct link for people who arrive from an email.
 | 12 | Show unavailable time slots greyed out and struck through | 2 Sep 2026 | **Done** — the whole day is drawn, taken slots stay in place |
 | 13 | Selected day and time need a much stronger state | 2 Sep 2026 | **Done** — filled dark green, bold, ringed |
 | 14 | Don't default the duration to one hour after all | 2 Sep 2026 | **Done** — no default; the summary appears only once a length is chosen |
+| 15 | Selected state still looked identical | 2 Sep 2026 | **Done** — the rules were never applying; see below |
+| 16 | Continue button white on white on the Snooker page | 2 Sep 2026 | **Done** — `.mw-btn-primary` is `var(--accent)`, which zones set to bone |
+| 17 | Form labels and help text too small | 2 Sep 2026 | **Done** — labels 15px, help and notes 14px, terms 16px |
+| 18 | Two Continue buttons at the payment step, one dead | 2 Sep 2026 | **Done** — `.mw-btn` sets `display`, which beat `[hidden]` |
 
 ## Known rough edges, unprompted
 

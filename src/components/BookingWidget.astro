@@ -412,6 +412,22 @@ const wid = `bw-${room.slug}`;
      exactly what happened on the Snooker Room page. Everything below states its
      colour explicitly, the way .mw-card already does. */
   .bw { background: var(--bone); color: var(--ink); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+
+  /* `.mw-btn` sets `display: inline-flex` and `.bw-summary` sets `display: flex`.
+     Both are class selectors and therefore beat the browser's own
+     `[hidden] { display: none }`, so setting el.hidden on them did nothing at all
+     -- which is why a second, dead "Continue" stayed on screen at the payment
+     step. Anything toggled with `hidden` inside this widget needs this. */
+  .bw [hidden] { display: none !important; }
+
+  /* `.mw-btn-primary` is `background: var(--accent)`, and the facility zones set
+     --accent to bone: white on white until you hover it. Inside the widget the
+     primary action is always green, whatever the room's paint. */
+  .bw .mw-btn-primary { background: var(--green); color: #fff; }
+  .bw .mw-btn-primary:hover { background: var(--green-dark); }
+  .bw .mw-btn-secondary { background: var(--paper-deep); color: var(--ink); }
+  .bw .mw-btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sand); }
+  .bw .mw-btn-ghost:hover { background: var(--paper-deep); }
   .bw h2, .bw h3, .bw strong, .bw legend, .bw label > span, .bw b { color: var(--ink); }
   .bw .mw-eyebrow { color: var(--green-dark); }
   .bw a { color: var(--green-dark); }
@@ -456,10 +472,10 @@ const wid = `bw-${room.slug}`;
   .bw-days :global(.bw-day.is-sel) { background: var(--green-dark); color: #fff; font-weight: 700;
     box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
 
-  .bw-pick-empty { color: var(--ink-soft); padding: 40px 0; }
-  .bw-pick-body h3 { margin: 0 0 18px; font-size: 18px; }
+  .bw-pick-empty { color: var(--ink-soft); padding: 40px 0; font-size: 16px; }
+  .bw-pick-body h3 { margin: 0 0 18px; font-size: 20px; }
   .bw-field { border: 0; padding: 0; margin: 0 0 22px; }
-  .bw-field legend { font-size: 13px; font-weight: 700; padding: 0; margin-bottom: 10px; }
+  .bw-field legend { font-size: 15px; font-weight: 700; padding: 0; margin-bottom: 12px; }
 
   .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
   .bw-times :global(.bw-time) { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums;
@@ -483,21 +499,22 @@ const wid = `bw-${room.slug}`;
   .bw-durs :global(.bw-dur.is-sel b), .bw-durs :global(.bw-dur.is-sel span) { color: var(--green-dark); font-weight: 700; }
   .bw-more { font: inherit; font-size: 13px; margin-top: 10px; background: none; border: 0;
     color: var(--green-dark); text-decoration: underline; cursor: pointer; padding: 0; }
-  .bw-times :global(.bw-loading), .bw-times :global(.bw-none) { color: var(--ink-mute); font-size: 14px; margin: 0; }
+  .bw-times :global(.bw-loading), .bw-times :global(.bw-none) { color: var(--ink-soft); font-size: 15px; margin: 0; }
   .bw-pick :global(.bw-label) { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--ink); }
 
   .bw-form { max-width: 520px; }
   .bw-input { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
-  .bw-input > span { font-size: 13px; font-weight: 700; }
-  .bw-input small { font-size: 12px; color: var(--ink-mute); }
+  .bw-input > span { font-size: 15px; font-weight: 700; }
+  .bw-input small { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
   .bw-input input, .bw-input textarea { font: inherit; font-size: 16px; padding: 13px 14px;
     border: 1.5px solid var(--sand); border-radius: 10px; background: #fff; color: var(--ink); }
   .bw-input input:focus, .bw-input textarea:focus { outline: 2px solid var(--green); outline-offset: 1px; }
-  .bw-terms { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin-bottom: 8px; color: var(--ink); }
+  .bw-terms { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.5;
+    margin-bottom: 8px; color: var(--ink); }
   .bw-terms input { width: 20px; height: 20px; margin-top: 2px; }
-  .bw-hint { font-size: 13px; color: #7A4B12; margin: 0 0 16px; }
+  .bw-hint { font-size: 14px; color: #7A4B12; margin: 0 0 16px; }
   .bw-card { margin: 16px 0 10px; min-height: 90px; }
-  .bw-note { font-size: 12px; color: var(--ink-mute); margin: 0 0 18px; }
+  .bw-note { font-size: 14px; color: var(--ink-soft); margin: 0 0 18px; }
   .bw-warn { padding: 13px 15px; border-radius: 10px; font-size: 14px; margin-bottom: 18px;
     background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
   .bw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
