@@ -114,6 +114,7 @@ const wid = `bw-${room.slug}`;
         <input type="checkbox" id={`${wid}-terms`} />
         <span>I agree to the <a href="/room-hire-terms" target="_blank" rel="noopener">room hire terms</a>.</span>
       </label>
+      <p class="bw-cardlabel">Card details</p>
       <div class="bw-card" id={`${wid}-card`}></div>
       <p class="bw-note">Payments are processed securely by Square. We never store your card details.</p>
       <p class="bw-fieldmsg" id={`${wid}-paymsg`} role="alert" hidden></p>
@@ -406,7 +407,40 @@ const wid = `bw-${room.slug}`;
       }
       try {
         const payments = await Square.payments(squareAppId, squareLocationId);
-        state.card = await payments.card();
+        // Square's fields live in an iframe for PCI reasons, so the markup cannot
+        // be replaced -- but `style` and `includeInputLabels` are supported API,
+        // not a hack, and between them fix what people were tripping over.
+        //
+        // includeInputLabels puts a visible "Card number" above the field. Without
+        // it Square shows only a faint placeholder inside an unstyled box, which a
+        // booker did not recognise as somewhere to type.
+        state.card = await payments.card({
+          includeInputLabels: true,
+          // In the sandbox this field validates as a US ZIP, so a UK postcode
+          // never satisfies it and Square's hint sits there permanently. Prefilled
+          // in sandbox so it disappears; left to the booker in production, where
+          // it is a real postcode and worth having for the bank's address check.
+          ...(billingCountry === 'US' ? { postalCode: '94103' } : {}),
+          style: {
+            input: {
+              backgroundColor: '#ffffff',
+              color: '#28201A',
+              fontSize: '16px',
+              fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+            },
+            'input::placeholder': { color: '#8B7C6E' },
+            '.input-container': {
+              borderColor: '#D1B08B',
+              borderRadius: '10px',
+              borderWidth: '1.5px',
+            },
+            '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
+            '.input-container.is-error': { borderColor: '#C0392B' },
+            '.message-text': { color: '#5B4E42', fontSize: '13px' },
+            '.message-text.is-error': { color: '#8A2C0D' },
+            '.message-icon.is-error': { color: '#8A2C0D' },
+          },
+        });
         await state.card.attach(`#${wid}-card`);
       } catch (e) {
         showErr(`The payment form could not load (${e.message || e.name}).`);
@@ -609,7 +643,10 @@ const wid = `bw-${room.slug}`;
   .bw-terms.is-invalid input { outline: 2px solid #C0392B; outline-offset: 2px; }
   .bw-fieldmsg { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #8A2C0D; }
   .bw-fieldmsg::before { content: '⚠ '; }
-  .bw-card { margin: 16px 0 10px; min-height: 90px; }
+  /* Square renders its own labels inside the iframe once includeInputLabels is on,
+     so this just gives the block room and a heading of its own. */
+  .bw-card { margin: 8px 0 14px; min-height: 132px; }
+  .bw-cardlabel { font-size: 15px; font-weight: 700; margin: 18px 0 8px; color: var(--ink); }
   .bw-note { font-size: 14px; color: var(--ink-soft); margin: 0 0 18px; }
   .bw-warn { padding: 13px 15px; border-radius: 10px; font-size: 14px; margin-bottom: 18px;
     background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }

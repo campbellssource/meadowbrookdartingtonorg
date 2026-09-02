@@ -136,6 +136,8 @@ page can stay as a direct link for people who arrive from an email.
 | 22 | Pressing Pay without accepting the terms gives no feedback | 2 Sep 2026 | **Done** — validate on press, red outline on the offending field, reason above the button |
 | 23 | Revealed UI should be scrolled to, not hunted for — a general pattern | 2 Sep 2026 | **Done** — `reveal()` in both the widget and the manage page |
 | 24 | A confirmation should always start at the top of the page | 2 Sep 2026 | **Done** — amend and cancel reloads land at the top |
+| 25 | Square's card field doesn't look like a card input; people don't notice it | 2 Sep 2026 | **Done** — `includeInputLabels` plus site styling, both supported API |
+| 26 | The postal-code hint stays after entering a value | 2 Sep 2026 | **Done** — a sandbox artefact (US ZIP validation); prefilled in sandbox, unchanged in production |
 
 ## Known rough edges, unprompted
 

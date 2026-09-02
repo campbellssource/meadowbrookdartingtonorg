@@ -395,7 +395,19 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         }
         try {
           const payments = await Square.payments(squareAppId, squareLocationId);
-          state.card = await payments.card();
+          // Same reasoning as the booking widget: visible labels, site-matching
+          // fields, and the sandbox's US-ZIP postal field prefilled out of the way.
+          state.card = await payments.card({
+            includeInputLabels: true,
+            ...(billingCountry === 'US' ? { postalCode: '94103' } : {}),
+            style: {
+              input: { backgroundColor: '#ffffff', color: '#28201A', fontSize: '16px' },
+              '.input-container': { borderColor: '#D1B08B', borderRadius: '10px', borderWidth: '1.5px' },
+              '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
+              '.input-container.is-error': { borderColor: '#C0392B' },
+              '.message-text.is-error': { color: '#8A2C0D' },
+            },
+          });
           await state.card.attach('#bc-card');
           revealIfHidden($('bc-amend-pay'));
         } catch (e) {

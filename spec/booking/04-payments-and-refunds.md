@@ -97,6 +97,35 @@ const billingCountry = env === 'sandbox' ? 'US' : 'GB';
 and be explicit in the code comment that this divergence is a sandbox artefact, not a real
 requirement — otherwise someone will later "fix" production to match the sandbox.
 
+### 3b. The card fields can be labelled and styled — within limits
+
+Square renders the card inputs in an iframe for PCI reasons, so the markup cannot be replaced.
+Two supported options cover most of what is wanted, and both are documented API rather than
+workarounds:
+
+- **`includeInputLabels: true`** puts a visible "Card number", "Expiration", "CVV" above each
+  field. Without it Square shows a faint placeholder inside an unstyled box, which a DRA tester
+  did not recognise as somewhere to type at all.
+- **`style`** accepts `input`, `input::placeholder`, `.input-container`,
+  `.input-container.is-focus`, `.input-container.is-error`, `.message-text`,
+  `.message-text.is-error` and `.message-icon.is-error`, so the fields can be given the site's
+  border, radius, focus green and error red. Colours are literal hex, not CSS variables — the
+  iframe cannot see the page's custom properties.
+
+Anything beyond that — reordering fields, replacing the markup, changing Square's own validation
+messages — is not available, and building a bespoke form would take the DRA out of PCI SAQ-A.
+Not worth it.
+
+### 3c. The postal-code hint that will not go away is a sandbox artefact
+
+Square's postal field validates against the billing country. In the sandbox that is US, so a UK
+postcode never validates and Square's hint sits under the field permanently — which reads as a
+broken form. In production the country is GB and a real postcode is accepted.
+
+Handled by prefilling `postalCode` in sandbox only, so the field disappears during testing while
+production still collects a real postcode for the bank's address check. Worth knowing before
+anyone "fixes" the production form to match what they saw in sandbox.
+
 ### 4. Copy the tokenize call from `/donate` exactly
 
 It is the version that works in production after being corrected there:
