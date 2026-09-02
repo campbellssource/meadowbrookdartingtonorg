@@ -20,6 +20,18 @@ because UI notes contradict each other and a batch can be reconciled where a str
 Anything that is a **bug** (something broken, wrong or misleading) jumps the queue and is fixed
 immediately rather than collected here.
 
+## Zone themes — the thing to check before styling anything
+
+The facility pages carry a `zone-*` class that repaints the page: `zone-snooker` sets
+`--bg: #004D26`, `--fg: var(--bone)` and `--accent: var(--bone)`. A light card that does not
+state its own colours therefore inherits **white text onto a white card**, which is what the DRA
+saw. `global.css` already handles this in `.mw-card` by setting `color: var(--ink)` explicitly
+on its text children; the booking widget now does the same.
+
+Worth knowing for anything built on a facility page: `--fg` and `--accent` are not safe to
+inherit there, and `.mw-eyebrow` in particular resolves to `--accent`, which is white in half
+the zones.
+
 ## Decided and not built: a text input for duration
 
 The DRA asked, with a question mark, whether duration should also accept typed input. Not
@@ -57,6 +69,11 @@ page can stay as a direct link for people who arrive from an email.
 | 7 | Unclear what you have selected | 2 Sep 2026 | **Done** — persistent summary bar with date, time, length and price |
 | 8 | Start times beside the calendar, then duration; default 1 hour, more on request | 2 Sep 2026 | **Done** — six lengths shown, "show longer" for the rest |
 | 9 | Amending should default to the previous duration | 2 Sep 2026 | **Done** — preselected and marked "current", quoted immediately |
+| 10 | Text the same colour as the background on the Snooker Room page | 2 Sep 2026 | **Done** — the widget now sets its own ink colours; zone themes flip `--fg` to white |
+| 11 | Calendar need not mark free/busy days — not worth the slower load | 2 Sep 2026 | **Done** — marking and its extra request removed |
+| 12 | Show unavailable time slots greyed out and struck through | 2 Sep 2026 | **Done** — the whole day is drawn, taken slots stay in place |
+| 13 | Selected day and time need a much stronger state | 2 Sep 2026 | **Done** — filled dark green, bold, ringed |
+| 14 | Don't default the duration to one hour after all | 2 Sep 2026 | **Done** — no default; the summary appears only once a length is chosen |
 
 ## Known rough edges, unprompted
 

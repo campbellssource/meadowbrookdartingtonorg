@@ -22,6 +22,11 @@ const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? pr
 // not a real requirement — derived so nobody "fixes" production to match it.
 const billingCountry = env === 'sandbox' ? 'US' : 'GB';
 
+// Opening hours are the same every day for all three rooms; the grid uses the
+// first entry so unavailable times can be drawn rather than omitted.
+const openingFrom = room.openingHours[0]?.from ?? '08:00';
+const openingTo = room.openingHours[0]?.to ?? '23:00';
+
 const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
 const wid = `bw-${room.slug}`;
 ---
@@ -54,7 +59,6 @@ const wid = `bw-${room.slug}`;
           <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
         </div>
         <div class="bw-days" id={`${wid}-days`} role="grid" aria-label="Choose a date"></div>
-        <p class="bw-key"><i class="k-free"></i> available <i class="k-none"></i> nothing free</p>
       </div>
 
       <div class="bw-pick">
@@ -137,7 +141,7 @@ const wid = `bw-${room.slug}`;
 </div>
 
 <script src={squareSdkUrl} is:inline></script>
-<script define:vars={{ wid, roomSlug: room.slug, squareAppId, squareLocationId, billingCountry, maxAdvanceDays: room.maxAdvanceDays, minDuration: room.minDurationMins }}>
+<script define:vars={{ wid, roomSlug: room.slug, squareAppId, squareLocationId, billingCountry, maxAdvanceDays: room.maxAdvanceDays, minDuration: room.minDurationMins, openingFrom, openingTo, granularity: room.slotGranularityMins }}>
   (() => {
     const root = document.getElementById(wid);
     if (!root) return;
@@ -162,49 +166,32 @@ const wid = `bw-${room.slug}`;
     }
 
     // ── calendar ──────────────────────────────────────────────────
-    async function renderMonth(first) {
+    // The calendar deliberately does NOT ask which days have availability. Nearly
+    // every day has something free, so a whole extra round trip bought a dot that
+    // almost always said the same thing -- and it delayed the calendar appearing.
+    // Days are simply bookable or out of range; what is free shows in the times.
+    function renderMonth(first) {
       state.month = first;
       $('month').textContent = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
       const horizon = new Date(today.getTime() + maxAdvanceDays * 86400000);
-      const from = first < today ? today : first;
 
-      const grid = $('days');
-      grid.innerHTML = '<p class="bw-loading">Loading…</p>';
-
-      let summary = {};
-      if (from <= last && from <= horizon) {
-        try {
-          const to = last > horizon ? horizon : last;
-          const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${iso(from)}&to=${iso(to)}&summary=true`);
-          const data = await res.json();
-          if (res.ok) for (const d of data.days) summary[d.date] = d;
-        } catch { /* days render as unknown rather than blocking the calendar */ }
-      }
-
-      // Monday-first offset.
-      const lead = (first.getDay() + 6) % 7;
+      const lead = (first.getDay() + 6) % 7; // Monday-first
       let html = '';
       for (let i = 0; i < lead; i += 1) html += '<span class="bw-day is-blank"></span>';
       for (let d = 1; d <= last.getDate(); d += 1) {
         const day = new Date(first.getFullYear(), first.getMonth(), d);
         const key = iso(day);
-        const past = day < today;
-        const beyond = day > horizon;
-        const info = summary[key];
-        const free = !!info && info.open && info.slotCount > 0;
-        const cls = past || beyond ? 'is-out' : free ? 'is-free' : 'is-none';
+        const out = day < today || day > horizon;
         const sel = state.date === key ? ' is-sel' : '';
-        const dis = past || beyond || !free ? ' disabled' : '';
         const label = day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-        html += `<button type="button" class="bw-day ${cls}${sel}" data-date="${key}"${dis}`
-          + ` aria-label="${label}${free ? `, from ${money(info.fromPence)}` : ', nothing available'}">`
-          + `<span class="n">${d}</span>${free ? '<i class="dot"></i>' : ''}</button>`;
+        html += `<button type="button" class="bw-day ${out ? 'is-out' : 'is-open'}${sel}" data-date="${key}"`
+          + `${out ? ' disabled' : ''} aria-label="${label}"><span class="n">${d}</span></button>`;
       }
-      grid.innerHTML = html;
-      grid.querySelectorAll('.bw-day[data-date]:not([disabled])').forEach((b) => {
+      $('days').innerHTML = html;
+      $('days').querySelectorAll('.bw-day[data-date]:not([disabled])').forEach((b) => {
         b.addEventListener('click', () => pickDate(b.dataset.date));
       });
     }
@@ -232,9 +219,25 @@ const wid = `bw-${room.slug}`;
         if (!res.ok) throw new Error(data.error ?? 'Could not load times.');
         state.slots = data.days[0].slots;
         if (!state.slots.length) { $('times').innerHTML = '<p class="bw-none">Nothing free that day.</p>'; return; }
-        $('times').innerHTML = state.slots.map((s, i) =>
-          `<button type="button" role="radio" aria-checked="false" class="bw-time" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
-        $('times').querySelectorAll('.bw-time').forEach((b) => b.addEventListener('click', () => pickTime(Number(b.dataset.i))));
+
+        // Draw the whole day and cross out what is taken, rather than listing only
+        // what is free. A gap-free grid means the same time sits in the same place
+        // whichever day you look at, and a crossed-out 7pm reads as "booked"
+        // instead of leaving you wondering whether the room opens then at all.
+        const byStart = new Map(state.slots.map((s, i) => [s.start.slice(11, 16), i]));
+        const [oh, om] = openingFrom.split(':').map(Number);
+        const [ch, cm] = openingTo.split(':').map(Number);
+        const cells = [];
+        for (let m = oh * 60 + om; m < ch * 60 + cm; m += granularity) {
+          const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+          const i = byStart.get(hhmm);
+          cells.push(i === undefined
+            ? `<span class="bw-time is-gone" aria-label="${hhmm}, not available"><s>${hhmm}</s></span>`
+            : `<button type="button" role="radio" aria-checked="false" class="bw-time" data-i="${i}">${hhmm}</button>`);
+        }
+        $('times').innerHTML = cells.join('');
+        $('times').querySelectorAll('.bw-time[data-i]').forEach((b) =>
+          b.addEventListener('click', () => pickTime(Number(b.dataset.i))));
       } catch (e) {
         $('times').innerHTML = `<p class="bw-none">${e.message}</p>`;
       }
@@ -248,11 +251,11 @@ const wid = `bw-${room.slug}`;
         b.classList.toggle('is-sel', on);
         b.setAttribute('aria-checked', String(on));
       });
-      // Default to an hour — the minimum and by far the most common — rather than
-      // making everyone choose before they can continue.
-      const preferred = slot.durations.find((d) => d.mins === 60) ?? slot.durations[0];
-      state.durationMins = preferred.mins;
-      state.pricePence = preferred.pricePence;
+      // Deliberately no default length. Pre-selecting an hour meant the summary bar
+      // showed a price nobody had chosen, and a booking is easy to complete without
+      // ever noticing the duration. The DRA judged the extra click worth it.
+      state.durationMins = null;
+      state.pricePence = null;
       renderDurations();
       $('durwrap').hidden = false;
       updateSummary();
@@ -262,6 +265,7 @@ const wid = `bw-${room.slug}`;
       const all = state.slot.durations;
       const SHOWN = 6;
       const list = state.showAllDurs ? all : all.slice(0, SHOWN);
+      if (state.durationMins === null) $('summary').hidden = true;
       $('durs').innerHTML = list.map((d) => {
         const h = Math.floor(d.mins / 60); const m = d.mins % 60;
         const label = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
@@ -402,10 +406,19 @@ const wid = `bw-${room.slug}`;
 </script>
 
 <style>
-  .bw { background: var(--bone); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+  /* Zone themes (`zone-snooker`, `zone-studio`…) flip --fg to white and --accent
+     to bone for the dark facility pages. A light card that does not set its own
+     colours therefore inherits white text onto a white background, which is
+     exactly what happened on the Snooker Room page. Everything below states its
+     colour explicitly, the way .mw-card already does. */
+  .bw { background: var(--bone); color: var(--ink); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+  .bw h2, .bw h3, .bw strong, .bw legend, .bw label > span, .bw b { color: var(--ink); }
+  .bw .mw-eyebrow { color: var(--green-dark); }
+  .bw a { color: var(--green-dark); }
+
   .bw-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
   .bw-head h2 { margin: 8px 0 0; font-size: clamp(1.5rem, 3vw, 2rem); }
-  .bw-rate { margin: 0; font-size: 22px; font-weight: 700; white-space: nowrap; }
+  .bw-rate { margin: 0; font-size: 22px; font-weight: 700; white-space: nowrap; color: var(--ink); }
   .bw-rate span { font-size: 13px; font-weight: 500; color: var(--ink-mute); }
 
   .bw-steps { display: flex; gap: 20px; list-style: none; margin: 0 0 24px; padding: 0 0 18px;
@@ -426,37 +439,42 @@ const wid = `bw-${room.slug}`;
   .bw-dow, .bw-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .bw-dow { margin-bottom: 6px; }
   .bw-dow span { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-mute); }
-  .bw-day { position: relative; aspect-ratio: 1; display: grid; place-items: center; font: inherit; font-size: 14px;
+
+  .bw-day { position: relative; aspect-ratio: 1; display: grid; place-items: center; font: inherit; font-size: 15px;
     border: 0; border-radius: 10px; background: var(--paper-deep); color: var(--ink); cursor: pointer; padding: 0; }
   .bw-day.is-blank { background: none; }
-  .bw-day.is-none, .bw-day.is-out { background: transparent; color: var(--ink-mute); opacity: 0.45; cursor: default; }
-  .bw-day.is-free { background: var(--bone); box-shadow: inset 0 0 0 1.5px var(--sand); font-weight: 600; }
-  .bw-day.is-free:hover { box-shadow: inset 0 0 0 2px var(--green); }
-  .bw-day.is-sel { background: var(--green); color: #fff; box-shadow: none; }
-  .bw-day .dot { position: absolute; bottom: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
-  .bw-day.is-sel .dot { background: #fff; }
-  .bw-key { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-mute); margin: 14px 0 0; }
-  .bw-key i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
-  .bw-key .k-free { background: var(--bone); box-shadow: inset 0 0 0 1.5px var(--sand); }
-  .bw-key .k-none { background: var(--paper-deep); opacity: 0.5; margin-left: 10px; }
+  .bw-day.is-out { background: transparent; color: var(--ink-mute); opacity: 0.4; cursor: default; }
+  .bw-day.is-open:hover { box-shadow: inset 0 0 0 2px var(--green); }
+  /* Selected states are deliberately unmistakable: filled, bolder, ringed. The
+     first version only tinted the background and the DRA could not tell what was
+     chosen. */
+  .bw-day.is-sel { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
 
-  .bw-pick-empty { color: var(--ink-mute); padding: 40px 0; }
+  .bw-pick-empty { color: var(--ink-soft); padding: 40px 0; }
   .bw-pick-body h3 { margin: 0 0 18px; font-size: 18px; }
   .bw-field { border: 0; padding: 0; margin: 0 0 22px; }
   .bw-field legend { font-size: 13px; font-weight: 700; padding: 0; margin-bottom: 10px; }
+
   .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
   .bw-time { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; padding: 11px 4px; border: 0;
-    border-radius: 10px; background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+    border-radius: 10px; background: var(--paper-deep); color: var(--ink); cursor: pointer; text-align: center; }
   .bw-time:hover { box-shadow: inset 0 0 0 2px var(--sand); }
-  .bw-time.is-sel { background: var(--green); color: #fff; font-weight: 600; }
-  .bw-durs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .bw-time.is-sel { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
+  /* Taken slots stay in place so the day reads as a consistent grid. */
+  .bw-time.is-gone { background: transparent; color: var(--ink-mute); opacity: 0.5; cursor: default;
+    display: grid; place-items: center; }
+  .bw-time.is-gone s { text-decoration-thickness: 1.5px; }
+
+  .bw-durs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
   .bw-dur { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; font: inherit;
     padding: 12px 14px; border: 1.5px solid var(--sand); border-radius: 10px; background: #fff;
     color: var(--ink); cursor: pointer; }
   .bw-dur b { font-size: 15px; }
   .bw-dur span { font-size: 12px; color: var(--ink-mute); }
-  .bw-dur.is-sel { border-color: var(--green); background: #F2F8EC; }
-  .bw-dur.is-sel span { color: var(--green-dark); font-weight: 600; }
+  .bw-dur.is-sel { border-color: var(--green-dark); border-width: 2px; background: #EDF5E4; }
+  .bw-dur.is-sel b, .bw-dur.is-sel span { color: var(--green-dark); font-weight: 700; }
   .bw-more { font: inherit; font-size: 13px; margin-top: 10px; background: none; border: 0;
     color: var(--green-dark); text-decoration: underline; cursor: pointer; padding: 0; }
   .bw-loading, .bw-none { color: var(--ink-mute); font-size: 14px; margin: 0; }
@@ -468,7 +486,7 @@ const wid = `bw-${room.slug}`;
   .bw-input input, .bw-input textarea { font: inherit; font-size: 16px; padding: 13px 14px;
     border: 1.5px solid var(--sand); border-radius: 10px; background: #fff; color: var(--ink); }
   .bw-input input:focus, .bw-input textarea:focus { outline: 2px solid var(--green); outline-offset: 1px; }
-  .bw-terms { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin-bottom: 8px; }
+  .bw-terms { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin-bottom: 8px; color: var(--ink); }
   .bw-terms input { width: 20px; height: 20px; margin-top: 2px; }
   .bw-hint { font-size: 13px; color: #7A4B12; margin: 0 0 16px; }
   .bw-card { margin: 16px 0 10px; min-height: 90px; }
@@ -481,9 +499,10 @@ const wid = `bw-${room.slug}`;
 
   .bw-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
     margin-top: 24px; padding: 18px 20px; background: var(--ink); color: #fff; border-radius: var(--r-lg); }
+  .bw-summary strong, .bw-summary .bw-price { color: #fff; }
   .bw-summary-text { display: flex; flex-direction: column; gap: 2px; }
   .bw-summary-text strong { font-size: 16px; }
-  .bw-summary-text span { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .bw-summary-text span { font-size: 13px; color: rgba(255,255,255,0.72); }
   .bw-summary-right { display: flex; align-items: center; gap: 16px; }
   .bw-price { font-size: 22px; font-weight: 700; }
 

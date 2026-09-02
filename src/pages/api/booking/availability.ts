@@ -71,25 +71,6 @@ export const GET: APIRoute = async ({ url, clientAddress }) => {
     const busy = await fetchBusy(room.calendarId, timeMin, timeMax);
     const result = computeAvailability({ room, from, to, busy, now: new Date() });
 
-    // A month of full slot detail is a large response for a question the calendar
-    // only needs a yes/no to. `summary` returns one row per day so the month view
-    // costs a single small request.
-    if (url.searchParams.get('summary') === 'true') {
-      return json({
-        room: room.slug,
-        timeZone: result.timeZone,
-        days: result.days.map((d) => ({
-          date: d.date,
-          open: d.open,
-          slotCount: d.slots.length,
-          firstStart: d.slots[0]?.start ?? null,
-          fromPence: d.slots.length
-            ? Math.min(...d.slots.flatMap((s) => s.durations.map((x) => x.pricePence)))
-            : null,
-        })),
-      }, 200, 'public, max-age=30, s-maxage=30');
-    }
-
     return json({
       ...result,
       room: room.slug,
