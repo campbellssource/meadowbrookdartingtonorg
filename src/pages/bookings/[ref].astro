@@ -238,13 +238,32 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
     const showOk = (m) => { okEl.textContent = m; okEl.hidden = false; errEl.hidden = true; };
     const clear = () => { errEl.hidden = true; okEl.hidden = true; };
 
-    // Same rule as the booking form: anything revealed by a press gets scrolled to,
-    // so the page never changes below the fold without saying so.
+    // Related to the booking form's rule, but not identical, because these panels
+    // EXPAND rather than replace. The booking form's steps swap one panel for
+    // another, so it goes to the top of the whole widget and each step reads as
+    // its own page. Here the booking details stay put and a section opens beneath
+    // them, so the right target is that section's own top: its heading -- "Change
+    // the time", "Cancel this booking" -- becomes the first thing read, with the
+    // booking it refers to still just above.
+    const smoothOk = () => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // Opening a panel goes to that panel's own top, so its heading -- "Change the
+    // time", "Cancel this booking" -- is the first thing read.
     function reveal(el) {
       if (!el) return;
-      const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       requestAnimationFrame(() => {
-        el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+        el.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'start' });
+      });
+    }
+
+    // Inside a panel, only move if the thing is genuinely off screen.
+    function revealIfHidden(el) {
+      if (!el) return;
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        if (!(r.top >= 96 && r.bottom <= window.innerHeight)) {
+          el.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'nearest' });
+        }
       });
     }
     const money = (p) => `£${(p / 100).toFixed(2)}`;
@@ -298,7 +317,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         state.start = slot.start;
         const box = $('bc-durations');
         box.hidden = false;
-        reveal(box);
+        revealIfHidden(box);
         box.innerHTML = '<p class="bc-label">How long?</p><div class="bc-durs">'
           + slot.durations.map((d, i) => {
               const h = Math.floor(d.mins / 60); const m = d.mins % 60;
@@ -348,7 +367,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
           const payments = await Square.payments(squareAppId, squareLocationId);
           state.card = await payments.card();
           await state.card.attach('#bc-card');
-          reveal($('bc-amend-pay'));
+          revealIfHidden($('bc-amend-pay'));
         } catch (e) {
           console.error('booking: amend card form failed', e);
           showErr(`The payment form could not load (${e.message || e.name}).`);

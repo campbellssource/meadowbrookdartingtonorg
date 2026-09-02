@@ -26,15 +26,18 @@ The DRA's rule, and it applies to the whole flow: **anything that appears in res
 gets scrolled to.** Otherwise the page changes below the fold and reads as though the button did
 nothing — which is the same complaint as the disabled Pay button, in a different disguise.
 
-Implemented as `reveal(el)` in both the booking widget and the manage page. It waits a frame so
-the element is laid out before measuring, honours `prefers-reduced-motion`, and relies on
-`scroll-margin-top: 96px` on the targets because the site nav is sticky and `block: 'start'`
-would otherwise put the target underneath it.
+Three cases, deliberately different, because "scroll to the new thing" means different things
+depending on what changed:
 
-Applied at: opening the amend and cancel panels, picking a date (narrow screens only, where the
-times sit below the calendar), picking a time, moving between steps, and mounting either card
-form. Step 3 deliberately reveals the card area rather than the top of the panel, whose first
-inch is a terms checkbox.
+| What happened | Where it scrolls | Why |
+|---|---|---|
+| A booking-form **step** (steps replace each other) | Top of the whole widget | Each step should read as its own page: "Book the Studio", then the step you are on |
+| A manage-page **panel** opens (it expands, nothing is replaced) | Top of that panel | Its heading becomes the first thing read, with the booking it refers to still above |
+| Something appears **inside** either | Only if genuinely off screen | Picking a time should not throw the page around when the durations are already visible beneath it |
+
+All three wait a frame so the element is laid out before measuring, and honour
+`prefers-reduced-motion`. Targets carry `scroll-margin-top: 96px` because the site nav is sticky
+and `block: 'start'` would otherwise land them underneath it.
 
 ## Three CSS traps this flow hit, all silent
 
