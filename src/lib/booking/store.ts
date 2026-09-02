@@ -418,3 +418,39 @@ export async function applyChange(input: ApplyChangeInput): Promise<Booking> {
     return { ...b, ...next } as Booking;
   });
 }
+
+// --- Rate limiting -------------------------------------------------------
+
+/**
+ * A fixed-window counter in Firestore.
+ *
+ * Fixed rather than sliding because the failure mode of a fixed window -- up to
+ * double the limit across a boundary -- is irrelevant here, and a sliding window
+ * needs a document per event. This is for making abuse tedious, not for precision.
+ *
+ * The read and write are one transaction, so parallel requests cannot both see a
+ * count under the limit and both proceed.
+ */
+export async function rateLimit(
+  key: string, limit: number, windowMins: number, now = new Date(),
+): Promise<{ allowed: boolean; remaining: number }> {
+  const database = await getDb();
+  const ref = database.collection('ratelimits').doc(encodeURIComponent(key));
+  return database.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const windowMs = windowMins * MINUTE;
+    const data = snap.exists ? snap.data() as { windowStart: Timestamp; count: number } : null;
+
+    if (!data || now.getTime() - data.windowStart.toDate().getTime() > windowMs) {
+      tx.set(ref, {
+        windowStart: Timestamp.fromDate(now), count: 1,
+        // TTL tidies these up; nothing reads them after the window.
+        expiresAt: Timestamp.fromDate(new Date(now.getTime() + windowMs * 2)),
+      });
+      return { allowed: true, remaining: limit - 1 };
+    }
+    if (data.count >= limit) return { allowed: false, remaining: 0 };
+    tx.update(ref, { count: data.count + 1 });
+    return { allowed: true, remaining: limit - data.count - 1 };
+  });
+}

@@ -126,6 +126,21 @@ enable_pitr() {
 }
 
 # TTL on holds, so expired slot reservations sweep themselves.
+add_ttl() {
+  local group="$1"
+  if gcloud firestore fields ttls list --project="$PROJECT_ID" \
+       --format='value(name)' 2>/dev/null | grep -q "collectionGroups/$group/fields/expiresAt"; then
+    ok "TTL policy on $group.expiresAt already set"
+  else
+    gcloud firestore fields ttls update expiresAt --collection-group="$group" \
+      --project="$PROJECT_ID" --enable-ttl --async >/dev/null 2>&1 \
+      && ok "TTL policy on $group.expiresAt" \
+      || warn "could not set TTL on $group.expiresAt"
+  fi
+}
+
+add_ttl ratelimits
+
 if gcloud firestore fields ttls list --project="$PROJECT_ID" \
      --format='value(name)' 2>/dev/null | grep -q 'collectionGroups/holds/fields/expiresAt'; then
   ok "TTL policy on holds.expiresAt already set"
