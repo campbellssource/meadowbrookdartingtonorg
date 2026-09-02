@@ -194,10 +194,32 @@ on a real phone.
 
 Not optional, and easier to schedule as its own phase than to squeeze into the others.
 
-- **Accessibility.** Full keyboard path through the booking flow, a screen-reader pass on the
-  date and slot pickers, visible focus, colour contrast. The current Acuity iframe is
-  effectively unauditable — replacing it is a chance to be better, not merely equivalent.
-- **No-JS.** Slot browsing works without JavaScript; card entry says plainly that it needs it.
+- ~~**Accessibility.**~~ **DONE 2 Sep 2026.** Roving tabindex and arrow keys on the calendar,
+  the times and the durations; visible `:focus-visible` rings on everything; live regions
+  announcing loaded times and step changes; screen-reader-only help text.
+
+  Two ARIA contracts were being broken, which is worse than claiming nothing: `role="radiogroup"`
+  and `role="grid"` both promise arrow-key navigation and a single tab stop, and the flow
+  delivered 57 separately tabbable buttons instead. The calendar is now an honest labelled
+  `group`; the radiogroups now behave like radiogroups.
+
+  **Contrast, measured rather than eyeballed.** Two failures, both fixed: white on `--green` was
+  **2.78:1** on the primary button (now `--green-dark`, 5.06:1), and `--ink-mute` at 4.03:1 was
+  being used for 12–14px small print (now `--ink-soft`, 8.04:1). See the note below about the
+  site-wide button.
+- **No-JS — partial, and deliberately so.** A `<noscript>` block explains that the calendar and
+  card form both run in the browser, and gives the `bookings@` address as the way through. The
+  spec originally wanted slot browsing to work without JavaScript; that needs a server-rendered
+  availability view and a non-JS booking path, which is a feature rather than a hardening task.
+  Not built, and not pretended otherwise.
+
+### One finding outside this branch
+
+`.mw-btn-primary` in `global.css` is `background: var(--accent, var(--green))` with white text.
+Wherever `--accent` resolves to `--green`, that is **2.78:1** — below WCAG AA for any text size.
+The booking widget pins itself to `--green-dark` to avoid it, but the same button is used across
+the whole site. Worth a look; not changed here, because it is every primary button on every
+page and that is the DRA's call rather than a booking-system fix.
 - **Rate limits** on `create`, `find` and token use.
 - **Load check** — a few hundred concurrent availability requests, to see the cache work.
 - **`Referrer-Policy`, `Cache-Control: no-store`, CSP** on all `/bookings/*` and `/admin/*`.
