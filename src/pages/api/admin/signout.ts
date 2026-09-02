@@ -5,5 +5,7 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ cookies }) => {
   cookies.delete(ADMIN_COOKIE, { path: '/' });
-  return new Response(null, { status: 302, headers: { Location: '/admin/signin' } });
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
 };

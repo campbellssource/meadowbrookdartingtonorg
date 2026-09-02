@@ -47,18 +47,39 @@ const dev = devLoginAllowed();
           </p>
         )}
         {dev && (
-          <form method="POST" action="/api/admin/dev-login" class="ad-dev">
+          <div class="ad-dev">
             <p class="ad-note"><strong>Local development.</strong> Signs in without Google.</p>
-            <select name="email">
+            <select id="ad-dev-email">
               {adminEmails().map((e) => <option value={e}>{e}</option>)}
             </select>
-            <button class="mw-btn mw-btn-secondary" type="submit">Sign in locally</button>
-          </form>
+            <button class="mw-btn mw-btn-secondary" id="ad-dev-go" type="button">Sign in locally</button>
+            <p class="ad-deny" id="ad-dev-err" hidden></p>
+          </div>
         )}
       </div>
     </div>
   </section>
 </Layout>
+
+<script>
+  // Posted as JSON rather than as a form. Astro's cross-site check applies to
+  // form-encoded POSTs, and some browsers omit the Origin header on a same-origin
+  // form submission -- which Astro then reads as cross-site and refuses. JSON is
+  // exempt because it cannot be sent cross-origin without a CORS preflight.
+  const go = document.getElementById('ad-dev-go');
+  go?.addEventListener('click', async () => {
+    const email = (document.getElementById('ad-dev-email') as HTMLSelectElement).value;
+    const err = document.getElementById('ad-dev-err')!;
+    err.hidden = true;
+    const res = await fetch('/api/admin/dev-login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) { window.location.href = '/admin/bookings'; return; }
+    err.textContent = await res.text();
+    err.hidden = false;
+  });
+</script>
 
 <style>
   .ad-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }

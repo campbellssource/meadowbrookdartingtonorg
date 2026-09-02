@@ -72,7 +72,7 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
         <div class="ad-who">
           <span>{actor}</span>
           <a href="/admin/reporting">Reporting</a>
-          <form method="POST" action="/api/admin/signout"><button type="submit">Sign out</button></form>
+          <button type="button" id="ad-signout">Sign out</button>
         </div>
       </div>
 
@@ -202,6 +202,11 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
 </Layout>
 
 <script>
+  document.getElementById('ad-signout')?.addEventListener('click', async () => {
+    await fetch('/api/admin/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    window.location.href = '/admin/signin';
+  });
+
   document.querySelectorAll<HTMLButtonElement>('.ad-expand').forEach((btn) => {
     btn.addEventListener('click', () => {
       const row = document.getElementById(`d-${btn.dataset.ref}`)!;
