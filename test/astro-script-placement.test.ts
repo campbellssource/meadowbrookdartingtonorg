@@ -54,3 +54,42 @@ describe('Astro script placement', () => {
     });
   }
 });
+
+// A scoped Astro style targeting an element built at runtime silently matches
+// nothing: the rule compiles to `.thing[data-astro-cid-x]` and innerHTML-created
+// elements never carry that attribute. No error, no warning — the element is just
+// unstyled, which is how a selected state can look identical to an unselected one.
+//
+// The fix is to anchor the rule to a container that IS in the template and mark
+// the child :global(). This test looks for class names that appear in a template
+// literal inside a <script> and also as a bare scoped selector in <style>.
+describe('scoped styles do not target runtime-created elements', () => {
+  const pages = astroFiles('src/pages').concat(astroFiles('src/components'));
+
+  for (const file of pages) {
+    const src = readFileSync(file, 'utf8');
+    const scriptBlocks = [...src.matchAll(/<script[\s\S]*?<\/script>/g)].map((m) => m[0]).join('\n');
+    const styleBlocks = [...src.matchAll(/<style[\s\S]*?<\/style>/g)].map((m) => m[0]).join('\n');
+    if (!scriptBlocks || !styleBlocks) continue;
+
+    test(`${file}: no scoped rule for a class only created in JS`, () => {
+      // Classes the script writes into markup, e.g. class="bw-day is-sel"
+      const built = new Set<string>();
+      for (const m of scriptBlocks.matchAll(/class="([^"$]+)"/g)) {
+        for (const c of m[1].split(/\s+/)) if (c && !c.includes('{')) built.add(c);
+      }
+      const offenders: string[] = [];
+      for (const cls of built) {
+        // A bare scoped selector: `.cls {` or `.cls.mod {` at the start of a rule,
+        // not preceded by a descendant combinator and not inside :global().
+        const bare = new RegExp(`(^|[},])\\s*\\.${cls}(\\.[\\w-]+)*\\s*(,|\\{)`, 'm');
+        const globalised = new RegExp(`:global\\([^)]*\\.${cls}`);
+        if (bare.test(styleBlocks) && !globalised.test(styleBlocks)) offenders.push(cls);
+      }
+      assert.deepEqual(offenders, [],
+        `${file} styles .${offenders.join(', .')} with a scoped selector, but those elements are `
+        + 'created at runtime and will not carry data-astro-cid-*. Anchor the rule to a template '
+        + 'element and mark the child :global().');
+    });
+  }
+});

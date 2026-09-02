@@ -152,23 +152,23 @@ const today = new Date().toISOString().slice(0, 10);
     border: 1.5px solid var(--sand); background: var(--bone); color: var(--ink); }
   .bp-url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink-mute);
     margin: 0 0 18px; word-break: break-all; }
-  .bp-meta { margin: 0 0 18px; font-size: 15px; }
-  .bp-muted { color: var(--ink-mute); }
-  .bp-err { color: var(--ember); font-weight: 600; }
-  .bp-day { padding: 16px 0; border-top: 1px solid var(--paper-deep); }
-  .bp-day h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; display: flex; gap: 10px; align-items: baseline; }
-  .bp-count { font-size: 12px; font-weight: 500; color: var(--ink-mute); }
-  .bp-slots { display: flex; flex-wrap: wrap; gap: 6px; }
-  .bp-slot { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 7px 11px; border: 0;
+  .bp-out :global(.bp-meta ) { margin: 0 0 18px; font-size: 15px; }
+  .bp-out :global(.bp-muted ) { color: var(--ink-mute); }
+  .bp-out :global(.bp-err ) { color: var(--ember); font-weight: 600; }
+  .bp-out :global(.bp-day ) { padding: 16px 0; border-top: 1px solid var(--paper-deep); }
+  .bp-out :global(.bp-day h3 ) { font-size: 16px; font-weight: 600; margin: 0 0 10px; display: flex; gap: 10px; align-items: baseline; }
+  .bp-out :global(.bp-count ) { font-size: 12px; font-weight: 500; color: var(--ink-mute); }
+  .bp-out :global(.bp-slots ) { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bp-out :global(.bp-slots :global(.bp-slot ) ) { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 7px 11px; border: 0;
     border-radius: var(--r-pill); background: var(--bone); color: var(--ink); cursor: pointer;
     box-shadow: inset 0 0 0 1.5px transparent; }
-  .bp-slot:hover { box-shadow: inset 0 0 0 1.5px var(--sand); }
-  .bp-slot.sel { background: var(--green); color: #fff; }
+  .bp-out :global(.bp-slots :global(.bp-slot:hover ) ) { box-shadow: inset 0 0 0 1.5px var(--sand); }
+  .bp-out :global(.bp-slots :global(.bp-slot.sel ) ) { background: var(--green); color: #fff; }
   .bp-detail:not(:empty) { margin-top: 12px; padding: 12px 14px; background: var(--bone); border-radius: var(--r-lg); }
-  .bp-detail-h { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
-  .bp-durs { display: flex; flex-wrap: wrap; gap: 8px; }
-  .bp-dur { display: inline-flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 6px 12px;
+  .bp-out :global(.bp-detail-h ) { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  .bp-out :global(.bp-durs ) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bp-out :global(.bp-durs :global(.bp-dur ) ) { display: inline-flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 6px 12px;
     border-radius: var(--r-pill); background: var(--paper-deep); }
-  .bp-dur b { font-weight: 700; }
+  .bp-out :global(.bp-durs :global(.bp-dur b ) ) { font-weight: 700; }
   @media (max-width: 700px) { .bp-controls { flex-direction: column; align-items: stretch; } }
 </style>

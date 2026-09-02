@@ -381,17 +381,25 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
   .bc-field span { font-size: 13px; font-weight: 600; }
   .bc-field input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1.5px solid var(--sand);
     border-radius: 10px; background: #fff; color: var(--ink); }
+  /* Same trap as the booking widget: these are built with innerHTML, so they never
+     get Astro's data-astro-cid-* attribute and a scoped `.bc-slot` rule matches
+     nothing at all. Anchored to a container that IS in the template. */
   .bc-slots { display: flex; flex-wrap: wrap; gap: 6px; }
-  .bc-slot { font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; padding: 8px 12px; border: 0;
-    border-radius: var(--r-pill); background: var(--paper-deep); color: var(--ink); cursor: pointer; }
-  .bc-slot.sel { background: var(--green); color: #fff; }
-  .bc-label { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
-  .bc-durs { display: flex; flex-wrap: wrap; gap: 8px; }
-  .bc-dur { display: inline-flex; gap: 8px; align-items: baseline; font: inherit; font-size: 14px;
-    padding: 10px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
+  .bc-slots :global(.bc-slot) { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums;
+    padding: 10px 14px; border: 0; border-radius: var(--r-pill); background: var(--paper-deep);
+    color: var(--ink); cursor: pointer; }
+  .bc-slots :global(.bc-slot:hover) { box-shadow: inset 0 0 0 2px var(--sand); }
+  .bc-slots :global(.bc-slot.sel) { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
+  .bc-panel :global(.bc-label) { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--ink); }
+  .bc-panel :global(.bc-durs) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bc-panel :global(.bc-dur) { display: inline-flex; gap: 8px; align-items: baseline; font: inherit;
+    font-size: 14px; padding: 11px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
     background: #fff; color: var(--ink); cursor: pointer; }
-  .bc-dur.sel { border-color: var(--green); background: #F2F8EC; }
-  .bc-dur em { font-style: normal; font-size: 11px; color: var(--green-dark); font-weight: 600; }
+  .bc-panel :global(.bc-dur.sel) { border-color: var(--green-dark); border-width: 2px; background: #EDF5E4;
+    font-weight: 700; }
+  .bc-panel :global(.bc-dur em) { font-style: normal; font-size: 11px; color: var(--green-dark); font-weight: 600; }
+  .bc-panel :global(.bc-muted) { color: var(--ink-mute); font-size: 14px; }
   .bc-quote, .bc-quote-inline { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px;
     background: var(--paper-deep); font-size: 14px; font-weight: 600; }
   .bc-card-mount { margin: 10px 0; min-height: 90px; }
