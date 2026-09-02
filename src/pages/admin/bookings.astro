@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
 import { listBookings } from '../../lib/booking/store.ts';
+import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
 import { instantToLocalTime } from '../../lib/booking/time.ts';
@@ -40,6 +41,12 @@ try {
       + 'Cloud Run service account still has roles/datastore.user on meadowbrook-booking.'
     : `Could not reach the booking database. ${message.slice(0, 200)}`;
 }
+// Square reports refunds as PENDING and settles them minutes later. Rather than
+// show a figure that is knowably out of date until the hourly sweep runs, ask
+// Square about anything still pending as the page loads. Costs nothing when
+// nothing is pending, which is the usual case.
+const freshened = await freshenPending(all);
+if (freshened.size > 0) all = await listBookings(from, to);
 if (view === 'past') all = all.reverse();
 const filtered = all.filter(({ ref, booking: b }) => {
   if (roomFilter && b.room !== roomFilter) return false;

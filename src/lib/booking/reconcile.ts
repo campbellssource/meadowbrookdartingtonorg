@@ -116,6 +116,63 @@ export async function settlePayment(input: SettleInput): Promise<'updated' | 'un
   return 'updated';
 }
 
+/**
+ * Brings any pending ledger entries up to date for the given bookings, right now.
+ *
+ * `paidPence` is not merely displayed -- it is an input to `refundFor()`, so a
+ * stale one computes the wrong refund on a cancellation or a shortening, and caps
+ * the admin refund box wrongly. Anywhere a money decision is about to be made from
+ * it is worth a fresh read.
+ *
+ * Cheap in the normal case: bookings with nothing pending make no API call at all,
+ * and pending entries are rare and short-lived. Bounded and best-effort so that
+ * Square being slow or down degrades freshness rather than breaking the page.
+ */
+export async function freshenPending(
+  bookings: { ref: string; booking: Booking }[], limit = 20,
+): Promise<Set<string>> {
+  const stale = bookings
+    .filter(({ booking }) => booking.payments?.some((p) => p.status === 'pending'))
+    .slice(0, limit);
+  if (stale.length === 0) return new Set();
+
+  const updated = new Set<string>();
+  await Promise.all(stale.map(async ({ ref }) => {
+    try {
+      const result = await settlePayment({ bookingRef: ref, squarePaymentId: null, squareRefundId: null });
+      if (result === 'updated') updated.add(ref);
+    } catch (err) {
+      // Freshness is a nicety here; the hourly sweep is the guarantee.
+      console.warn('freshenPending: could not settle', { ref, err: String(err) });
+    }
+  }));
+  if (updated.size > 0) console.log('freshenPending: settled', { count: updated.size });
+  return updated;
+}
+
+/**
+ * Freshens one booking before a refund is calculated from it.
+ *
+ * Returns the booking as it now stands. Called on the cancel and amend paths
+ * because `refundFor()` reads `paidPence`: with a pending refund uncounted, a
+ * cancellation would try to return money that has already gone back, and a
+ * shortening would refund more than the difference.
+ */
+export async function freshenOne(ref: string, booking: Booking): Promise<Booking> {
+  if (!booking.payments?.some((p) => p.status === 'pending')) return booking;
+  try {
+    if (await settlePayment({ bookingRef: ref, squarePaymentId: null, squareRefundId: null }) !== 'updated') {
+      return booking;
+    }
+    const db = await getDb();
+    const snap = await db.collection('bookings').doc(ref).get();
+    return snap.exists ? (snap.data() as Booking) : booking;
+  } catch (err) {
+    console.warn('freshenOne: could not settle', { ref, err: String(err) });
+    return booking;
+  }
+}
+
 export interface ReconcileReport {
   settled: number;
   calendarRepaired: number;

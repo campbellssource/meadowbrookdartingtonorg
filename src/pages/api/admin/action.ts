@@ -10,6 +10,7 @@ import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
 import { squareConfig, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
+import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
 import { issue } from '../../../lib/booking/token.ts';
 import { confirmationEmail, cancellationEmail, send } from '../../../lib/booking/email.ts';
@@ -30,8 +31,10 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
 
   const ref = String(body.ref ?? '').trim();
   const action = String(body.action ?? '');
-  const booking = await getBooking(ref);
-  if (!booking) return json({ error: 'No such booking.' }, 404);
+  const raw = await getBooking(ref);
+  if (!raw) return json({ error: 'No such booking.' }, 404);
+  // The refund box is capped by paidPence and the cancel path prices from it.
+  const booking = await freshenOne(ref, raw);
 
   const room = await getRoomConfig(booking.room);
   const roomName = room?.shortName ?? booking.room;

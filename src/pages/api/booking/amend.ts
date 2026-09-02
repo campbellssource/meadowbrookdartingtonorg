@@ -18,6 +18,7 @@ import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
 import { takeHold, releaseHold, applyChange, SlotUnavailableError } from '../../../lib/booking/store.ts';
 import { squareConfig, charge, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
+import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { amendmentEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { envBool } from '../../../lib/booking/env.ts';
 
@@ -41,7 +42,10 @@ export const POST: APIRoute = async ({ request, url }) => {
   const auth = await authorise(ref, body.token ? String(body.token) : null);
   if (!auth.ok) return json({ error: auth.message }, auth.status);
 
-  const { booking } = auth;
+  // refundFor() reads paidPence, so settle anything pending before deciding what
+  // money should move. A stale figure here refunds the wrong amount.
+  const { booking: raw } = auth;
+  const booking = await freshenOne(ref, raw);
   const now = new Date();
   if (booking.status !== 'confirmed') return json({ error: 'That booking cannot be changed.' }, 409);
   if (booking.start.toDate() <= now) return json({ error: 'That booking has already started.' }, 409);

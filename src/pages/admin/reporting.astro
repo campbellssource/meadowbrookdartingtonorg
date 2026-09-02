@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
 import { listBookings } from '../../lib/booking/store.ts';
+import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
 import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers } from '../../lib/booking/reporting.ts';
@@ -22,6 +23,8 @@ let rows: Awaited<ReturnType<typeof listBookings>> = [];
 let dataError: string | null = null;
 try {
   rows = await listBookings(from, to);
+  // Figures the treasurer might act on: settle anything pending before totalling.
+  if ((await freshenPending(rows)).size > 0) rows = await listBookings(from, to);
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
   console.error('admin: could not read bookings', message);

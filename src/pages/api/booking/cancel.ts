@@ -13,6 +13,7 @@ import { deleteEvent } from '../../../lib/booking/calendar.ts';
 import { applyChange, revokeTokensFor } from '../../../lib/booking/store.ts';
 import { squareConfig, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
+import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
 import { cancellationEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { envBool } from '../../../lib/booking/env.ts';
@@ -39,7 +40,10 @@ export const POST: APIRoute = async ({ request, url }) => {
   const auth = await authorise(ref, token);
   if (!auth.ok) return json({ error: auth.message }, auth.status);
 
-  const { booking } = auth;
+  // refundFor() reads paidPence, so settle anything pending before deciding what
+  // money should move. A stale figure here refunds the wrong amount.
+  const { booking: raw } = auth;
+  const booking = await freshenOne(ref, raw);
   if (booking.status === 'cancelled') {
     return json({ error: 'That booking has already been cancelled.' }, 409);
   }
