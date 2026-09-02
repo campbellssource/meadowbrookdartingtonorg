@@ -34,6 +34,7 @@ handed to Claude Code (or any coding agent) for spec-driven development.
 | `12-privacy-policy.md` | Privacy policy changes — plus two live inaccuracies found while checking |
 | `13-door-access-integration.md` | The door-lock system that already reads these calendars |
 | `14-ui-feedback.md` | Running list of UI notes, worked through in Phase 5b |
+| `15-deployment.md` | What must be true before this reaches production, and in what order |
 | `IMPLEMENTATION-PLAN.md` | Phased build order with file-level detail |
 | `setup-gcp.sh` | Idempotent gcloud script for everything in `08` |
 | `OPEN-QUESTIONS.md` | Things the DRA must decide or supply before launch |

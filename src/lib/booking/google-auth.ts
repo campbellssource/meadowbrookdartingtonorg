@@ -5,12 +5,20 @@
 // domain, so there are no downloadable service-account keys to pass around.
 //
 //   1. GOOGLE_SERVICE_ACCOUNT_JSON  -- an inline key, if one ever exists
-//   2. BOOKING_IMPERSONATE_SA       -- impersonate via your own gcloud ADC (local dev)
-//   3. plain ADC                    -- the Cloud Run runtime service account (production)
+//   2. BOOKING_IMPERSONATE_SA       -- impersonate `booking-app`, via your own ADC
+//                                      locally and via the runtime SA on Cloud Run
+//   3. plain ADC                    -- fallback only; has no access to the booking
+//                                      project and will fail
 //
-// Local dev and production therefore share one code path and one identity
-// (`booking-app@meadowbrook-booking`), which is why "works on my machine" means
-// something here. See spec/booking/08-infrastructure.md.
+// Path 2 is the live one in BOTH environments. The room calendars are shared with
+// `booking-app`, not with the Cloud Run runtime SA, and only `booking-app` holds
+// roles/datastore.user on meadowbrook-booking -- the runtime SA is merely allowed
+// to impersonate it. So BOOKING_IMPERSONATE_SA must be set in production as well
+// as locally; unset does not mean "use the runtime identity", it means "use an
+// identity with no permissions".
+//
+// One code path, one identity, both environments, which is why "works on my
+// machine" means something here. See spec/booking/08-infrastructure.md.
 
 import { GoogleAuth, Impersonated } from 'google-auth-library';
 

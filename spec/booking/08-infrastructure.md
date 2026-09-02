@@ -118,6 +118,24 @@ TOKEN=$(gcloud auth print-access-token \
   it directly by ID — which is what the app does. `calendarList.insert` will subscribe it and
   report the granted `accessRole`, useful as a permission check.
 
+## Production must impersonate too — the easiest thing here to get wrong
+
+`BOOKING_IMPERSONATE_SA` reads like a local-development convenience. It is not.
+
+The Cloud Run runtime service account, `589136616970-compute@developer`, has **no roles at all**
+on `meadowbrook-booking`, and the three room calendars are shared with `booking-app`, not with
+it. All the runtime SA has is `roles/iam.serviceAccountTokenCreator` on `booking-app`.
+
+So the production service must set:
+
+```
+BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com
+```
+
+Leaving it unset does not fall back to a working identity — it falls back to one with no
+permissions, and every booking read and calendar write fails. Verified 2 Sep 2026 by checking
+the IAM policy rather than by reading the earlier comments, which said the opposite.
+
 ## Cost
 
 | Item | Estimate |

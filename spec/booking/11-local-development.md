@@ -122,7 +122,7 @@ npm run dev:booking     # emulator + astro dev, concurrently
 
 ```sh
 BOOKING_PROJECT_ID=meadowbrook-booking
-BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com
+BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com   # also set in production — see 08
 FIRESTORE_EMULATOR_HOST=localhost:8080
 BOOKING_EMAIL_TRANSPORT=console
 PUBLIC_BOOKING_SQUARE_ENVIRONMENT=sandbox

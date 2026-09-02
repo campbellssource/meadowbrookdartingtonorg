@@ -98,8 +98,18 @@ export async function getDb(): Promise<Firestore> {
   const projectId = env('BOOKING_PROJECT_ID') ?? 'meadowbrook-booking';
   const settings: Settings = { projectId };
 
-  // The Workspace blocks service-account keys, so local dev impersonates through
-  // your own ADC. On Cloud Run this is unset and the runtime SA is used directly.
+  // Impersonation is required in BOTH environments, which is easy to get wrong.
+  //
+  // The Cloud Run runtime SA (589136616970-compute@developer) has no access to the
+  // meadowbrook-booking project at all: `booking-app` holds roles/datastore.user
+  // and is the identity the room calendars are shared with. The runtime SA is only
+  // granted serviceAccountTokenCreator on it. So production must set
+  // BOOKING_IMPERSONATE_SA too -- leaving it unset does not fall back to a working
+  // identity, it falls back to one with no permissions, and every read fails.
+  //
+  // Locally the same variable impersonates through your own ADC, because the
+  // Workspace blocks service-account keys. One code path, one identity, both
+  // environments.
   const target = env('BOOKING_IMPERSONATE_SA');
   if (target && !env('FIRESTORE_EMULATOR_HOST')) {
     const sourceClient = await new GoogleAuth({
