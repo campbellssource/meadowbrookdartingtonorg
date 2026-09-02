@@ -43,6 +43,9 @@ const refundIfCancelled = booking
   : 0;
 const started = start ? start <= now : false;
 const canManage = booking?.status === 'confirmed' && !started;
+// Inside the hour the booking is fixed. Cancelling is still allowed -- releasing
+// the slot helps even with no refund due -- but changing the time is not.
+const canAmend = canManage && refundIfCancelled > 0;
 
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', {
   timeZone: 'Europe/London', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -108,7 +111,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 
           {canManage && (
             <div class="bc-actions">
-              <button class="mw-btn mw-btn-primary" id="bc-amend-open">Change the time</button>
+              {canAmend && <button class="mw-btn mw-btn-primary" id="bc-amend-open">Change the time</button>}
               <button class="mw-btn mw-btn-secondary" id="bc-cancel-open">Cancel booking</button>
             </div>
           )}
@@ -116,8 +119,8 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
           {canManage && (
             <p class="bc-note">
               {refundIfCancelled > 0
-                ? `Cancel now and you'll be refunded ${formatPence(refundIfCancelled)} in full. That drops to nothing within an hour of the start time.`
-                : 'This booking starts within the hour, so cancelling now would not be refunded.'}
+                ? `Cancel now and you'll be refunded ${formatPence(refundIfCancelled)} in full. Within an hour of the start time the booking is fixed — it can no longer be changed, and cancelling is not refunded.`
+                : 'This booking starts within the hour, so it can no longer be changed and cancelling would not be refunded. If you need to move it, please contact us.'}
               {' '}To change room instead, cancel this booking and make a new one.
             </p>
           )}
@@ -169,7 +172,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 
   <script src={squareSdkUrl} is:inline></script>
   <script define:vars={{
-    ref, token, canManage,
+    ref, token, canManage, canAmend,
     roomSlug: booking?.room ?? null,
     squareAppId, squareLocationId, billingCountry,
   }}>
@@ -213,7 +216,8 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         return data;
       };
 
-      // --- amend ---
+      // --- amend (only when the booking is outside the cancellation window) ---
+      if (canAmend) {
       $('bc-amend-open').addEventListener('click', () => {
         clear(); $('bc-cancel').hidden = true; $('bc-amend').hidden = false;
         if (!$('bc-date').value) $('bc-date').value = new Date().toISOString().slice(0, 10);
@@ -321,7 +325,9 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         } catch (e) { showErr(e.message); btn.disabled = false; }
       });
 
-      // --- cancel ---
+      } // end canAmend
+
+      // --- cancel: still offered inside the window, just not refunded ---
       $('bc-cancel-open').addEventListener('click', async () => {
         clear(); $('bc-amend').hidden = true; $('bc-cancel').hidden = false;
         try {

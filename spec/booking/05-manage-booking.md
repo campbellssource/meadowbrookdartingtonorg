@@ -70,7 +70,11 @@ localStorage['mb.bookings'] = [ { ref: 'MB-7K2QX4', token: '...', end: '2026-09-
 booking's own slot shown as available (you can't be blocked by yourself).
 
 ```
-1  Verify token → booking. Must be 'confirmed' and not yet started.
+1  Verify token → booking. Must be 'confirmed', not yet started, and
+   MORE THAN 1 HOUR from its start. Inside the cancellation window a
+   booking is fixed -- otherwise amending is a way out of the window
+   (move it to next week at the same price, then cancel for a full
+   refund). See 04.
 2  Show availability, excluding this booking's own calendar event from busy.
 3  On submit: re-price the new slot server-side.
 4  Firestore transaction: overlap-check the new slot (ignoring this booking),

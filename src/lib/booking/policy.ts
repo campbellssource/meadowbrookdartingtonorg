@@ -22,7 +22,15 @@ export interface RefundDecision {
   reason: 'cancel' | 'amend-up' | 'amend-down' | 'none';
 }
 
-/** Would cancelling right now refund anything? */
+/**
+ * Would cancelling right now refund anything?
+ *
+ * Also the gate on amending at all: inside the window a booking is fixed
+ * (`api/booking/amend.ts`). That is what stops an amendment being used as an exit
+ * from the window -- move a soon-starting booking to next week at the same price
+ * and nothing here would object, but cancelling from its new start would then
+ * refund in full.
+ */
 export function refundableAtBooking(start: Date, now: Date): boolean {
   return start.getTime() - now.getTime() > CANCELLATION_WINDOW_HOURS * 60 * MINUTE;
 }

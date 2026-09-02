@@ -35,14 +35,20 @@ by the time your slot ends.
 
 **3. Changing or cancelling.** Use the link in your confirmation email.
 
-- Cancel **more than 1 hour before** your booking starts: full refund, automatically.
-- Cancel **within 1 hour** of the start, or after it: no refund.
-- Change the time or length: the price is recalculated. If it costs more you pay the
+**More than 1 hour before your booking starts**, you can do either:
+
+- **Cancel** — refunded in full, automatically.
+- **Change the time or length** — the price is recalculated. If it costs more you pay the
   difference; if it costs less we refund the difference.
 
+**Within 1 hour of the start, the booking is fixed.** It can no longer be changed, and
+cancelling it is not refunded. If something has genuinely gone wrong, email us and we will do
+what we can — we would rather know the room is free than have it sit empty.
+
 **If you book a room that starts within the hour** — which is common and welcome for the
-Snooker Room — your booking cannot be refunded, because it is already inside the cancellation
-window. We will tell you this on the booking form before you pay.
+Snooker Room — that booking is fixed from the moment you make it: it cannot be changed or
+refunded, because it is already inside the window. We will tell you this on the booking form
+before you pay.
 
 **4. If we have to cancel.** Very occasionally we may need to cancel a booking — a burst pipe,
 a power cut, an emergency closure. You will get a full refund and as much notice as we can

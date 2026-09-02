@@ -82,3 +82,28 @@ describe('amendments', () => {
       { refundPence: 500, chargePence: 0, reason: 'amend-down' });
   });
 });
+
+describe('amending is refused inside the cancellation window', () => {
+  // The escape hatch this closes: move a booking that starts in twenty minutes
+  // to next week at the SAME price -- no money moves, so no refund arithmetic
+  // objects -- then cancel from the new start and be refunded in full. Guarding
+  // refundFor alone would not catch it, because the amendment moves no money.
+  test('refundableAtBooking is the gate, and it is false inside the hour', () => {
+    assert.equal(refundableAtBooking(start, addMinutes(start, -20)), false);
+    assert.equal(refundableAtBooking(start, addMinutes(start, -61)), true);
+  });
+
+  test('a same-price move inside the window would otherwise move no money', () => {
+    // Documents why the endpoint guard is required rather than a policy tweak.
+    const now = addMinutes(start, -20);
+    assert.deepEqual(amend(7500, 7500, now), { refundPence: 0, chargePence: 0, reason: 'none' });
+    // ...and cancelling from a start a week later would refund everything.
+    const movedStart = addMinutes(start, 7 * 24 * 60);
+    assert.equal(refundableAtBooking(movedStart, now), true);
+  });
+
+  test('outside the window, amending still prices on the difference', () => {
+    const early = addMinutes(start, -48 * 60);
+    assert.deepEqual(amend(1500, 1000, early), { refundPence: 500, chargePence: 0, reason: 'amend-down' });
+  });
+});

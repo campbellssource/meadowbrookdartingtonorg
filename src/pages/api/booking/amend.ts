@@ -17,7 +17,7 @@ import { priceFor, formatPence } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
 import { takeHold, releaseHold, applyChange, SlotUnavailableError } from '../../../lib/booking/store.ts';
 import { squareConfig, charge, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
-import { refundFor } from '../../../lib/booking/policy.ts';
+import { refundFor, refundableAtBooking } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { amendmentEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { envBool } from '../../../lib/booking/env.ts';
@@ -49,6 +49,22 @@ export const POST: APIRoute = async ({ request, url }) => {
   const now = new Date();
   if (booking.status !== 'confirmed') return json({ error: 'That booking cannot be changed.' }, 409);
   if (booking.start.toDate() <= now) return json({ error: 'That booking has already started.' }, 409);
+
+  // Inside the cancellation window a booking is fixed: no changes, no refund.
+  //
+  // Without this, amending is a way out of the window rather than a change to a
+  // booking. Move a booking that starts in twenty minutes to next week -- at the
+  // same price, so no money moves and every other guard passes -- and it is then
+  // an hour-plus from its new start, so cancelling refunds in full. The DRA has
+  // released a slot twenty minutes before it starts and refunded it. Guarding the
+  // refund arithmetic alone would not catch that, because the amendment itself
+  // moves no money.
+  if (!refundableAtBooking(booking.start.toDate(), now)) {
+    return json({
+      error: 'This booking starts within the hour, so it can no longer be changed. '
+        + 'If you need to move it, please contact us.',
+    }, 409);
+  }
 
   const room = await getRoomConfig(booking.room);
   if (!room) return json({ error: 'That room is no longer bookable.' }, 409);

@@ -143,12 +143,31 @@ Per D4, the v1 policy is:
 |---|---|
 | Cancel more than 1 hour before start | Refund `paidPence` in full |
 | Cancel within 1 hour of start, or after it | Refund nothing |
+| **Amend within 1 hour of start** | **Refused** — see below |
 | Amend to a dearer slot | Charge the difference. Booking only moves if the charge succeeds |
 | Amend to a cheaper slot | Refund the difference |
 | Amend to the same price | No money moves |
 
 The function takes a `CANCELLATION_WINDOW_HOURS` config value, **set to `1` for v1**. Setting
 it to `24` or `48` later needs no code change.
+
+### Why amending is refused inside the window
+
+`api/booking/amend.ts` rejects any amendment once a booking is inside its cancellation window,
+and this is a security control rather than a policy nicety. Found by `/security-review`,
+2 Sep 2026.
+
+Without it, amending is an exit from the window rather than a change to a booking. Move a
+booking that starts in twenty minutes to next week **at the same price**: no money moves, so
+none of the refund arithmetic objects and every other guard passes. The booking is now more
+than an hour from its start, so cancelling refunds in full. The DRA has released a slot twenty
+minutes before it began, with no time to re-let it, and refunded it.
+
+The important part is that guarding `refundFor()` would **not** have caught this, because the
+amendment itself moves no money. The guard has to be on the amendment, not on the arithmetic.
+
+Cancelling stays available inside the window — releasing a slot helps even with no refund due.
+Only changing is refused.
 
 `refundFor` is also called **at checkout**, with `now = bookedAt`, purely to ask "would
 cancelling this right now refund anything?". When the answer is no — which happens whenever a
