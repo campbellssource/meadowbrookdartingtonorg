@@ -11,6 +11,7 @@ import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, CalendarError } from '../../../lib/booking/calendar.ts';
 import { computeAvailability, datesBetween } from '../../../lib/booking/availability.ts';
 import { londonToInstant, instantToLocalDate, addMinutes } from '../../../lib/booking/time.ts';
+import { rateLimit } from '../../../lib/booking/store.ts';
 
 export const prerender = false;
 
@@ -29,7 +30,7 @@ const json = (body: unknown, status = 200, cache?: string): Response =>
     },
   });
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, clientAddress }) => {
   const slug = (url.searchParams.get('room') ?? '').trim();
   const today = instantToLocalDate(new Date());
   const from = (url.searchParams.get('from') ?? today).trim();
@@ -45,6 +46,11 @@ export const GET: APIRoute = async ({ url }) => {
   if (dates.length > MAX_DAYS) {
     return json({ error: `Range too wide: ${dates.length} days, maximum ${MAX_DAYS}` }, 400);
   }
+
+  // Every call spends Google Calendar quota. Browsing a fortnight is perhaps
+  // twenty requests, so this is far above normal use and well below scraping.
+  const limit = await rateLimit(`avail:ip:${clientAddress ?? 'unknown'}`, 200, 60);
+  if (!limit.allowed) return json({ error: 'Too many requests. Please slow down.' }, 429);
 
   let room;
   try {

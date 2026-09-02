@@ -14,7 +14,8 @@ import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
 import {
-  takeHold, releaseHold, confirmBooking, recordOrphan, recordToken, SlotUnavailableError,
+  takeHold, releaseHold, confirmBooking, recordOrphan, recordToken, rateLimit,
+  SlotUnavailableError,
 } from '../../../lib/booking/store.ts';
 import { issue } from '../../../lib/booking/token.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
@@ -39,7 +40,7 @@ async function alert(subject: string, lines: string[]): Promise<void> {
   catch (err) { console.error('booking/create: alert failed', err); }
 }
 
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request, url, clientAddress }) => {
   let payload: Record<string, any>;
   try { payload = await request.json(); }
   catch { return json({ error: 'Invalid request.' }, 400); }
@@ -61,6 +62,18 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (!EMAIL_RE.test(email)) return json({ error: 'Please enter a valid email address.' }, 400);
   if (payload.acceptedTerms !== true) return json({ error: 'Please accept the room hire terms.' }, 400);
   if (!sourceId) return json({ error: 'Payment token missing.' }, 400);
+
+  // Generous enough that a hirer retrying a declined card is never caught, tight
+  // enough that scripted abuse is tedious. Applied after validation so malformed
+  // requests do not consume anyone's allowance.
+  const [byIp, byEmail] = await Promise.all([
+    rateLimit(`create:ip:${clientAddress ?? 'unknown'}`, 20, 60),
+    rateLimit(`create:email:${email}`, 10, 60),
+  ]);
+  if (!byIp.allowed || !byEmail.allowed) {
+    console.warn('booking/create: rate limited', { limited: !byIp.allowed ? 'ip' : 'email' });
+    return json({ error: 'Too many booking attempts. Please wait a few minutes and try again.' }, 429);
+  }
 
   const room = await getRoomConfig(slug);
   if (!room) return json({ error: 'That room cannot be booked online.' }, 404);

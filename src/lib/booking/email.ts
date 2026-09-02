@@ -39,8 +39,17 @@ type Transport = 'console' | 'brevo';
  */
 function transport(): Transport {
   const configured = env('BOOKING_EMAIL_TRANSPORT');
+  if (process.env.NODE_ENV === 'production') {
+    // The console transport prints the whole email, magic-link token included.
+    // That is exactly right in development and a token leak into the logs in
+    // production -- on top of nobody receiving their booking. Refused outright
+    // rather than trusted to configuration.
+    if (configured === 'console') {
+      throw new Error('BOOKING_EMAIL_TRANSPORT=console is not permitted in production.');
+    }
+    return 'brevo';
+  }
   if (configured === 'console' || configured === 'brevo') return configured;
-  if (process.env.NODE_ENV === 'production') return 'brevo';
   throw new Error(
     'BOOKING_EMAIL_TRANSPORT is not set. Use "console" in development (prints to the '
     + 'terminal) or "brevo" to actually send. Refusing to guess.',

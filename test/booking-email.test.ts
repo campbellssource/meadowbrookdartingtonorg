@@ -92,3 +92,27 @@ describe('transport refuses to guess', () => {
     await assert.doesNotReject(() => send(confirmationEmail(b)));
   });
 });
+
+describe('the console transport is refused in production', () => {
+  let prevT: string | undefined; let prevN: string | undefined;
+  beforeEach(() => { prevT = process.env.BOOKING_EMAIL_TRANSPORT; prevN = process.env.NODE_ENV; });
+  afterEach(() => {
+    if (prevT === undefined) delete process.env.BOOKING_EMAIL_TRANSPORT;
+    else process.env.BOOKING_EMAIL_TRANSPORT = prevT;
+    if (prevN === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = prevN;
+  });
+
+  test('console in production throws rather than printing tokens to the logs', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.BOOKING_EMAIL_TRANSPORT = 'console';
+    await assert.rejects(() => send(confirmationEmail(b)), /not permitted in production/);
+  });
+
+  test('production with the variable unset uses brevo', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.BOOKING_EMAIL_TRANSPORT;
+    // No BREVO_API_KEY in tests, so it fails at the key check -- which proves it
+    // chose brevo rather than console.
+    await assert.rejects(() => send(confirmationEmail(b)), /BREVO_API_KEY/);
+  });
+});

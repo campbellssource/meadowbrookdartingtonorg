@@ -6,6 +6,11 @@ import { getRoomConfig } from '../../lib/booking/config-reader.ts';
 
 export const prerender = false;
 
+// This page collects a name, an email and a phone number, and its URL identifies
+// the room being booked. It should not sit in a shared cache or leak a referrer.
+Astro.response.headers.set('Cache-Control', 'no-store, private');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+
 const { slug } = Astro.params;
 const room = slug ? await getRoomConfig(slug) : null;
 if (!room) return Astro.redirect('/facilities', 302);
