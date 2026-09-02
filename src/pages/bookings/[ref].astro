@@ -219,12 +219,42 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
     // link" one, so it does nothing unless the manage UI is actually present.
     if (!document.getElementById('bc-error')) {
       // Still worth stripping the token from the address bar even on a refusal.
-      if (new URL(location.href).searchParams.has('t')) {
+      // A browser restores your scroll position across a reload, so after amending or
+    // cancelling you would land halfway down the page you were already on rather
+    // than at the confirmation of what just happened. The flag is set immediately
+    // before the reload and cleared on arrival, so an ordinary refresh mid-read
+    // still keeps its place.
+    const SCROLL_FLAG = 'mb.booking.scrollTop';
+    if (sessionStorage.getItem(SCROLL_FLAG)) {
+      sessionStorage.removeItem(SCROLL_FLAG);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    const reloadToTop = () => {
+      try { sessionStorage.setItem(SCROLL_FLAG, '1'); } catch { /* private mode */ }
+      location.reload();
+    };
+
+    if (new URL(location.href).searchParams.has('t')) {
         const c = new URL(location.href); c.searchParams.delete('t');
         history.replaceState({}, '', c.toString());
       }
       throw new Error('booking: manage UI not present');
     }
+
+    // A browser restores your scroll position across a reload, so after amending or
+    // cancelling you would land halfway down the page you were already on rather
+    // than at the confirmation of what just happened. The flag is set immediately
+    // before the reload and cleared on arrival, so an ordinary refresh mid-read
+    // still keeps its place.
+    const SCROLL_FLAG = 'mb.booking.scrollTop';
+    if (sessionStorage.getItem(SCROLL_FLAG)) {
+      sessionStorage.removeItem(SCROLL_FLAG);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    const reloadToTop = () => {
+      try { sessionStorage.setItem(SCROLL_FLAG, '1'); } catch { /* private mode */ }
+      location.reload();
+    };
 
     if (new URL(location.href).searchParams.has('t')) {
       const clean = new URL(location.href);
@@ -402,7 +432,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
           showOk(r.refundPence > 0
             ? `Changed. ${money(r.refundPence)} is on its way back to your card.`
             : 'Your booking has been changed.');
-          setTimeout(() => location.reload(), 1400);
+          setTimeout(reloadToTop, 1400);
         } catch (e) { showErr(e.message); btn.disabled = false; }
       });
 
@@ -426,7 +456,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
             ? `Cancelled. ${money(r.refundPence)} is on its way back to your card, usually within 5 to 10 working days.`
             : 'Cancelled.');
           $('bc-cancel').hidden = true;
-          setTimeout(() => location.reload(), 1800);
+          setTimeout(reloadToTop, 1800);
         } catch (e) { showErr(e.message); }
       });
     }

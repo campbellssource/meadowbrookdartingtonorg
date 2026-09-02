@@ -35,6 +35,12 @@ depending on what changed:
 | A manage-page **panel** opens (it expands, nothing is replaced) | Top of that panel | Its heading becomes the first thing read, with the booking it refers to still above |
 | Something appears **inside** either | Only if genuinely off screen | Picking a time should not throw the page around when the durations are already visible beneath it |
 
+A fourth case sits outside the table: **arriving at a confirmation**. Amending or cancelling
+reloads the page, and browsers restore scroll position across a reload — so you would land
+halfway down the page you were already on rather than at the confirmation of what just happened.
+A `sessionStorage` flag is set immediately before the reload and cleared on arrival, so those
+two land at the top while an ordinary mid-read refresh still keeps its place.
+
 All three wait a frame so the element is laid out before measuring, and honour
 `prefers-reduced-motion`. Targets carry `scroll-margin-top: 96px` because the site nav is sticky
 and `block: 'start'` would otherwise land them underneath it.
@@ -129,6 +135,7 @@ page can stay as a direct link for people who arrive from an email.
 | 21 | After cancelling you land on "We need your booking link" | 2 Sep 2026 | **Done** — the page now confirms the cancellation and offers to rebook |
 | 22 | Pressing Pay without accepting the terms gives no feedback | 2 Sep 2026 | **Done** — validate on press, red outline on the offending field, reason above the button |
 | 23 | Revealed UI should be scrolled to, not hunted for — a general pattern | 2 Sep 2026 | **Done** — `reveal()` in both the widget and the manage page |
+| 24 | A confirmation should always start at the top of the page | 2 Sep 2026 | **Done** — amend and cancel reloads land at the top |
 
 ## Known rough edges, unprompted
 
