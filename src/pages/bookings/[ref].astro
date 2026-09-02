@@ -52,6 +52,15 @@ const durationWords = (m: number) => {
   return h && r ? `${h} hours ${r} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${r} minutes`;
 };
 const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
+
+// Amending to a dearer slot takes the difference, so this page needs a card form too.
+const sqEnv = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
+const squareSdkUrl = sqEnv === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
+const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 ---
 
 <Layout title={booking ? `Booking ${ref}` : 'Booking'} description="Your Meadowbrook room booking." noindex={true}>
@@ -124,6 +133,11 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
             <div id="bc-slots" class="bc-slots"><p class="bc-muted">Loading…</p></div>
             <div id="bc-durations" hidden></div>
             <div id="bc-amend-quote" class="bc-quote" hidden></div>
+            <div id="bc-amend-pay" hidden>
+              <p class="bc-label">Card details for the difference</p>
+              <div id="bc-card" class="bc-card-mount"></div>
+              <p class="bc-muted">Processed securely by Square. We never store your card details.</p>
+            </div>
             <div class="bc-actions">
               <button class="mw-btn mw-btn-primary" id="bc-amend-confirm" hidden>Confirm change</button>
               <button class="mw-btn mw-btn-ghost" id="bc-amend-close">Never mind</button>
@@ -149,15 +163,30 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
           </p>
         </div>
       </section>
+
     </>
   )}
-</Layout>
 
-{auth.ok && (
-  <script define:vars={{ ref, token, roomSlug: booking!.room, canManage }}>
+  <script src={squareSdkUrl} is:inline></script>
+  <script define:vars={{
+    ref, token, canManage,
+    roomSlug: booking?.room ?? null,
+    squareAppId, squareLocationId, billingCountry,
+  }}>
     // The token has been exchanged for a scoped HttpOnly cookie, so it can leave
     // the address bar without breaking a refresh. Tokens in URLs end up in browser
     // history, Referer headers and pasted screenshots.
+    // This script renders on every state of the page, including the "we need your
+    // link" one, so it does nothing unless the manage UI is actually present.
+    if (!document.getElementById('bc-error')) {
+      // Still worth stripping the token from the address bar even on a refusal.
+      if (new URL(location.href).searchParams.has('t')) {
+        const c = new URL(location.href); c.searchParams.delete('t');
+        history.replaceState({}, '', c.toString());
+      }
+      throw new Error('booking: manage UI not present');
+    }
+
     if (new URL(location.href).searchParams.has('t')) {
       const clean = new URL(location.href);
       clean.searchParams.delete('t');
@@ -172,7 +201,7 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
     const money = (p) => `£${(p / 100).toFixed(2)}`;
 
     if (canManage) {
-      const state = { start: null, durationMins: null };
+      const state = { start: null, durationMins: null, chargePence: 0, card: null };
 
       const post = async (path, body) => {
         const res = await fetch(path, {
@@ -229,26 +258,67 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
             const q = await post('/api/booking/amend', { start: state.start, durationMins: state.durationMins });
             $('bc-amend-quote').textContent = q.message;
             $('bc-amend-quote').hidden = false;
-            $('bc-amend-confirm').hidden = q.chargePence > 0;
-            if (q.chargePence > 0) {
-              showErr('Paying more for a longer booking needs a card, which is not built yet. '
-                + 'Choose a shorter or equal slot, or contact us.');
-            } else { clear(); }
+            clear();
+            state.chargePence = q.chargePence || 0;
+            $('bc-amend-pay').hidden = state.chargePence === 0;
+            $('bc-amend-confirm').hidden = false;
+            $('bc-amend-confirm').textContent = state.chargePence > 0
+              ? `Pay ${money(state.chargePence)} and change`
+              : 'Confirm change';
+            if (state.chargePence > 0) await mountCard();
           } catch (e) { showErr(e.message); }
         }));
       }
 
+      // Mounted lazily: most amendments are same-price or cheaper and never need it.
+      async function mountCard() {
+        if (state.card) return;
+        if (typeof Square === 'undefined') { showErr('The payment form could not load.'); return; }
+        const loc = window.location;
+        if (loc.protocol !== 'https:' && !loc.hostname.endsWith('localhost')) {
+          showErr(`Square's payment form only loads over HTTPS or on "localhost" — this page is on ${loc.hostname}.`);
+          return;
+        }
+        try {
+          const payments = await Square.payments(squareAppId, squareLocationId);
+          state.card = await payments.card();
+          await state.card.attach('#bc-card');
+        } catch (e) {
+          console.error('booking: amend card form failed', e);
+          showErr(`The payment form could not load (${e.message || e.name}).`);
+        }
+      }
+
       $('bc-amend-confirm').addEventListener('click', async () => {
         clear();
+        const btn = $('bc-amend-confirm');
+        btn.disabled = true;
         try {
+          let sourceId;
+          if (state.chargePence > 0) {
+            if (!state.card) { showErr('The payment form is not ready.'); btn.disabled = false; return; }
+            // Same tokenize call as booking: verificationDetails runs SCA inline.
+            const r = await state.card.tokenize({
+              amount: (state.chargePence / 100).toFixed(2),
+              currencyCode: 'GBP', intent: 'CHARGE',
+              customerInitiated: true, sellerKeyedIn: false,
+              billingContact: { givenName: 'Booking', email: '', countryCode: billingCountry },
+            });
+            if (r.status !== 'OK') {
+              showErr(r.errors?.[0]?.message ?? 'Card details invalid.');
+              btn.disabled = false; return;
+            }
+            sourceId = r.token;
+          }
           const r = await post('/api/booking/amend', {
             start: state.start, durationMins: state.durationMins, confirm: true,
+            ...(sourceId ? { sourceId } : {}),
           });
           showOk(r.refundPence > 0
             ? `Changed. ${money(r.refundPence)} is on its way back to your card.`
             : 'Your booking has been changed.');
           setTimeout(() => location.reload(), 1400);
-        } catch (e) { showErr(e.message); }
+        } catch (e) { showErr(e.message); btn.disabled = false; }
       });
 
       // --- cancel ---
@@ -273,7 +343,7 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
       });
     }
   </script>
-)}
+</Layout>
 
 <style>
   .bc-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
@@ -302,6 +372,7 @@ const doorCode = booking?.customer.phone?.replace(/\D/g, '').slice(-4) ?? null;
     background: #fff; color: var(--ink); cursor: pointer; }
   .bc-quote, .bc-quote-inline { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px;
     background: var(--paper-deep); font-size: 14px; font-weight: 600; }
+  .bc-card-mount { margin: 10px 0; min-height: 90px; }
   .bc-error { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #FCECE7;
     color: #8A2C0D; font-weight: 600; font-size: 14px; }
   .bc-ok { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #E8F3DF;
