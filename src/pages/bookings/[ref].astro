@@ -397,10 +397,8 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
           const payments = await Square.payments(squareAppId, squareLocationId);
           // Same reasoning as the booking widget: visible labels, site-matching
           // fields, and the sandbox's US-ZIP postal field prefilled out of the way.
-          const opts = {
-            includeInputLabels: true,
-            ...(billingCountry === 'US' ? { postalCode: '94103' } : {}),
-          };
+          // Always shown, matching the booking form. In sandbox it wants a US ZIP.
+          const opts = { includeInputLabels: true };
           const style = {
             input: { backgroundColor: '#ffffff', color: '#28201A' },
             '.input-container': { borderColor: '#D1B08B', borderRadius: '10px', borderWidth: '1.5px' },

@@ -414,14 +414,15 @@ const wid = `bw-${room.slug}`;
         // includeInputLabels puts a visible "Card number" above the field. Without
         // it Square shows only a faint placeholder inside an unstyled box, which a
         // booker did not recognise as somewhere to type.
-        const cardOptions = {
-          includeInputLabels: true,
-          // In the sandbox this field validates as a US ZIP, so a UK postcode
-          // never satisfies it and Square's hint sits there permanently. Prefilled
-          // in sandbox so it disappears; left to the booker in production, where
-          // it is a real postcode and worth having for the bank's address check.
-          ...(billingCountry === 'US' ? { postalCode: '94103' } : {}),
-        };
+        // The postal-code field is always shown. It was briefly prefilled in
+        // sandbox to hide a nuisance -- Square validates it against the billing
+        // country, so a UK postcode never satisfies the sandbox's US rule and the
+        // hint sits there permanently. Hiding it made testing pleasanter and the
+        // form different from the one that ships, which is the wrong trade: the
+        // field is a real address check in production and should be exercised.
+        //
+        // While testing in sandbox, a US ZIP such as 94103 satisfies it.
+        const cardOptions = { includeInputLabels: true };
         // Colours and borders only. Square validates this list strictly and
         // rejects the whole card if anything in it is unknown -- fontSize and
         // fontFamily are both refused despite appearing in the documentation, so

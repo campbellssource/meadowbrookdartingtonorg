@@ -131,15 +131,27 @@ Anything beyond that — reordering fields, replacing the markup, changing Squar
 messages — is not available, and building a bespoke form would take the DRA out of PCI SAQ-A.
 Not worth it.
 
-### 3c. The postal-code hint that will not go away is a sandbox artefact
+### 3c. The postal-code hint in sandbox is an artefact, not a bug
 
 Square's postal field validates against the billing country. In the sandbox that is US, so a UK
 postcode never validates and Square's hint sits under the field permanently — which reads as a
 broken form. In production the country is GB and a real postcode is accepted.
 
-Handled by prefilling `postalCode` in sandbox only, so the field disappears during testing while
-production still collects a real postcode for the bank's address check. Worth knowing before
-anyone "fixes" the production form to match what they saw in sandbox.
+**Do not hide the field to make testing pleasanter.** It was briefly prefilled in sandbox for
+that reason and the DRA asked for it back: it is a real address check in production, and a form
+that differs between sandbox and production is one whose sandbox testing proves less. While
+testing, a US ZIP such as `94103` satisfies it.
+
+### 3d. The card fields cannot be split into separate inputs
+
+Asked for, and not available. `payments.card()` renders a single element; `cardNumber`,
+`expirationDate`, `cvv` and `postalCode` are identifiers used by `focus()` and by events, not
+attachable containers — verified against the deployed SDK, where they appear only as an enum
+alongside the style-selector list.
+
+Separate iframes per field existed in **SqPaymentForm**, which Square has deprecated. Building a
+genuinely custom form would also take the DRA out of PCI SAQ-A, so the ceiling here is
+`includeInputLabels` plus the style object, which is where the form now sits.
 
 ### 4. Copy the tokenize call from `/donate` exactly
 
