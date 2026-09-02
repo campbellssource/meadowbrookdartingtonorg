@@ -140,7 +140,7 @@ on the allowlist.
 **Done when:** a non-allowlisted Workspace account is refused, every money action is attributed
 in `history`, and reporting totals reconcile against the CSV for the same period.
 
-## Phase 5 — Scheduled jobs and webhooks
+## Phase 5 — Scheduled jobs and webhooks ✅ DONE 2 Sep 2026
 
 | File | Purpose |
 |---|---|
@@ -148,6 +148,17 @@ in `history`, and reporting totals reconcile against the CSV for the same period
 | `src/pages/api/booking/cron/reminders.ts` | 24-hour reminders |
 | `src/pages/api/booking/cron/reconcile.ts` | The table in `01` |
 | `src/pages/api/booking/webhooks/square.ts` | Orphan recovery, ledger truth |
+
+**Status.** Reconcile and reminders both implemented and verified against real data. The
+webhook is written but **untested end to end**: Square cannot call `localhost`, so it needs a
+deployed environment or a tunnel, plus the webhook subscription and signature key from `08`.
+That is deliberate rather than outstanding — the reconcile job covers the same ground hourly, so
+the ledger is correct even if the webhook never fires.
+
+Verified: reconcile settled the real drifted refund on `MB-YRV4QA` (`paidPence` 1125 → 0) and
+settles nothing on a second run; reminders sent one email and skipped it on a second run;
+a lapsed unpaid hold produced one digest to `it@` and none thereafter; unauthenticated and
+wrong-secret calls are refused.
 
 The Square webhook in this phase is load-bearing, not polish: refunds come back `PENDING`, and
 `paidPence` stays overstated until `refund.updated` settles the ledger entry (`04`). The
