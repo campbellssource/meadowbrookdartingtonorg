@@ -98,6 +98,7 @@ const wid = `bw-${room.slug}`;
         <label class="bw-input"><span>{q.label}</span>
           <textarea id={`${wid}-q-${q.key}`} rows="3" data-q={q.key} required={q.required}></textarea></label>
       ))}
+      <p class="bw-fieldmsg" id={`${wid}-detailsmsg`} role="alert" hidden></p>
       <div class="bw-actions">
         <button type="button" class="mw-btn mw-btn-ghost" data-back="1">Back</button>
         <button type="button" class="mw-btn mw-btn-primary" id={`${wid}-to3`}>Continue to payment</button>
@@ -109,16 +110,16 @@ const wid = `bw-${room.slug}`;
   <section class="bw-panel" data-panel="3" hidden>
     <div class="bw-form">
       <div class="bw-warn" id={`${wid}-norefund`} hidden></div>
-      <label class="bw-terms">
+      <label class="bw-terms" id={`${wid}-termsrow`}>
         <input type="checkbox" id={`${wid}-terms`} />
         <span>I agree to the <a href="/room-hire-terms" target="_blank" rel="noopener">room hire terms</a>.</span>
       </label>
-      <p class="bw-hint" id={`${wid}-termshint`}>Please tick the box above before paying.</p>
       <div class="bw-card" id={`${wid}-card`}></div>
       <p class="bw-note">Payments are processed securely by Square. We never store your card details.</p>
+      <p class="bw-fieldmsg" id={`${wid}-paymsg`} role="alert" hidden></p>
       <div class="bw-actions">
         <button type="button" class="mw-btn mw-btn-ghost" data-back="2">Back</button>
-        <button type="button" class="mw-btn mw-btn-primary mw-btn-lg" id={`${wid}-pay`} disabled>
+        <button type="button" class="mw-btn mw-btn-primary mw-btn-lg" id={`${wid}-pay`}>
           Pay <span id={`${wid}-total`}></span>
         </button>
       </div>
@@ -152,6 +153,32 @@ const wid = `bw-${room.slug}`;
     const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const showErr = (m) => { const e = $('error'); e.textContent = m; e.hidden = false; e.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
     const clearErr = () => { $('error').hidden = true; };
+
+    // Validation on click rather than a disabled button. A disabled button cannot
+    // tell you why it is disabled -- you press it, nothing happens, and there is
+    // nowhere to look. So the button always works, and pressing it marks the field
+    // that is wrong and says so immediately above itself.
+    function invalid(el, msgEl, message) {
+      el.classList.add('is-invalid');
+      el.setAttribute('aria-invalid', 'true');
+      msgEl.textContent = message;
+      msgEl.hidden = false;
+      const focusable = el.matches('input,textarea,select') ? el : el.querySelector('input,textarea,select');
+      focusable?.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return false;
+    }
+
+    function clearInvalid(el, msgEl) {
+      el.classList.remove('is-invalid');
+      el.removeAttribute('aria-invalid');
+      if (msgEl) msgEl.hidden = true;
+    }
+
+    // Once someone starts fixing a field, stop shouting about it.
+    root.querySelectorAll('.bw-input input, .bw-input textarea').forEach((el) => {
+      el.addEventListener('input', () => clearInvalid(el, $('detailsmsg')));
+    });
 
     function step(n) {
       root.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
@@ -306,14 +333,22 @@ const wid = `bw-${room.slug}`;
 
     // ── details → payment ─────────────────────────────────────────
     $('to3').addEventListener('click', async () => {
+      const msg = $('detailsmsg');
       const name = $('name').value.trim();
       const email = $('email').value.trim();
       const phone = $('phone').value.trim();
-      if (name.length < 2) return showErr('Please give your name.');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
-      if (phone.replace(/\D/g, '').length < 10) return showErr('Please enter a valid mobile number.');
+      [$('name'), $('email'), $('phone')].forEach((el) => clearInvalid(el, null));
+      msg.hidden = true;
+
+      if (name.length < 2) return invalid($('name'), msg, 'Please give your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return invalid($('email'), msg, 'Please enter a valid email address — this is where your confirmation goes.');
+      }
+      if (phone.replace(/\D/g, '').length < 10) {
+        return invalid($('phone'), msg, 'Please enter a valid mobile number.');
+      }
       for (const el of root.querySelectorAll('[data-q][required]')) {
-        if (!el.value.trim()) return showErr('Please answer the question about how you will use the room.');
+        if (!el.value.trim()) return invalid(el, msg, 'Please answer the question below the phone number.');
       }
       // Same rule the refund itself uses: inside the hour, nothing comes back.
       const mins = (new Date(state.slot.start).getTime() - Date.now()) / 60000;
@@ -337,21 +372,30 @@ const wid = `bw-${room.slug}`;
         const payments = await Square.payments(squareAppId, squareLocationId);
         state.card = await payments.card();
         await state.card.attach(`#${wid}-card`);
-        syncPay();
       } catch (e) {
         showErr(`The payment form could not load (${e.message || e.name}).`);
       }
     }
 
-    function syncPay() {
-      const ticked = $('terms').checked;
-      $('pay').disabled = !ticked || !state.card;
-      $('termshint').hidden = ticked;
-    }
-    $('terms').addEventListener('change', syncPay);
+    // Ticking the box clears the warning, but nothing disables the button: the
+    // check happens when Pay is pressed, so there is always an explanation.
+    $('terms').addEventListener('change', () => {
+      if ($('terms').checked) clearInvalid($('termsrow'), $('paymsg'));
+    });
 
     $('pay').addEventListener('click', async () => {
       clearErr();
+      const paymsg = $('paymsg');
+      if (!$('terms').checked) {
+        return invalid($('termsrow'), paymsg, 'Please accept the room hire terms before paying.');
+      }
+      if (!state.card) {
+        paymsg.textContent = 'The payment form is still loading. Please try again in a moment.';
+        paymsg.hidden = false;
+        return;
+      }
+      paymsg.hidden = true;
+
       const btn = $('pay');
       btn.disabled = true; btn.textContent = 'Processing…';
       const name = $('name').value.trim();
@@ -516,7 +560,15 @@ const wid = `bw-${room.slug}`;
   .bw-terms { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.5;
     margin-bottom: 8px; color: var(--ink); }
   .bw-terms input { width: 20px; height: 20px; margin-top: 2px; }
-  .bw-hint { font-size: 14px; color: #7A4B12; margin: 0 0 16px; }
+  /* The invalid state has to survive the zone themes, so it states its own colour
+     rather than leaning on a token. Outline rather than border, so nothing shifts
+     when it appears. */
+  .bw-input input.is-invalid, .bw-input textarea.is-invalid {
+    border-color: #C0392B; outline: 2px solid rgba(192,57,43,0.25); outline-offset: 0; }
+  .bw-terms.is-invalid { outline: 2px solid #C0392B; outline-offset: 6px; border-radius: 6px; }
+  .bw-terms.is-invalid input { outline: 2px solid #C0392B; outline-offset: 2px; }
+  .bw-fieldmsg { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #8A2C0D; }
+  .bw-fieldmsg::before { content: '⚠ '; }
   .bw-card { margin: 16px 0 10px; min-height: 90px; }
   .bw-note { font-size: 14px; color: var(--ink-soft); margin: 0 0 18px; }
   .bw-warn { padding: 13px 15px; border-radius: 10px; font-size: 14px; margin-bottom: 18px;

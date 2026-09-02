@@ -108,6 +108,7 @@ page can stay as a direct link for people who arrive from an email.
 | 19 | Sub-brand display font on the booking form — those faces are for large display text only | 2 Sep 2026 | **Done** — widget headings use the body font |
 | 20 | "Reserve this space" should be "Book the Snooker Room" | 2 Sep 2026 | **Done** — heading names the room |
 | 21 | After cancelling you land on "We need your booking link" | 2 Sep 2026 | **Done** — the page now confirms the cancellation and offers to rebook |
+| 22 | Pressing Pay without accepting the terms gives no feedback | 2 Sep 2026 | **Done** — validate on press, red outline on the offending field, reason above the button |
 
 ## Known rough edges, unprompted
 
@@ -117,15 +118,17 @@ Things already visible without anyone needing to report them:
   step that has been rebuilt rather than the shape.
 - **No loading states** beyond the word "Loading…". A slow calendar read still looks like a
   broken page.
-- **Errors appear at the bottom** of the panel and are scrolled to. Fine, but a field-level error
-  next to the offending input would be better for the name/email/phone cases.
+- ~~**Errors appear at the bottom** of the panel.~~ **Resolved by note 22** — name, email, phone
+  and the intake question all mark themselves and focus.
 - **No back navigation** between steps once past step 1 — you can change the date, but there is
   no way back from payment to details without a reload.
 - **Mobile has had no real attention.** It should stack, but it has not been driven on a phone.
 - **The confirmation page is a dead end.** No add-to-calendar button and no "book another".
-- **Disabled buttons that explain nothing.** Fixed for the terms checkbox (note 3), but the
-  pattern recurs: the amend confirm button and the pay button both spend time disabled with no
-  visible reason. Worth one pass across the flow rather than three separate fixes.
+- ~~**Disabled buttons that explain nothing.**~~ **Resolved by note 22.** The DRA's preferred
+  pattern, now used throughout the booking form: the button is never disabled for a validation
+  reason, pressing it marks the offending field with a red outline, and the reason appears
+  immediately above the button. A disabled button cannot say why it is disabled — you press it,
+  nothing happens, and there is nowhere to look.
 
 ## Acceptance criteria
 
