@@ -9,7 +9,7 @@
 import type { APIRoute } from 'astro';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, createEvent, CalendarError } from '../../../lib/booking/calendar.ts';
-import { buildEvent } from '../../../lib/booking/event-format.ts';
+import { buildEvent, doorCodeFor } from '../../../lib/booking/event-format.ts';
 import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
@@ -236,6 +236,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
       reference: bookingRef, roomName: room.shortName, start, end, durationMins,
       pricePence, customerName: name, customerEmail: email, manageUrl,
       capacityNote: room.capacityNote,
+      doorCode: doorCodeFor(phone),
       nonRefundable: !refundableAtBooking(start, now),
     };
     try {

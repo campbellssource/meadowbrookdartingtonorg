@@ -118,6 +118,8 @@ export interface BookingSummary {
   customerEmail: string;
   manageUrl: string;
   capacityNote?: string;
+  /** Last four digits of the booker's phone; the code the locks are given. */
+  doorCode?: string | null;
   /** True when cancelling now would refund nothing -- booked inside the window. */
   nonRefundable?: boolean;
 }
@@ -138,6 +140,14 @@ const durationWords = (mins: number): string => {
 const esc = (s: string): string => s
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/**
+ * The leaving-the-room note. Small, at the foot of the email, and worded as a
+ * request rather than a rule -- it is the same ask as clause 5 of the hire terms
+ * and it is what keeps the hire charges where they are.
+ */
+export const HOUSEKEEPING = 'Before you go: please close the windows, turn the lights and '
+  + 'heating off, and leave the room tidy for the next person.';
 
 const wrap = (title: string, bodyHtml: string): string => `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#FBF0DF;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#28201A;">
@@ -163,10 +173,12 @@ export function confirmationEmail(b: BookingSummary): Email {
     `Your booking is confirmed.`, '',
     `${b.roomName}`, `${when}`, `${durationWords(b.durationMins)}`,
     `Paid: ${formatPence(b.pricePence)}`,
-    `Reference: ${b.reference}`, '',
+    `Reference: ${b.reference}`,
+    b.doorCode ? `Door code: ${b.doorCode}` : '', '',
     b.capacityNote ? `${b.capacityNote}\n` : '',
     `Change or cancel your booking:`, b.manageUrl, '',
     policy, '',
+    HOUSEKEEPING, '',
     `Meadowbrook, Shinners Bridge, Dartington, TQ9 6JD`,
     OWNER_EMAIL,
   ].filter((l) => l !== undefined).join('\n');
@@ -178,12 +190,15 @@ export function confirmationEmail(b: BookingSummary): Email {
       <tr><td style="padding:6px 0;color:#5B4E42;">Length</td><td style="padding:6px 0;">${durationWords(b.durationMins)}</td></tr>
       <tr><td style="padding:6px 0;color:#5B4E42;">Paid</td><td style="padding:6px 0;font-weight:600;">${formatPence(b.pricePence)}</td></tr>
       <tr><td style="padding:6px 0;color:#5B4E42;">Reference</td><td style="padding:6px 0;font-family:ui-monospace,monospace;">${b.reference}</td></tr>
+      ${b.doorCode ? `<tr><td style="padding:6px 0;color:#5B4E42;">Door code</td><td style="padding:6px 0;font-family:ui-monospace,monospace;font-size:18px;font-weight:700;letter-spacing:0.08em;">${esc(b.doorCode)}</td></tr>` : ''}
     </table>
+    ${b.doorCode ? `<p style="margin:14px 0 0;font-size:14px;color:#5B4E42;">Your door code is the last four digits of your mobile number. It works for the length of your booking.</p>` : ''}
     ${b.capacityNote ? `<p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${esc(b.capacityNote)}</p>` : ''}
     <p style="margin:24px 0 0;">
       <a href="${b.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:600;">Change or cancel</a>
     </p>
-    <p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${policy}</p>`);
+    <p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${policy}</p>
+    <p style="margin:22px 0 0;padding-top:16px;border-top:1px solid #F4E4CB;font-size:13px;color:#8B7C6E;line-height:1.55;">${HOUSEKEEPING}</p>`);
 
   return {
     to: b.customerEmail,

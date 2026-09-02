@@ -6,7 +6,7 @@ import type { Booking } from './store.ts';
 import { getRoomConfig } from './config-reader.ts';
 import { issue } from './token.ts';
 import { recordToken } from './store.ts';
-import { send, type Email } from './email.ts';
+import { send, HOUSEKEEPING, type Email } from './email.ts';
 import { formatPence } from './pricing.ts';
 import { instantToLocalTime } from './time.ts';
 
@@ -24,7 +24,8 @@ function reminderEmail(args: {
     `Reference: ${args.reference}`,
     `Paid: ${formatPence(args.pricePence)}`, '',
     'Need to change or cancel?', args.manageUrl,
-    'You can cancel for a full refund up to 1 hour before the start.',
+    'You can cancel for a full refund up to 1 hour before the start.', '',
+    HOUSEKEEPING,
   ].filter(Boolean).join('\n');
 
   return {
@@ -39,6 +40,7 @@ ${args.doorCode ? `<p style="margin:0 0 14px;">Your door code is <strong style="
 ${args.capacityNote ? `<p style="font-size:14px;color:#5B4E42;margin:0 0 14px;">${args.capacityNote}</p>` : ''}
 <p style="margin:20px 0 0;"><a href="${args.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Change or cancel</a></p>
 <p style="font-size:13px;color:#8B7C6E;margin:18px 0 0;">Reference ${args.reference} · paid ${formatPence(args.pricePence)}</p>
+<p style="margin:16px 0 0;padding-top:14px;border-top:1px solid #F4E4CB;font-size:13px;color:#8B7C6E;line-height:1.55;">${HOUSEKEEPING}</p>
 </div></body></html>`,
   };
 }

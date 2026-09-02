@@ -138,3 +138,28 @@ describe('user text is escaped in HTML bodies', () => {
     assert.ok(e.text.includes("Siân O'Connor"));
   });
 });
+
+describe('door code and the leaving-the-room note', () => {
+  test('the door code appears when known', () => {
+    const e = confirmationEmail({ ...b, doorCode: '2868' });
+    assert.ok(e.text.includes('Door code: 2868'));
+    assert.ok(e.html.includes('2868'));
+    assert.ok(e.html.includes('last four digits'), 'and says where it comes from');
+  });
+
+  test('no door code row when there is no phone number', () => {
+    const e = confirmationEmail({ ...b, doorCode: null });
+    assert.ok(!e.text.includes('Door code'));
+    assert.ok(!e.html.includes('Door code'));
+  });
+
+  test('the housekeeping note is at the foot of the confirmation', () => {
+    const e = confirmationEmail(b);
+    for (const phrase of ['close the windows', 'lights and heating off', 'tidy for the next person']) {
+      assert.ok(e.text.includes(phrase), `text missing "${phrase}"`);
+      assert.ok(e.html.includes(phrase), `html missing "${phrase}"`);
+    }
+    // Last thing in the text body, after the policy line.
+    assert.ok(e.text.indexOf('close the windows') > e.text.indexOf('refund'));
+  });
+});
