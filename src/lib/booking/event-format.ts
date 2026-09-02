@@ -64,6 +64,33 @@ export function doorCodeFor(phone: string): string | null {
   return digits.length >= 10 ? digits.slice(-4) : null;
 }
 
+/**
+ * Makes a free-text field safe to put in a calendar event.
+ *
+ * The description is a parsing contract, not prose: the door system reads
+ * `Phone:\s*(\+?\d{10,})` from it (unanchored and non-global, so the FIRST match
+ * wins) and `^\s*Name:\s*(.+)$` per line. A booker whose name contains
+ * "Phone: 07700900001" would therefore set their own door code from the name
+ * field, and the code on the lock would disagree with the one we show them.
+ *
+ * `[TEST EVENT]` is stripped for a different reason: it is the marker
+ * `booking-test-events.ts` uses to decide what is safe to delete from the live
+ * room calendars. A booking whose name contained it would be deleted as test data.
+ *
+ * Found by /security-review, 2 Sep 2026. Neither is a privilege escalation -- the
+ * booker already controls their own door code through the phone field -- but both
+ * let user input impersonate machine-readable structure, which is worth refusing
+ * on principle and costs one function.
+ */
+export function sanitiseForCalendar(value: string): string {
+  return value
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\[TEST\s*EVENT\]/gi, '')
+    .replace(/\b(Phone|Name|Email|Price|Booking|Calendar)\s*:/gi, '$1 -')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export interface BookingEventFields {
   room: RoomBookingConfig;
   name: string;
@@ -89,7 +116,7 @@ export function buildSummary(f: BookingEventFields): string {
   const label = ROOM_LABEL[f.room.slug] ?? f.room.shortName;
   const calendar = CALENDAR_DISPLAY_NAME[f.room.slug] ?? f.room.shortName;
   const prefix = f.isTest ? `${TEST_EVENT_MARKER} ` : '';
-  return `${prefix}${f.name}: ${label}. ${durationLabel(mins)} (${calendar})`;
+  return `${prefix}${sanitiseForCalendar(f.name)}: ${label}. ${durationLabel(mins)} (${calendar})`;
 }
 
 /**
@@ -103,9 +130,9 @@ export function buildDescription(f: BookingEventFields): string {
   const lines = [
     `${date} ${instantToLocalTime(f.start)}`,
     `Calendar: ${CALENDAR_DISPLAY_NAME[f.room.slug] ?? f.room.shortName}`,
-    `Name: ${f.name}`,
+    `Name: ${sanitiseForCalendar(f.name)}`,
     `Phone: ${normalisePhone(f.phone)}`,
-    `Email: ${f.email}`,
+    `Email: ${sanitiseForCalendar(f.email)}`,
     `Price: £${(f.pricePence / 100).toFixed(2)}`,
     `Booking: ${f.reference}`,
   ];

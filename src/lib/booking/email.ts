@@ -127,6 +127,18 @@ const durationWords = (mins: number): string => {
   return h && m ? `${h} hours ${m} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${m} minutes`;
 };
 
+/**
+ * Escapes user-supplied text for an HTML email body.
+ *
+ * The staff notification echoes a booker-typed name and email into `<pre>`. Mail
+ * clients strip scripts, so this is not XSS -- but unescaped markup lets a booker
+ * put a disguised link or spoofed system copy into the mail read by the people who
+ * hold the admin session. Cheap to prevent. Found by /security-review, 2 Sep 2026.
+ */
+const esc = (s: string): string => s
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 const wrap = (title: string, bodyHtml: string): string => `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#FBF0DF;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#28201A;">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
@@ -167,7 +179,7 @@ export function confirmationEmail(b: BookingSummary): Email {
       <tr><td style="padding:6px 0;color:#5B4E42;">Paid</td><td style="padding:6px 0;font-weight:600;">${formatPence(b.pricePence)}</td></tr>
       <tr><td style="padding:6px 0;color:#5B4E42;">Reference</td><td style="padding:6px 0;font-family:ui-monospace,monospace;">${b.reference}</td></tr>
     </table>
-    ${b.capacityNote ? `<p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${b.capacityNote}</p>` : ''}
+    ${b.capacityNote ? `<p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${esc(b.capacityNote)}</p>` : ''}
     <p style="margin:24px 0 0;">
       <a href="${b.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:600;">Change or cancel</a>
     </p>
@@ -273,7 +285,7 @@ export function ownerNotificationEmail(b: BookingSummary, action: 'New' | 'Amend
   return {
     to: OWNER_EMAIL,
     subject: `[Booking] ${action} — ${b.roomName}, ${shortDate(b.start)}`,
-    html: wrap(`${action} booking`, `<pre style="font-family:inherit;white-space:pre-wrap;margin:0;">${text}</pre>`),
+    html: wrap(`${action} booking`, `<pre style="font-family:inherit;white-space:pre-wrap;margin:0;">${esc(text)}</pre>`),
     text,
   };
 }
@@ -284,7 +296,7 @@ export function alertEmail(subject: string, lines: string[]): Email {
   return {
     to: ALERT_EMAIL,
     subject: `[Booking]${subject}`,
-    html: wrap(subject, `<pre style="font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;margin:0;">${text}</pre>`),
+    html: wrap(subject, `<pre style="font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;margin:0;">${esc(text)}</pre>`),
     text,
   };
 }

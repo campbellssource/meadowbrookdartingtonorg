@@ -194,7 +194,16 @@ Not optional, and easier to schedule as its own phase than to squeeze into the o
 - **Load check** — a few hundred concurrent availability requests, to see the cache work.
 - **`Referrer-Policy`, `Cache-Control: no-store`, CSP** on all `/bookings/*` and `/admin/*`.
 - **Log audit** — confirm no token and no booker PII appears in any log line.
-- **Run `/security-review`** over the whole branch. This handles money and personal data.
+- ~~**Run `/security-review`**~~ **DONE 2 Sep 2026.** Three findings, all now fixed:
+  - **Medium, refund-policy bypass.** Amending was an exit from the cancellation window. Fixed
+    by refusing amendments inside the window (`04`), at the DRA's choice of the three options.
+  - **Low, calendar-contract impersonation.** A booker's name reaching the calendar description
+    could carry `Phone:` and set their own door code, or carry `[TEST EVENT]` and be deleted as
+    test data. Fixed by `sanitiseForCalendar()` in `event-format.ts`.
+  - **Low, HTML injection into staff email.** The notification echoed a booker-typed name into
+    `<pre>` unescaped. Fixed by `esc()` in `email.ts`.
+
+  Re-run it after Phase 5b, since that pass changes the booking form.
 
 ## Phase 7 — Cutover
 

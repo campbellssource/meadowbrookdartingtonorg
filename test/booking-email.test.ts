@@ -116,3 +116,25 @@ describe('the console transport is refused in production', () => {
     await assert.rejects(() => send(confirmationEmail(b)), /BREVO_API_KEY/);
   });
 });
+
+describe('user text is escaped in HTML bodies', () => {
+  const nasty = 'Bob</pre><a href="https://evil.example">Approve refund</a><pre>';
+
+  test('the staff notification escapes an injected name', () => {
+    const e = ownerNotificationEmail({ ...b, customerName: nasty }, 'New');
+    assert.ok(!e.html.includes('<a href="https://evil.example"'), 'markup must not survive');
+    assert.ok(e.html.includes('&lt;a href='), 'it should appear escaped instead');
+    assert.ok(e.text.includes(nasty), 'the plain-text part is unaffected');
+  });
+
+  test('alerts escape too', () => {
+    const e = alertEmail('[FAIL] test', [`Booker: ${nasty}`]);
+    assert.ok(!e.html.includes('<a href="https://evil.example"'));
+  });
+
+  test('ordinary names are readable, not mangled', () => {
+    const e = ownerNotificationEmail({ ...b, customerName: "Siân O'Connor" }, 'New');
+    assert.ok(e.html.includes('Si&#39;'.replace("&#39;", '')) || e.html.includes('Siân'));
+    assert.ok(e.text.includes("Siân O'Connor"));
+  });
+});

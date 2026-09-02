@@ -102,3 +102,43 @@ test('normalisePhone', () => {
   assert.equal(normalisePhone('+44 (0)7725-972868'), '+4407725972868');
   assert.equal(normalisePhone('  07725972868  '), '07725972868');
 });
+
+describe('user text cannot impersonate the calendar contract', () => {
+  const attack = (name: string) => buildDescription({ ...fields, name });
+
+  test('a name containing "Phone:" cannot hijack the door code', () => {
+    // Without sanitising, the injected line would match first and set the code.
+    const d = attack('Bob Phone: 07711111111');
+    assert.equal(d.match(PHONE_RE)![1].replace(/\D/g, '').slice(-4), '2868',
+      'the real phone number must still be the one the door system reads');
+  });
+
+  test('a newline in a name cannot add a line', () => {
+    const d = attack('Bob\nPhone: 07711111111');
+    assert.equal(d.match(PHONE_RE)![1].replace(/\D/g, '').slice(-4), '2868');
+    assert.equal(d.split('\n').filter((l) => l.startsWith('Phone:')).length, 1);
+  });
+
+  test('a name cannot forge a second Name: line', () => {
+    const d = attack('Bob\nName: Someone Else');
+    assert.equal(d.match(NAME_RE)![1].trim().startsWith('Bob'), true);
+    assert.equal(d.split('\n').filter((l) => l.trim().startsWith('Name:')).length, 1);
+  });
+
+  test('a name cannot forge the test-event marker', () => {
+    // That marker decides what cleanup is allowed to delete from live calendars.
+    const s = buildSummary({ ...fields, name: 'Bob [TEST EVENT]' });
+    assert.equal(s.includes('[TEST EVENT]'), false);
+    assert.equal(attack('Bob [test event]').includes('TEST EVENT'), false);
+  });
+
+  test('a genuine test booking still gets its marker', () => {
+    assert.equal(buildSummary({ ...fields, isTest: true }).startsWith('[TEST EVENT] '), true);
+  });
+
+  test('ordinary names are left alone', () => {
+    for (const n of ["Jody Fendick", "Siân O'Connor", 'Jean-Luc Baptiste', 'Dr A. Smith']) {
+      assert.equal(buildDescription({ ...fields, name: n }).match(NAME_RE)![1].trim(), n, n);
+    }
+  });
+});
