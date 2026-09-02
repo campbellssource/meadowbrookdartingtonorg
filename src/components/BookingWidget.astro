@@ -414,33 +414,36 @@ const wid = `bw-${room.slug}`;
         // includeInputLabels puts a visible "Card number" above the field. Without
         // it Square shows only a faint placeholder inside an unstyled box, which a
         // booker did not recognise as somewhere to type.
-        state.card = await payments.card({
+        const cardOptions = {
           includeInputLabels: true,
           // In the sandbox this field validates as a US ZIP, so a UK postcode
           // never satisfies it and Square's hint sits there permanently. Prefilled
           // in sandbox so it disappears; left to the booker in production, where
           // it is a real postcode and worth having for the bank's address check.
           ...(billingCountry === 'US' ? { postalCode: '94103' } : {}),
-          style: {
-            input: {
-              backgroundColor: '#ffffff',
-              color: '#28201A',
-              fontSize: '16px',
-              fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-            },
-            'input::placeholder': { color: '#8B7C6E' },
-            '.input-container': {
-              borderColor: '#D1B08B',
-              borderRadius: '10px',
-              borderWidth: '1.5px',
-            },
-            '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
-            '.input-container.is-error': { borderColor: '#C0392B' },
-            '.message-text': { color: '#5B4E42', fontSize: '13px' },
-            '.message-text.is-error': { color: '#8A2C0D' },
-            '.message-icon.is-error': { color: '#8A2C0D' },
-          },
-        });
+        };
+        // Colours and borders only. Square validates this list strictly and
+        // rejects the whole card if anything in it is unknown -- fontSize and
+        // fontFamily are both refused despite appearing in the documentation, so
+        // this stays to what the deployed SDK actually accepts.
+        const cardStyle = {
+          input: { backgroundColor: '#ffffff', color: '#28201A' },
+          '.input-container': { borderColor: '#D1B08B', borderRadius: '10px', borderWidth: '1.5px' },
+          '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
+          '.input-container.is-error': { borderColor: '#C0392B' },
+          '.message-text.is-error': { color: '#8A2C0D' },
+          '.message-icon.is-error': { color: '#8A2C0D' },
+        };
+
+        try {
+          state.card = await payments.card({ ...cardOptions, style: cardStyle });
+        } catch (styleErr) {
+          // Styling is cosmetic; taking payment is not. A rejected style rule must
+          // never leave a booker unable to pay, so fall back to Square's own look
+          // and log the reason rather than failing the step.
+          console.warn('booking: card style rejected, falling back to default', styleErr);
+          state.card = await payments.card(cardOptions);
+        }
         await state.card.attach(`#${wid}-card`);
       } catch (e) {
         showErr(`The payment form could not load (${e.message || e.name}).`);

@@ -106,11 +106,26 @@ workarounds:
 - **`includeInputLabels: true`** puts a visible "Card number", "Expiration", "CVV" above each
   field. Without it Square shows a faint placeholder inside an unstyled box, which a DRA tester
   did not recognise as somewhere to type at all.
-- **`style`** accepts `input`, `input::placeholder`, `.input-container`,
-  `.input-container.is-focus`, `.input-container.is-error`, `.message-text`,
-  `.message-text.is-error` and `.message-icon.is-error`, so the fields can be given the site's
-  border, radius, focus green and error red. Colours are literal hex, not CSS variables — the
-  iframe cannot see the page's custom properties.
+- **`style`** takes the site's border, radius, focus green and error red. Colours are literal
+  hex, not CSS variables — the iframe cannot see the page's custom properties.
+
+**`style` is validated strictly, and a single unknown property rejects the whole card.** The
+deployed SDK refuses `fontSize` and `fontFamily` outright, despite both appearing in Square's
+documentation, so the working set is colours and borders only:
+
+```
+input                            backgroundColor, color
+.input-container                 borderColor, borderRadius, borderWidth
+.input-container.is-focus        borderColor, borderWidth
+.input-container.is-error        borderColor
+.message-text.is-error           color
+.message-icon.is-error           color
+```
+
+Because getting this wrong throws rather than degrading, `payments.card()` is wrapped: if the
+style is rejected the card is created again without it and the reason is logged. Styling is
+cosmetic and taking payment is not, so a style mistake must never leave a booker unable to pay.
+Verify against the SDK rather than the docs before adding a property.
 
 Anything beyond that — reordering fields, replacing the markup, changing Square's own validation
 messages — is not available, and building a bespoke form would take the DRA out of PCI SAQ-A.
