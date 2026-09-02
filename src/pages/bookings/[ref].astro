@@ -173,6 +173,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
   <script src={squareSdkUrl} is:inline></script>
   <script define:vars={{
     ref, token, canManage, canAmend,
+    currentDurationMins: booking?.durationMins ?? 60,
     roomSlug: booking?.room ?? null,
     squareAppId, squareLocationId, billingCountry,
   }}>
@@ -254,24 +255,37 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         box.innerHTML = '<p class="bc-label">How long?</p><div class="bc-durs">'
           + slot.durations.map((d, i) => {
               const h = Math.floor(d.mins / 60); const m = d.mins % 60;
-              return `<button class="bc-dur" data-i="${i}"><b>${h ? h + 'h' : ''}${m ? ' ' + m + 'm' : ''}</b>${money(d.pricePence)}</button>`;
+              const on = d.mins === currentDurationMins;
+              return `<button class="bc-dur${on ? ' sel' : ''}" data-i="${i}"><b>${h ? h + 'h' : ''}${m ? ' ' + m + 'm' : ''}</b>${money(d.pricePence)}${on ? ' <em>current</em>' : ''}</button>`;
             }).join('') + '</div>';
-        box.querySelectorAll('.bc-dur').forEach((b) => b.addEventListener('click', async () => {
-          state.durationMins = slot.durations[Number(b.dataset.i)].mins;
-          try {
-            const q = await post('/api/booking/amend', { start: state.start, durationMins: state.durationMins });
-            $('bc-amend-quote').textContent = q.message;
-            $('bc-amend-quote').hidden = false;
-            clear();
-            state.chargePence = q.chargePence || 0;
-            $('bc-amend-pay').hidden = state.chargePence === 0;
-            $('bc-amend-confirm').hidden = false;
-            $('bc-amend-confirm').textContent = state.chargePence > 0
-              ? `Pay ${money(state.chargePence)} and change`
-              : 'Confirm change';
-            if (state.chargePence > 0) await mountCard();
-          } catch (e) { showErr(e.message); }
+        box.querySelectorAll('.bc-dur').forEach((b) => b.addEventListener('click', () => {
+          box.querySelectorAll('.bc-dur').forEach((x) => x.classList.remove('sel'));
+          b.classList.add('sel');
+          quote(slot.durations[Number(b.dataset.i)].mins);
         }));
+        // Default to the length they already booked. Most people moving a booking
+        // want the same slot at a different time, so making them re-pick the
+        // duration is a step that exists only to be undone. Every other length is
+        // still one click away.
+        const same = slot.durations.find((d) => d.mins === currentDurationMins);
+        if (same) quote(same.mins);
+      }
+
+      async function quote(mins) {
+        state.durationMins = mins;
+        try {
+          const q = await post('/api/booking/amend', { start: state.start, durationMins: mins });
+          $('bc-amend-quote').textContent = q.message;
+          $('bc-amend-quote').hidden = false;
+          clear();
+          state.chargePence = q.chargePence || 0;
+          $('bc-amend-pay').hidden = state.chargePence === 0;
+          $('bc-amend-confirm').hidden = false;
+          $('bc-amend-confirm').textContent = state.chargePence > 0
+            ? `Pay ${money(state.chargePence)} and change`
+            : 'Confirm change';
+          if (state.chargePence > 0) await mountCard();
+        } catch (e) { showErr(e.message); }
       }
 
       // Mounted lazily: most amendments are same-price or cheaper and never need it.
@@ -376,6 +390,8 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
   .bc-dur { display: inline-flex; gap: 8px; align-items: baseline; font: inherit; font-size: 14px;
     padding: 10px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
     background: #fff; color: var(--ink); cursor: pointer; }
+  .bc-dur.sel { border-color: var(--green); background: #F2F8EC; }
+  .bc-dur em { font-style: normal; font-size: 11px; color: var(--green-dark); font-weight: 600; }
   .bc-quote, .bc-quote-inline { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px;
     background: var(--paper-deep); font-size: 14px; font-weight: 600; }
   .bc-card-mount { margin: 10px 0; min-height: 90px; }

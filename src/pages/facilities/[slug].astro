@@ -2,7 +2,8 @@
 export const prerender = true;
 
 import Layout from '../../layouts/Layout.astro';
-import AcuityBooking from '../../components/AcuityBooking.astro';
+import BookingWidget from '../../components/BookingWidget.astro';
+import { getRoomConfig } from '../../lib/booking/config-reader.ts';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
@@ -33,6 +34,10 @@ const bodyNodes = (discriminant === 'generic' || discriminant === 'bookable') ? 
 const amenities: string[] = discriminant === 'bookable' ? (value as any).amenities : [];
 const bookingCategory: string = discriminant === 'bookable' ? (value as any).bookingCategory : '';
 const secondImage: string | null = discriminant === 'bookable' ? ((value as any).secondImage ?? null) : null;
+// Bookable here means "has a `booking` block in Keystatic and is active". Until a
+// room is configured the section does not render at all, so a half-set-up room
+// cannot take money.
+const bookingRoom = discriminant === 'bookable' && slug ? await getRoomConfig(slug) : null;
 const externalUrl: string = discriminant === 'link' ? (value as any).externalUrl : '';
 
 const zone = zoneFor(slug);
@@ -154,14 +159,10 @@ const structuredData = structuredDataMap[slug] ?? undefined;
     </section>
   )}
 
-  {discriminant === 'bookable' && (
+  {bookingRoom && (
     <section class="mw-sect" id="book">
       <div class="mw-wrap">
-        <div class="mw-booking">
-          <span class="mw-eyebrow">Booking</span>
-          <h2>Reserve this space</h2>
-          <AcuityBooking category={bookingCategory} />
-        </div>
+        <BookingWidget room={bookingRoom} heading="Reserve this space" />
       </div>
     </section>
   )}

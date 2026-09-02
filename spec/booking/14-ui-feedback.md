@@ -20,6 +20,20 @@ because UI notes contradict each other and a batch can be reconciled where a str
 Anything that is a **bug** (something broken, wrong or misleading) jumps the queue and is fixed
 immediately rather than collected here.
 
+## Decided and not built: a text input for duration
+
+The DRA asked, with a question mark, whether duration should also accept typed input. Not
+built, on the grounds that the set is small and constrained — 30-minute steps from one hour,
+bounded by what is actually free after the buffer — so a text field can only ever produce
+values that have to be rejected. The chips show six lengths with the rest one click away, which
+covers the same ground without a validation message. Easy to add if a hirer ever asks for it.
+
+## Deferred by the DRA: a URL per step
+
+Their preference is a URL for each step of the form, so the back button behaves. Deliberately
+not done yet. Worth revisiting: the back button currently leaves the wizard entirely, which is
+the thing that preference exists to prevent.
+
 ## Where the form should live
 
 The DRA wants the booking form **embedded in each facility page**, not on a separate
@@ -37,20 +51,21 @@ page can stay as a direct link for people who arrive from an email.
 | 1 | Door-code explanation was on the phone field at step 2; belongs only on the confirmation | 1 Sep 2026 | **Done** — moved to confirmation |
 | 2 | `/bookings/:ref` should show the booker's name | 2 Sep 2026 | **Done** — "Booked for" row plus a first-name greeting |
 | 3 | Clicking Pay without ticking the terms box gives no feedback at all | 2 Sep 2026 | **Done** — the disabled state now explains itself. Kept on the list: the wider pattern (disabled buttons that say nothing) needs a once-over across the flow |
-| 4 | Embed the booking form in each facility page rather than a separate `/book/[slug]` page | 2 Sep 2026 | **Open** — for the Phase 5b pass |
+| 4 | Embed the booking form in each facility page rather than a separate `/book/[slug]` page | 2 Sep 2026 | **Done** — `BookingWidget.astro`, replacing the Acuity iframe on all three |
+| 5 | Too small and fiddly; can take up more of the page | 2 Sep 2026 | **Done** — full-width widget, larger targets |
+| 6 | Always-visible calendar rather than a date picker you open (same reason radio beats a dropdown) | 2 Sep 2026 | **Done** — month grid, days marked by availability |
+| 7 | Unclear what you have selected | 2 Sep 2026 | **Done** — persistent summary bar with date, time, length and price |
+| 8 | Start times beside the calendar, then duration; default 1 hour, more on request | 2 Sep 2026 | **Done** — six lengths shown, "show longer" for the rest |
+| 9 | Amending should default to the previous duration | 2 Sep 2026 | **Done** — preselected and marked "current", quoted immediately |
 
 ## Known rough edges, unprompted
 
 Things already visible without anyone needing to report them:
 
-- **Three-step wizard.** Committed to early. A single scrolling page may well be better for a
-  booking this simple — there is no branching and only six fields.
-- **No loading states** beyond the word "Loading…" on slots, and no skeleton while availability
-  fetches. A slow calendar read looks like a broken page.
-- **The date picker is a bare `<input type="date">`.** It gives no sense of which days have
-  availability, so finding a free Saturday means guessing one date at a time. The availability
-  endpoint already returns a range, so a small month view showing which days have slots is
-  mostly a rendering job.
+- **Three-step wizard, kept.** The DRA likes the flow (time → details → pay); it is the first
+  step that has been rebuilt rather than the shape.
+- **No loading states** beyond the word "Loading…". A slow calendar read still looks like a
+  broken page.
 - **Errors appear at the bottom** of the panel and are scrolled to. Fine, but a field-level error
   next to the offending input would be better for the name/email/phone cases.
 - **No back navigation** between steps once past step 1 — you can change the date, but there is

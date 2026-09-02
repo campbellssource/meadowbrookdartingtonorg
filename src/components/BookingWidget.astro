@@ -1,0 +1,495 @@
+---
+// The booking flow, as a component, so a facility page can drop it in where the
+// Acuity iframe used to sit.
+//
+// Three steps — when, who, pay — but the first one is deliberately roomy: a month
+// calendar always on screen rather than behind a date picker, start times as
+// visible options rather than a list you have to open, and a summary bar that says
+// what you have chosen at every moment. The old version was compact and fiddly and
+// made you remember your own choices.
+import type { RoomBookingConfig } from '../lib/booking/config.ts';
+
+interface Props { room: RoomBookingConfig; heading?: string }
+const { room, heading } = Astro.props;
+
+const env = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
+const squareSdkUrl = env === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
+const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+// Sandbox validates the card form's postal field as a US ZIP. A sandbox artefact,
+// not a real requirement — derived so nobody "fixes" production to match it.
+const billingCountry = env === 'sandbox' ? 'US' : 'GB';
+
+const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
+const wid = `bw-${room.slug}`;
+---
+
+<div class="bw" id={wid} data-room={room.slug}>
+  <div class="bw-head">
+    <div>
+      <span class="mw-eyebrow">Booking</span>
+      <h2>{heading ?? `Book the ${room.shortName}`}</h2>
+    </div>
+    <p class="bw-rate">{rate} <span>per hour</span></p>
+  </div>
+
+  <ol class="bw-steps">
+    <li class="bw-stepdot is-on" data-dot="1"><span>1</span>When</li>
+    <li class="bw-stepdot" data-dot="2"><span>2</span>Your details</li>
+    <li class="bw-stepdot" data-dot="3"><span>3</span>Pay</li>
+  </ol>
+
+  <!-- ── Step 1: when ───────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="1">
+    <div class="bw-when">
+      <div class="bw-cal-wrap">
+        <div class="bw-cal-head">
+          <button type="button" class="bw-nav" data-nav="-1" aria-label="Previous month">‹</button>
+          <strong id={`${wid}-month`}>&nbsp;</strong>
+          <button type="button" class="bw-nav" data-nav="1" aria-label="Next month">›</button>
+        </div>
+        <div class="bw-dow" aria-hidden="true">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+        </div>
+        <div class="bw-days" id={`${wid}-days`} role="grid" aria-label="Choose a date"></div>
+        <p class="bw-key"><i class="k-free"></i> available <i class="k-none"></i> nothing free</p>
+      </div>
+
+      <div class="bw-pick">
+        <div class="bw-pick-empty" id={`${wid}-empty`}>
+          <p>Pick a date to see what's free.</p>
+        </div>
+
+        <div class="bw-pick-body" id={`${wid}-body`} hidden>
+          <h3 id={`${wid}-dayname`}></h3>
+
+          <fieldset class="bw-field">
+            <legend>Start time</legend>
+            <div class="bw-times" id={`${wid}-times`} role="radiogroup"></div>
+          </fieldset>
+
+          <fieldset class="bw-field" id={`${wid}-durwrap`} hidden>
+            <legend>How long?</legend>
+            <div class="bw-durs" id={`${wid}-durs`} role="radiogroup"></div>
+            <button type="button" class="bw-more" id={`${wid}-more`} hidden>Show longer bookings</button>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 2: details ────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="2" hidden>
+    <div class="bw-form">
+      <label class="bw-input"><span>Your name</span>
+        <input type="text" id={`${wid}-name`} autocomplete="name" required /></label>
+      <label class="bw-input"><span>Email</span>
+        <input type="email" id={`${wid}-email`} autocomplete="email" required />
+        <small>We'll send your confirmation and a link to change or cancel.</small></label>
+      <label class="bw-input"><span>Mobile number</span>
+        <input type="tel" id={`${wid}-phone`} autocomplete="tel" required /></label>
+      {room.intakeQuestions.map((q) => (
+        <label class="bw-input"><span>{q.label}</span>
+          <textarea id={`${wid}-q-${q.key}`} rows="3" data-q={q.key} required={q.required}></textarea></label>
+      ))}
+      <div class="bw-actions">
+        <button type="button" class="mw-btn mw-btn-ghost" data-back="1">Back</button>
+        <button type="button" class="mw-btn mw-btn-primary" id={`${wid}-to3`}>Continue to payment</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 3: pay ────────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="3" hidden>
+    <div class="bw-form">
+      <div class="bw-warn" id={`${wid}-norefund`} hidden></div>
+      <label class="bw-terms">
+        <input type="checkbox" id={`${wid}-terms`} />
+        <span>I agree to the <a href="/room-hire-terms" target="_blank" rel="noopener">room hire terms</a>.</span>
+      </label>
+      <p class="bw-hint" id={`${wid}-termshint`}>Please tick the box above before paying.</p>
+      <div class="bw-card" id={`${wid}-card`}></div>
+      <p class="bw-note">Payments are processed securely by Square. We never store your card details.</p>
+      <div class="bw-actions">
+        <button type="button" class="mw-btn mw-btn-ghost" data-back="2">Back</button>
+        <button type="button" class="mw-btn mw-btn-primary mw-btn-lg" id={`${wid}-pay`} disabled>
+          Pay <span id={`${wid}-total`}></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <p class="bw-error" id={`${wid}-error`} role="alert" hidden></p>
+
+  <!-- Always says what you have chosen, so nothing has to be remembered. -->
+  <div class="bw-summary" id={`${wid}-summary`} hidden>
+    <div class="bw-summary-text">
+      <strong id={`${wid}-sum-when`}></strong>
+      <span id={`${wid}-sum-detail`}></span>
+    </div>
+    <div class="bw-summary-right">
+      <span class="bw-price" id={`${wid}-sum-price`}></span>
+      <button type="button" class="mw-btn mw-btn-primary" id={`${wid}-continue`}>Continue</button>
+    </div>
+  </div>
+</div>
+
+<script src={squareSdkUrl} is:inline></script>
+<script define:vars={{ wid, roomSlug: room.slug, squareAppId, squareLocationId, billingCountry, maxAdvanceDays: room.maxAdvanceDays, minDuration: room.minDurationMins }}>
+  (() => {
+    const root = document.getElementById(wid);
+    if (!root) return;
+    const $ = (suffix) => document.getElementById(`${wid}-${suffix}`);
+    const state = { month: null, date: null, slots: [], slot: null, durationMins: null, pricePence: null, card: null, showAllDurs: false };
+
+    const money = (p) => `£${(p / 100).toFixed(2)}`;
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const showErr = (m) => { const e = $('error'); e.textContent = m; e.hidden = false; e.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    const clearErr = () => { $('error').hidden = true; };
+
+    function step(n) {
+      root.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
+      root.querySelectorAll('.bw-stepdot').forEach((d) => {
+        const i = Number(d.dataset.dot);
+        d.classList.toggle('is-on', i === n);
+        d.classList.toggle('is-done', i < n);
+      });
+      $('continue').hidden = n !== 1;
+      clearErr();
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ── calendar ──────────────────────────────────────────────────
+    async function renderMonth(first) {
+      state.month = first;
+      $('month').textContent = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+      const horizon = new Date(today.getTime() + maxAdvanceDays * 86400000);
+      const from = first < today ? today : first;
+
+      const grid = $('days');
+      grid.innerHTML = '<p class="bw-loading">Loading…</p>';
+
+      let summary = {};
+      if (from <= last && from <= horizon) {
+        try {
+          const to = last > horizon ? horizon : last;
+          const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${iso(from)}&to=${iso(to)}&summary=true`);
+          const data = await res.json();
+          if (res.ok) for (const d of data.days) summary[d.date] = d;
+        } catch { /* days render as unknown rather than blocking the calendar */ }
+      }
+
+      // Monday-first offset.
+      const lead = (first.getDay() + 6) % 7;
+      let html = '';
+      for (let i = 0; i < lead; i += 1) html += '<span class="bw-day is-blank"></span>';
+      for (let d = 1; d <= last.getDate(); d += 1) {
+        const day = new Date(first.getFullYear(), first.getMonth(), d);
+        const key = iso(day);
+        const past = day < today;
+        const beyond = day > horizon;
+        const info = summary[key];
+        const free = !!info && info.open && info.slotCount > 0;
+        const cls = past || beyond ? 'is-out' : free ? 'is-free' : 'is-none';
+        const sel = state.date === key ? ' is-sel' : '';
+        const dis = past || beyond || !free ? ' disabled' : '';
+        const label = day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        html += `<button type="button" class="bw-day ${cls}${sel}" data-date="${key}"${dis}`
+          + ` aria-label="${label}${free ? `, from ${money(info.fromPence)}` : ', nothing available'}">`
+          + `<span class="n">${d}</span>${free ? '<i class="dot"></i>' : ''}</button>`;
+      }
+      grid.innerHTML = html;
+      grid.querySelectorAll('.bw-day[data-date]:not([disabled])').forEach((b) => {
+        b.addEventListener('click', () => pickDate(b.dataset.date));
+      });
+    }
+
+    root.querySelectorAll('.bw-nav').forEach((b) => b.addEventListener('click', () => {
+      const d = new Date(state.month.getFullYear(), state.month.getMonth() + Number(b.dataset.nav), 1);
+      renderMonth(d);
+    }));
+
+    // ── times and durations ───────────────────────────────────────
+    async function pickDate(date) {
+      state.date = date; state.slot = null; state.durationMins = null; state.showAllDurs = false;
+      root.querySelectorAll('.bw-day').forEach((b) => b.classList.toggle('is-sel', b.dataset.date === date));
+      $('empty').hidden = true; $('body').hidden = false;
+      $('durwrap').hidden = true;
+      updateSummary();
+
+      const d = new Date(`${date}T12:00:00`);
+      $('dayname').textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+      $('times').innerHTML = '<p class="bw-loading">Loading…</p>';
+
+      try {
+        const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Could not load times.');
+        state.slots = data.days[0].slots;
+        if (!state.slots.length) { $('times').innerHTML = '<p class="bw-none">Nothing free that day.</p>'; return; }
+        $('times').innerHTML = state.slots.map((s, i) =>
+          `<button type="button" role="radio" aria-checked="false" class="bw-time" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
+        $('times').querySelectorAll('.bw-time').forEach((b) => b.addEventListener('click', () => pickTime(Number(b.dataset.i))));
+      } catch (e) {
+        $('times').innerHTML = `<p class="bw-none">${e.message}</p>`;
+      }
+    }
+
+    function pickTime(i) {
+      const slot = state.slots[i];
+      state.slot = slot; state.showAllDurs = false;
+      $('times').querySelectorAll('.bw-time').forEach((b) => {
+        const on = Number(b.dataset.i) === i;
+        b.classList.toggle('is-sel', on);
+        b.setAttribute('aria-checked', String(on));
+      });
+      // Default to an hour — the minimum and by far the most common — rather than
+      // making everyone choose before they can continue.
+      const preferred = slot.durations.find((d) => d.mins === 60) ?? slot.durations[0];
+      state.durationMins = preferred.mins;
+      state.pricePence = preferred.pricePence;
+      renderDurations();
+      $('durwrap').hidden = false;
+      updateSummary();
+    }
+
+    function renderDurations() {
+      const all = state.slot.durations;
+      const SHOWN = 6;
+      const list = state.showAllDurs ? all : all.slice(0, SHOWN);
+      $('durs').innerHTML = list.map((d) => {
+        const h = Math.floor(d.mins / 60); const m = d.mins % 60;
+        const label = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+        const on = d.mins === state.durationMins;
+        return `<button type="button" role="radio" aria-checked="${on}" class="bw-dur${on ? ' is-sel' : ''}" data-mins="${d.mins}" data-p="${d.pricePence}">`
+          + `<b>${label}</b><span>${money(d.pricePence)}</span></button>`;
+      }).join('');
+      $('durs').querySelectorAll('.bw-dur').forEach((b) => b.addEventListener('click', () => {
+        state.durationMins = Number(b.dataset.mins);
+        state.pricePence = Number(b.dataset.p);
+        renderDurations(); updateSummary();
+      }));
+      $('more').hidden = state.showAllDurs || all.length <= SHOWN;
+      $('more').textContent = `Show ${all.length - SHOWN} longer option${all.length - SHOWN === 1 ? '' : 's'}`;
+    }
+    $('more').addEventListener('click', () => { state.showAllDurs = true; renderDurations(); });
+
+    function updateSummary() {
+      const ok = state.slot && state.durationMins;
+      $('summary').hidden = !ok;
+      if (!ok) return;
+      const s = new Date(state.slot.start);
+      const e = new Date(s.getTime() + state.durationMins * 60000);
+      const fmt = (x) => x.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const h = Math.floor(state.durationMins / 60); const m = state.durationMins % 60;
+      $('sum-when').textContent = `${s.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}, ${fmt(s)}–${fmt(e)}`;
+      $('sum-detail').textContent = `${h ? `${h} hour${h > 1 ? 's' : ''}` : ''}${m ? ` ${m} min` : ''}`.trim();
+      $('sum-price').textContent = money(state.pricePence);
+      $('total').textContent = money(state.pricePence);
+    }
+
+    $('continue').addEventListener('click', () => {
+      if (!state.slot || !state.durationMins) return showErr('Please choose a time first.');
+      step(2);
+    });
+    root.querySelectorAll('[data-back]').forEach((b) =>
+      b.addEventListener('click', () => step(Number(b.dataset.back))));
+
+    // ── details → payment ─────────────────────────────────────────
+    $('to3').addEventListener('click', async () => {
+      const name = $('name').value.trim();
+      const email = $('email').value.trim();
+      const phone = $('phone').value.trim();
+      if (name.length < 2) return showErr('Please give your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
+      if (phone.replace(/\D/g, '').length < 10) return showErr('Please enter a valid mobile number.');
+      for (const el of root.querySelectorAll('[data-q][required]')) {
+        if (!el.value.trim()) return showErr('Please answer the question about how you will use the room.');
+      }
+      // Same rule the refund itself uses: inside the hour, nothing comes back.
+      const mins = (new Date(state.slot.start).getTime() - Date.now()) / 60000;
+      const w = $('norefund');
+      if (mins <= 60) {
+        w.textContent = 'This booking starts within the hour, so it cannot be changed or refunded once confirmed.';
+        w.hidden = false;
+      } else { w.hidden = true; }
+      step(3);
+      await mountCard();
+    });
+
+    async function mountCard() {
+      if (state.card) return;
+      if (typeof Square === 'undefined') return showErr('The payment form could not load.');
+      const loc = window.location;
+      if (loc.protocol !== 'https:' && !loc.hostname.endsWith('localhost')) {
+        return showErr(`Square's payment form only loads over HTTPS or on "localhost" — this page is on ${loc.hostname}.`);
+      }
+      try {
+        const payments = await Square.payments(squareAppId, squareLocationId);
+        state.card = await payments.card();
+        await state.card.attach(`#${wid}-card`);
+        syncPay();
+      } catch (e) {
+        showErr(`The payment form could not load (${e.message || e.name}).`);
+      }
+    }
+
+    function syncPay() {
+      const ticked = $('terms').checked;
+      $('pay').disabled = !ticked || !state.card;
+      $('termshint').hidden = ticked;
+    }
+    $('terms').addEventListener('change', syncPay);
+
+    $('pay').addEventListener('click', async () => {
+      clearErr();
+      const btn = $('pay');
+      btn.disabled = true; btn.textContent = 'Processing…';
+      const name = $('name').value.trim();
+      const email = $('email').value.trim();
+      const [givenName, ...rest] = name.split(/\s+/);
+      const reset = () => { btn.disabled = false; btn.innerHTML = `Pay <span id="${wid}-total">${money(state.pricePence)}</span>`; };
+
+      let result;
+      try {
+        result = await state.card.tokenize({
+          amount: (state.pricePence / 100).toFixed(2),
+          currencyCode: 'GBP', intent: 'CHARGE',
+          customerInitiated: true, sellerKeyedIn: false,
+          billingContact: { givenName, ...(rest.length ? { familyName: rest.join(' ') } : {}), email, countryCode: billingCountry },
+        });
+      } catch (e) {
+        showErr('We could not verify your card with your bank. Please try again or use a different card.');
+        return reset();
+      }
+      if (result.status !== 'OK') {
+        showErr(result.errors?.[0]?.message ?? 'Card details invalid. Please check and try again.');
+        return reset();
+      }
+
+      const notes = Array.from(root.querySelectorAll('[data-q]'))
+        .map((el) => `${el.parentElement?.querySelector('span')?.textContent ?? ''} ${el.value}`.trim())
+        .filter((s) => s.length > 1).join('\n');
+
+      try {
+        const res = await fetch('/api/booking/create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room: roomSlug, start: state.slot.start, durationMins: state.durationMins,
+            pricePence: state.pricePence, sourceId: result.token, acceptedTerms: true,
+            customer: { name, email, phone: $('phone').value.trim(), ...(notes ? { notes } : {}) },
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Booking failed.');
+        // manageUrl carries the magic-link token; the bare reference would land
+        // the booker on "we need your booking link" seconds after paying.
+        window.location.href = data.manageUrl ?? `/bookings/${data.bookingRef}`;
+      } catch (e) {
+        showErr(e.message);
+        reset();
+      }
+    });
+
+    const now = new Date();
+    renderMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  })();
+</script>
+
+<style>
+  .bw { background: var(--bone); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+  .bw-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+  .bw-head h2 { margin: 8px 0 0; font-size: clamp(1.5rem, 3vw, 2rem); }
+  .bw-rate { margin: 0; font-size: 22px; font-weight: 700; white-space: nowrap; }
+  .bw-rate span { font-size: 13px; font-weight: 500; color: var(--ink-mute); }
+
+  .bw-steps { display: flex; gap: 20px; list-style: none; margin: 0 0 24px; padding: 0 0 18px;
+    border-bottom: 1px solid var(--paper-deep); font-size: 13px; flex-wrap: wrap; }
+  .bw-stepdot { display: flex; align-items: center; gap: 8px; color: var(--ink-mute); font-weight: 600; }
+  .bw-stepdot span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--paper-deep); color: var(--ink-soft); font-size: 12px; }
+  .bw-stepdot.is-on { color: var(--ink); }
+  .bw-stepdot.is-on span { background: var(--green); color: #fff; }
+  .bw-stepdot.is-done span { background: var(--green-dark); color: #fff; }
+
+  .bw-when { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 32px; align-items: start; }
+  .bw-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .bw-cal-head strong { font-size: 16px; }
+  .bw-nav { font: inherit; font-size: 20px; line-height: 1; width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid var(--sand); background: #fff; cursor: pointer; color: var(--ink); }
+  .bw-nav:hover { border-color: var(--green); }
+  .bw-dow, .bw-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .bw-dow { margin-bottom: 6px; }
+  .bw-dow span { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-mute); }
+  .bw-day { position: relative; aspect-ratio: 1; display: grid; place-items: center; font: inherit; font-size: 14px;
+    border: 0; border-radius: 10px; background: var(--paper-deep); color: var(--ink); cursor: pointer; padding: 0; }
+  .bw-day.is-blank { background: none; }
+  .bw-day.is-none, .bw-day.is-out { background: transparent; color: var(--ink-mute); opacity: 0.45; cursor: default; }
+  .bw-day.is-free { background: var(--bone); box-shadow: inset 0 0 0 1.5px var(--sand); font-weight: 600; }
+  .bw-day.is-free:hover { box-shadow: inset 0 0 0 2px var(--green); }
+  .bw-day.is-sel { background: var(--green); color: #fff; box-shadow: none; }
+  .bw-day .dot { position: absolute; bottom: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+  .bw-day.is-sel .dot { background: #fff; }
+  .bw-key { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-mute); margin: 14px 0 0; }
+  .bw-key i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+  .bw-key .k-free { background: var(--bone); box-shadow: inset 0 0 0 1.5px var(--sand); }
+  .bw-key .k-none { background: var(--paper-deep); opacity: 0.5; margin-left: 10px; }
+
+  .bw-pick-empty { color: var(--ink-mute); padding: 40px 0; }
+  .bw-pick-body h3 { margin: 0 0 18px; font-size: 18px; }
+  .bw-field { border: 0; padding: 0; margin: 0 0 22px; }
+  .bw-field legend { font-size: 13px; font-weight: 700; padding: 0; margin-bottom: 10px; }
+  .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
+  .bw-time { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; padding: 11px 4px; border: 0;
+    border-radius: 10px; background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+  .bw-time:hover { box-shadow: inset 0 0 0 2px var(--sand); }
+  .bw-time.is-sel { background: var(--green); color: #fff; font-weight: 600; }
+  .bw-durs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .bw-dur { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; font: inherit;
+    padding: 12px 14px; border: 1.5px solid var(--sand); border-radius: 10px; background: #fff;
+    color: var(--ink); cursor: pointer; }
+  .bw-dur b { font-size: 15px; }
+  .bw-dur span { font-size: 12px; color: var(--ink-mute); }
+  .bw-dur.is-sel { border-color: var(--green); background: #F2F8EC; }
+  .bw-dur.is-sel span { color: var(--green-dark); font-weight: 600; }
+  .bw-more { font: inherit; font-size: 13px; margin-top: 10px; background: none; border: 0;
+    color: var(--green-dark); text-decoration: underline; cursor: pointer; padding: 0; }
+  .bw-loading, .bw-none { color: var(--ink-mute); font-size: 14px; margin: 0; }
+
+  .bw-form { max-width: 520px; }
+  .bw-input { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .bw-input > span { font-size: 13px; font-weight: 700; }
+  .bw-input small { font-size: 12px; color: var(--ink-mute); }
+  .bw-input input, .bw-input textarea { font: inherit; font-size: 16px; padding: 13px 14px;
+    border: 1.5px solid var(--sand); border-radius: 10px; background: #fff; color: var(--ink); }
+  .bw-input input:focus, .bw-input textarea:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+  .bw-terms { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin-bottom: 8px; }
+  .bw-terms input { width: 20px; height: 20px; margin-top: 2px; }
+  .bw-hint { font-size: 13px; color: #7A4B12; margin: 0 0 16px; }
+  .bw-card { margin: 16px 0 10px; min-height: 90px; }
+  .bw-note { font-size: 12px; color: var(--ink-mute); margin: 0 0 18px; }
+  .bw-warn { padding: 13px 15px; border-radius: 10px; font-size: 14px; margin-bottom: 18px;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .bw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .bw-error { margin: 18px 0 0; padding: 13px 15px; border-radius: 10px; background: #FCECE7;
+    color: #8A2C0D; font-weight: 600; font-size: 14px; }
+
+  .bw-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    margin-top: 24px; padding: 18px 20px; background: var(--ink); color: #fff; border-radius: var(--r-lg); }
+  .bw-summary-text { display: flex; flex-direction: column; gap: 2px; }
+  .bw-summary-text strong { font-size: 16px; }
+  .bw-summary-text span { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .bw-summary-right { display: flex; align-items: center; gap: 16px; }
+  .bw-price { font-size: 22px; font-weight: 700; }
+
+  @media (max-width: 820px) {
+    .bw { padding: 20px; }
+    .bw-when { grid-template-columns: 1fr; gap: 24px; }
+    .bw-summary { position: sticky; bottom: 0; z-index: 5; }
+  }
+</style>
