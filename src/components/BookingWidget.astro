@@ -180,6 +180,23 @@ const wid = `bw-${room.slug}`;
       el.addEventListener('input', () => clearInvalid(el, $('detailsmsg')));
     });
 
+    /**
+     * Bring newly revealed UI into view.
+     *
+     * Anything that appears in response to a press should be looked at, not
+     * hunted for -- otherwise the page changes below the fold and reads as though
+     * nothing happened. Waits a frame so the element is laid out before measuring,
+     * and honours the reduced-motion preference. The nav is sticky, so targets
+     * carry `scroll-margin-top` to land clear of it rather than under it.
+     */
+    function reveal(el) {
+      if (!el) return;
+      const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+      });
+    }
+
     function step(n) {
       root.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
       root.querySelectorAll('.bw-stepdot').forEach((d) => {
@@ -189,7 +206,9 @@ const wid = `bw-${room.slug}`;
       });
       $('continue').hidden = n !== 1;
       clearErr();
-      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Step 3's point is the card form, so go there rather than to the top of a
+      // panel whose first inch is a terms checkbox.
+      reveal(n === 3 ? $('card').closest('.bw-form') ?? $('card') : root.querySelector(`[data-panel="${n}"]`));
     }
 
     // ── calendar ──────────────────────────────────────────────────
@@ -235,6 +254,9 @@ const wid = `bw-${room.slug}`;
       $('empty').hidden = true; $('body').hidden = false;
       $('durwrap').hidden = true;
       updateSummary();
+      // On a narrow screen the times sit below the calendar, so picking a date
+      // otherwise changes something entirely off screen.
+      if (window.matchMedia?.('(max-width: 820px)').matches) reveal($('body'));
 
       const d = new Date(`${date}T12:00:00`);
       $('dayname').textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -286,6 +308,7 @@ const wid = `bw-${room.slug}`;
       renderDurations();
       $('durwrap').hidden = false;
       updateSummary();
+      reveal($('durwrap'));
     }
 
     function renderDurations() {
@@ -456,6 +479,10 @@ const wid = `bw-${room.slug}`;
      exactly what happened on the Snooker Room page. Everything below states its
      colour explicitly, the way .mw-card already does. */
   .bw { background: var(--bone); color: var(--ink); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+
+  /* The site nav is sticky, so anything scrolled to with block:'start' lands
+     underneath it. Roughly the nav's height plus a little breathing room. */
+  .bw-panel, .bw-pick-body, .bw-field, .bw-form { scroll-margin-top: 96px; }
 
   /* `.mw-btn` sets `display: inline-flex` and `.bw-summary` sets `display: flex`.
      Both are class selectors and therefore beat the browser's own

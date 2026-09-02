@@ -20,6 +20,22 @@ because UI notes contradict each other and a batch can be reconciled where a str
 Anything that is a **bug** (something broken, wrong or misleading) jumps the queue and is fixed
 immediately rather than collected here.
 
+## The reveal pattern
+
+The DRA's rule, and it applies to the whole flow: **anything that appears in response to a press
+gets scrolled to.** Otherwise the page changes below the fold and reads as though the button did
+nothing — which is the same complaint as the disabled Pay button, in a different disguise.
+
+Implemented as `reveal(el)` in both the booking widget and the manage page. It waits a frame so
+the element is laid out before measuring, honours `prefers-reduced-motion`, and relies on
+`scroll-margin-top: 96px` on the targets because the site nav is sticky and `block: 'start'`
+would otherwise put the target underneath it.
+
+Applied at: opening the amend and cancel panels, picking a date (narrow screens only, where the
+times sit below the calendar), picking a time, moving between steps, and mounting either card
+form. Step 3 deliberately reveals the card area rather than the top of the panel, whose first
+inch is a terms checkbox.
+
 ## Three CSS traps this flow hit, all silent
 
 Worth knowing before building anything else on this site. None produced an error.
@@ -109,6 +125,7 @@ page can stay as a direct link for people who arrive from an email.
 | 20 | "Reserve this space" should be "Book the Snooker Room" | 2 Sep 2026 | **Done** — heading names the room |
 | 21 | After cancelling you land on "We need your booking link" | 2 Sep 2026 | **Done** — the page now confirms the cancellation and offers to rebook |
 | 22 | Pressing Pay without accepting the terms gives no feedback | 2 Sep 2026 | **Done** — validate on press, red outline on the offending field, reason above the button |
+| 23 | Revealed UI should be scrolled to, not hunted for — a general pattern | 2 Sep 2026 | **Done** — `reveal()` in both the widget and the manage page |
 
 ## Known rough edges, unprompted
 
