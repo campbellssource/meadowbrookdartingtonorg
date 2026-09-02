@@ -6,9 +6,8 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
 
 | # | Question | Blocks |
 |---|---|---|
-| 17 | Insurance check on hire terms clauses 9–11 | **Launch** |
-| 19 | `bookings@` exists, monitored, Brevo-verified | **Launch** |
-| 6 | Hire terms approved and published | **Launch** |
+| 17 | Insurance check on hire terms clauses 9–11 | **Launch** — review underway (2 Sep) |
+| 6 | Hire terms approved and published | **Launch** — DRA publishing separately |
 | 7 | Privacy policy | DRA has deferred to post-go-live |
 | 12 | Recurring bookings | Deferred by design |
 
@@ -35,8 +34,9 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
    which is worth fixing regardless of this project — a consent checkbox pointing at a dead page
    is not much of a consent. The link is also referenced from the stale `src/content/pages/large-room.md`,
    which predates the Keystatic migration and is not what the site serves.
-   **Drafted 31 Aug 2026 in `10-terms.md`** — needs DRA approval, the insurance check (17), and
-   publishing at `/room-hire-terms`. Until it is published this remains live on the *current*
+   **Drafted 31 Aug 2026 in `10-terms.md`.** The DRA is publishing the page separately, on its
+   own branch, once the insurance check (17) lands. Nothing in this branch depends on it beyond
+   the link from the booking form. Until it is published this remains live on the *current*
    Acuity form, not just the new one. A branded 404 now catches the dead link, which is a better
    dead end, but still a dead end.
 7. **Privacy policy update — drafted; DRA has deferred it to after go-live.** Full text ready to
@@ -79,7 +79,7 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
 
 ## Added 31 Aug 2026
 
-17. **Insurance check on the hire terms — launch blocker.** `10-terms.md` drafts the room hire
+17. **Insurance check on the hire terms — launch blocker. IN PROGRESS from 2 Sep 2026.** `10-terms.md` drafts the room hire
     terms. The cancellation, pricing and conduct clauses are the DRA's own call and are settled.
     Clauses 9, 10 and 11 — responsibility for your group, under-18s and safeguarding, and
     insurance and liability — are drafted to be sensible for a community centre but must be read
