@@ -454,3 +454,31 @@ export async function rateLimit(
     return { allowed: true, remaining: limit - data.count - 1 };
   });
 }
+
+// --- Admin queries -------------------------------------------------------
+
+/**
+ * Every booking overlapping a window, soonest first.
+ *
+ * Reads and filters in memory rather than composing Firestore queries per filter.
+ * At the DRA's volume -- a few thousand bookings a year -- that is correct, fast,
+ * and avoids a composite index per filter combination the committee might want.
+ */
+export async function listBookings(
+  from: Date, to: Date,
+): Promise<{ ref: string; booking: Booking }[]> {
+  const database = await getDb();
+  const snap = await database.collection('bookings')
+    .where('start', '>=', Timestamp.fromDate(from))
+    .where('start', '<=', Timestamp.fromDate(to))
+    .orderBy('start', 'asc')
+    .get();
+  return snap.docs.map((d) => ({ ref: d.id, booking: d.data() as Booking }));
+}
+
+/** Appends an internal note. Never visible to the booker. */
+export async function addAdminNote(ref: string, note: string, actor: string): Promise<void> {
+  await applyChange({ ref, history: { action: `note: ${note}`, actor: 'admin' } });
+  const database = await getDb();
+  await database.collection('bookings').doc(ref).update({ lastNoteBy: actor });
+}

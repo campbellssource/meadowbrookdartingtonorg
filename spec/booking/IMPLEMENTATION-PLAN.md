@@ -110,7 +110,7 @@ Everything in `05`, and the refund half of `04`.
 **Done when:** every acceptance criterion in `05` passes, including the failure cases — a
 failed amend-up charge changing nothing, and a failed refund leaving the slot held.
 
-## Phase 4 — Owner admin
+## Phase 4 — Owner admin ✅ DONE 2 Sep 2026
 
 `07`. Google sign-in first — it gates everything else in the phase.
 
@@ -122,6 +122,15 @@ failed amend-up charge changing nothing, and a failed refund leaving the slot he
 | `src/pages/admin/reporting.astro` | Income analysis |
 | `src/pages/api/admin/booking/*` | Refund, cancel, note, resend |
 | `src/pages/api/admin/export.ts` | CSV |
+
+**Status.** Sign-in, bookings list with filters and row detail, actions (resend, cancel and
+refund, arbitrary refund with a required reason, internal note), CSV export, and the reporting
+page. 190 tests.
+
+**Google OAuth is built but unusable until the client exists** — that is still the manual step
+in `08`. Until then `BOOKING_ADMIN_DEV_LOGIN=true` allows local sign-in without Google; it is
+refused outright when `NODE_ENV=production`, whatever the flag says, and the email must still be
+on the allowlist.
 
 **Done when:** a non-allowlisted Workspace account is refused, every money action is attributed
 in `history`, and reporting totals reconcile against the CSV for the same period.
