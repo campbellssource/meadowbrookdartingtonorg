@@ -91,7 +91,7 @@ prove the refund. `/donate` needed significant post-launch work because the sand
 reproduce 3-D Secure behaviour, and Visa failed where Mastercard worked (`04`). Sandbox green is
 not evidence. £7.50 buys the certainty.
 
-## Phase 3 — Manage: magic links, amend, cancel
+## Phase 3 — Manage: magic links, amend, cancel ✅ DONE 2 Sep 2026
 
 Everything in `05`, and the refund half of `04`.
 
@@ -106,6 +106,11 @@ Everything in `05`, and the refund half of `04`.
 | `src/pages/bookings/[ref]/cancel.astro` | |
 | `src/pages/bookings/find.astro` | |
 | `src/pages/bookings/index.astro` | Local-storage "your bookings" |
+
+**Status.** Tokens, session checks, amend in both price directions with a card form for the
+difference, cancel with automatic refund, and `/bookings/find`. Verified live: a tampered token
+is 403, a token for another booking is 403, cancellation refunded £20.00 and revoked the token,
+and `find` answers identically for known and unknown addresses.
 
 **Done when:** every acceptance criterion in `05` passes, including the failure cases — a
 failed amend-up charge changing nothing, and a failed refund leaving the slot held.
