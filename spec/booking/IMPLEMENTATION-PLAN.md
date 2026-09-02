@@ -168,7 +168,7 @@ treasurer a reporting page before this phase lands.**
 **Done when:** both jobs run on schedule and are idempotent; a request without a valid OIDC
 token is rejected; a deliberately orphaned payment is recovered or refunded, with an alert.
 
-## Phase 5b — UI polish
+## Phase 5b — UI polish ✅ DONE 2 Sep 2026
 
 Collected feedback on the booking flow, batched and worked through in one pass. See
 `14-ui-feedback.md`, which is also where notes should be added as they come up.
@@ -178,6 +178,14 @@ test suite. Deliberately **before** the accessibility pass, so that pass audits 
 rather than one that is about to change.
 
 Bugs do not wait for this phase — anything broken or misleading is fixed when found.
+
+**Status.** Twenty-seven notes raised and closed. The booking form was rebuilt around the DRA's
+feedback and now lives on the facility pages, replacing the Acuity iframe. Four silent CSS traps
+were found and recorded (`14`), and availability went from 410ms to 5ms.
+
+**Still not done from this phase:** the flow has not been driven on a real phone. Square's SDK
+refuses to load over plain HTTP from a LAN address, so that needs a tunnel or a deployed
+preview (`11`).
 
 **Done when:** every note in `14` is done or explicitly declined, and the flow has been driven
 on a real phone.
