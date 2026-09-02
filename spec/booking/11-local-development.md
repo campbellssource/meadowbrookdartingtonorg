@@ -136,6 +136,23 @@ BOOKING_CRON_SECRET=<openssl rand -base64 32>
 Add `http://localhost:4321/admin/auth/callback` to the OAuth client's authorised redirect URIs
 alongside the production one, so `/admin` signs in locally through the real flow.
 
+## Restart the dev server after changing `.env`
+
+Astro reads `.env` once, at startup. Editing it while the server runs changes
+nothing, and the failure is quiet: a server started with
+`BOOKING_EMAIL_TRANSPORT=console` keeps printing emails to its terminal for the
+rest of its life, however many times the file is edited. No warning, no error —
+bookings succeed, confirmations simply never leave the machine.
+
+This cost an hour on 2 Sep 2026. Four real bookings printed to a terminal nobody
+was watching while the DRA waited for email, and I compounded it by answering "no
+restart needed" — true of a standalone script run with the variable exported, and
+wrong about the dev server.
+
+**Brevo's event API lags.** A send shows up in
+`/v3/smtp/statistics/events` roughly five to ten seconds after it happens, so
+checking immediately shows nothing and looks like a failure. Wait, then check.
+
 ## Use `localhost`, not `127.0.0.1`
 
 Square's Web Payments SDK refuses to load, and its message names neither the cause nor the fix:
