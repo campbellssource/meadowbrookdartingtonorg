@@ -174,6 +174,12 @@ currently transitions the entry. Until the `refund.updated` webhook lands in Pha
 - every refunded booking keeps a `paidPence` that overstates what the DRA holds, and
 - the income report (`07`) would inherit that overstatement.
 
+**Observed drifting, 2 Sep 2026.** Booking `MB-YRV4QA` was cancelled from `/admin`. Square
+reports the £11.25 refund as `COMPLETED`; our ledger still records it as `pending`, so
+`paidPence` reads £11.25 as though the money were still held. Nothing is wrong with either
+system — they simply have no channel between them yet. This is what the drift looks like in
+practice, on a real refund, within an hour of it being issued.
+
 Two consequences worth stating rather than discovering:
 
 - **Phase 5's webhook is not optional polish.** It is what makes the ledger eventually true.
