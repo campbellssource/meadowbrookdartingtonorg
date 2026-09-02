@@ -428,6 +428,10 @@ const wid = `bw-${room.slug}`;
   .bw .mw-btn-secondary { background: var(--paper-deep); color: var(--ink); }
   .bw .mw-btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sand); }
   .bw .mw-btn-ghost:hover { background: var(--paper-deep); }
+  /* global.css gives h1/h2/h3 `font-family: var(--font-display)`, and each zone
+     swaps that for its own face -- Billiard on the Snooker Room. Those faces are
+     for large display text; this is a form, so it stays in the body font. */
+  .bw h2, .bw h3 { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em; }
   .bw h2, .bw h3, .bw strong, .bw legend, .bw label > span, .bw b { color: var(--ink); }
   .bw .mw-eyebrow { color: var(--green-dark); }
   .bw a { color: var(--green-dark); }

@@ -37,7 +37,13 @@ true` on any `.mw-btn` does nothing — which is how a second, dead "Continue" s
 payment step. Any component that toggles a button with `hidden` needs
 `[hidden] { display: none !important }` of its own.
 
-**3. `.mw-btn-primary` inherits the zone accent.** It is `background: var(--accent, var(--green))`,
+**3. Headings inherit the zone's display face.** `global.css` sets
+`font-family: var(--font-display)` on `h1`, `h2` and `h3`, and each zone swaps that for its own
+face — Billiard on the Snooker Room. Those faces are for large display text; a form heading in
+one reads as decoration where it should read as a label. Functional components should set
+`font-family: var(--font-body)` on their headings rather than inherit.
+
+**4. `.mw-btn-primary` inherits the zone accent.** It is `background: var(--accent, var(--green))`,
 and `zone-snooker` sets `--accent: var(--bone)`. On a white card that is white on white until
 hover. Inside the booking widget the primary action is pinned to green regardless of the room.
 
@@ -99,6 +105,8 @@ page can stay as a direct link for people who arrive from an email.
 | 16 | Continue button white on white on the Snooker page | 2 Sep 2026 | **Done** — `.mw-btn-primary` is `var(--accent)`, which zones set to bone |
 | 17 | Form labels and help text too small | 2 Sep 2026 | **Done** — labels 15px, help and notes 14px, terms 16px |
 | 18 | Two Continue buttons at the payment step, one dead | 2 Sep 2026 | **Done** — `.mw-btn` sets `display`, which beat `[hidden]` |
+| 19 | Sub-brand display font on the booking form — those faces are for large display text only | 2 Sep 2026 | **Done** — widget headings use the body font |
+| 20 | "Reserve this space" should be "Book the Snooker Room" | 2 Sep 2026 | **Done** — heading names the room |
 
 ## Known rough edges, unprompted
 
