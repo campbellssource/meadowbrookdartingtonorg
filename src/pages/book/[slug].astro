@@ -82,6 +82,7 @@ const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
         </label>
         <div id="card-container" class="bk-card"></div>
         <p class="bk-muted bk-small">Payments are processed securely by Square. We never store your card details.</p>
+        <p class="bk-hint" id="bk-terms-hint">Please tick the box above to agree to the room hire terms before paying.</p>
         <button class="mw-btn mw-btn-primary mw-btn-lg" id="bk-pay" disabled>Pay <span id="bk-total"></span></button>
       </div>
 
@@ -240,7 +241,14 @@ const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
       }
     }
 
-    $('bk-terms').addEventListener('change', (e) => { $('bk-pay').disabled = !e.target.checked || !state.card; });
+    function syncPayButton() {
+    const ticked = $('bk-terms').checked;
+    $('bk-pay').disabled = !ticked || !state.card;
+    // A disabled button that says nothing is a dead end: the booker clicks, gets
+    // no response at all, and has no way to know why.
+    $('bk-terms-hint').hidden = ticked;
+  }
+  $('bk-terms').addEventListener('change', syncPayButton);
 
     $('bk-pay').addEventListener('click', async () => {
       clearError();
@@ -301,7 +309,10 @@ const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Booking failed.');
-        window.location.href = `/bookings/${data.bookingRef}`;
+        // manageUrl carries the magic-link token. Redirecting to the bare reference
+      // drops it, and the booker lands on "we need your booking link" seconds
+      // after paying -- which reads as the payment having failed.
+      window.location.href = data.manageUrl ?? `/bookings/${data.bookingRef}`;
       } catch (err) {
         showError(err.message);
         btn.disabled = false; btn.innerHTML = `Pay <span id="bk-total">${money(state.pricePence)}</span>`;
@@ -345,6 +356,7 @@ const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
   .bk-terms input { margin-top: 3px; width: 18px; height: 18px; }
   .bk-card { margin-bottom: 12px; min-height: 90px; }
   .bk-small { font-size: 12px; }
+  .bk-hint { margin: 0 0 12px; font-size: 13px; color: #7A4B12; }
   .bk-muted { color: var(--ink-mute); font-size: 14px; }
   .bk-error { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #FCECE7;
     color: #8A2C0D; font-weight: 600; font-size: 14px; }
