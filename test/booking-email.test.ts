@@ -66,6 +66,31 @@ describe('internal mail', () => {
     assert.ok(e.text.includes('j@example.com'));
   });
 
+  // Two bookings for the same room on the same day arrived as a single thread in
+  // the DRA's mail client, the second reading as a reply to the first. Gmail threads
+  // on the normalised subject, so the subject has to distinguish them.
+  test('two bookings for one room on one day do not share a subject', () => {
+    const morning = ownerNotificationEmail(b, 'New');
+    const evening = ownerNotificationEmail(
+      { ...b, reference: 'MB-9ZZ111', start: addMinutes(b.start, 120), end: addMinutes(b.end, 120) },
+      'New',
+    );
+    assert.notEqual(morning.subject, evening.subject);
+  });
+
+  test('a different booker on the same slot is also distinguishable', () => {
+    const a = ownerNotificationEmail(b, 'New');
+    const c = ownerNotificationEmail({ ...b, customerName: 'Ada Lovelace' }, 'New');
+    assert.notEqual(a.subject, c.subject);
+  });
+
+  test('the owner subject carries room, date, start time and booker', () => {
+    const e = ownerNotificationEmail(b, 'New');
+    for (const needle of ['Snooker Room', '14 Oct', '19:00', 'Jody Fendick']) {
+      assert.ok(e.subject.includes(needle), `subject missing ${needle}: ${e.subject}`);
+    }
+  });
+
   test('alerts go to it@, separately', () => {
     const e = alertEmail('[FAIL] Payment declined', ['code: GENERIC_DECLINE']);
     assert.equal(e.to, 'it@meadowbrookdartington.org');

@@ -299,7 +299,13 @@ export function ownerNotificationEmail(b: BookingSummary, action: 'New' | 'Amend
   ].join('\n');
   return {
     to: OWNER_EMAIL,
-    subject: `[Booking] ${action} — ${b.roomName}, ${shortDate(b.start)}`,
+    // Start time and booker name are in the subject to keep mail clients from
+    // threading distinct bookings together. Gmail groups by normalised subject, so
+    // two Snooker Room bookings on the same day used to collapse into one thread
+    // and the second looked like a reply to the first. A room cannot hold two
+    // bookings at the same start time, so room + date + time is already unique;
+    // the name is there so the thread list is readable without opening anything.
+    subject: `[Booking] ${action} — ${b.roomName}, ${shortDate(b.start)}, ${instantToLocalTime(b.start)}, ${b.customerName}`,
     html: wrap(`${action} booking`, `<pre style="font-family:inherit;white-space:pre-wrap;margin:0;">${esc(text)}</pre>`),
     text,
   };
