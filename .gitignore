@@ -28,3 +28,7 @@ pnpm-debug.log*
 
 # playwrite-outputs
 .playwright-mcp
+# private working data -- Acuity exports, anything with real bookers' details in it.
+# The README is tracked so the location is discoverable; nothing else ever is.
+/private/*
+!/private/README.md

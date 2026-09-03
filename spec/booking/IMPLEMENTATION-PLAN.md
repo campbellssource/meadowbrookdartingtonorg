@@ -256,7 +256,7 @@ values and return values. Everything that can be tested without a network should
 1. The calendar decides whether a room is free. Never compute availability from Firestore alone.
 2. The server prices. A price from a client is a log line, never an input.
 
-## Phase 9 — Newsletter opt-in (planned, 3 Sep 2026)
+## Phase 9 — Newsletter opt-in ✅ DONE 3 Sep 2026
 
 Requested by the DRA. An unticked checkbox on the details step adding the hirer to a
 Brevo marketing list. Design and the consent rules that make it lawful are in `16`.

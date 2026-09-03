@@ -8,6 +8,7 @@
 
 import type { APIRoute } from 'astro';
 import { invalidateRoom } from '../../../lib/booking/cache.ts';
+import { subscribeToNewsletter, NEWSLETTER_CONSENT_TEXT } from '../../../lib/booking/newsletter.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, createEvent, CalendarError } from '../../../lib/booking/calendar.ts';
 import { buildEvent, doorCodeFor } from '../../../lib/booking/event-format.ts';
@@ -55,6 +56,8 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
   const phone = String(payload.customer?.phone ?? '').trim().slice(0, 20);
   const notes = String(payload.customer?.notes ?? '').trim().slice(0, 1000);
   const sourceId = String(payload.sourceId ?? '').trim();
+  // Strict true. Anything else -- absent, "false", 1 -- is not consent.
+  const newsletterOptIn = payload.newsletterOptIn === true;
 
   if (!slug) return json({ error: 'Missing room.' }, 400);
   if (!Number.isFinite(startMs)) return json({ error: 'Invalid start time.' }, 400);
@@ -168,6 +171,8 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
       booking = await confirmBooking({
         bookingRef, holdId, room, start, end, pricePence,
         customer: { name, email, ...(phone ? { phone } : {}), ...(notes ? { notes } : {}) },
+        newsletterOptIn,
+        newsletterWording: NEWSLETTER_CONSENT_TEXT,
         payment: {
           kind: 'charge', amountPence: pricePence,
           squarePaymentId: payment.squarePaymentId, squareRefundId: null,
@@ -251,6 +256,23 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
         `Reference: ${bookingRef}`, `Booker: ${email}`,
         'The booking is paid and confirmed but the booker has no email.',
       ]);
+    }
+
+    // The marketing list, after the booking is safely done and unable to affect it.
+    // They have paid and their room is booked; a newsletter signup is not worth a
+    // 500, a delay, or an exception on the way to the confirmation page.
+    if (newsletterOptIn) {
+      try {
+        const outcome = await subscribeToNewsletter({ email, name });
+        console.log('booking/create: newsletter', { ref: bookingRef, outcome });
+      } catch (err) {
+        console.error('booking/create: newsletter signup failed', err);
+        await alert('[ALERT] Newsletter signup failed', [
+          `Reference: ${bookingRef}`, `Booker: ${email}`,
+          'They ticked the newsletter box and are NOT on the list. The booking itself is fine.',
+          err instanceof Error ? err.message : String(err),
+        ]);
+      }
     }
 
     invalidateRoom(room.slug);
