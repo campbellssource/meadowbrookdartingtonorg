@@ -1,4 +1,5 @@
 // GET /api/booking/availability?room=<slug>&from=YYYY-MM-DD&to=YYYY-MM-DD
+//                               [&exclude=<booking ref>  + X-Booking-Token header]
 //
 // Read-only. Reads the room's Google Calendar, applies the room's rules, and
 // returns bookable starts with the lengths and prices available at each.
@@ -8,7 +9,9 @@
 
 import type { APIRoute } from 'astro';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
-import { fetchBusy, CalendarError } from '../../../lib/booking/calendar.ts';
+import { fetchBusy, fetchBusyExcluding, CalendarError } from '../../../lib/booking/calendar.ts';
+import { verify } from '../../../lib/booking/token.ts';
+import { getBooking } from '../../../lib/booking/store.ts';
 import { computeAvailability, datesBetween } from '../../../lib/booking/availability.ts';
 import { londonToInstant, instantToLocalDate, addMinutes } from '../../../lib/booking/time.ts';
 import { cached, rateLimitLocal, AVAILABILITY_TTL_MS } from '../../../lib/booking/cache.ts';
@@ -30,8 +33,40 @@ const json = (body: unknown, status = 200, cache?: string): Response =>
     },
   });
 
-export const GET: APIRoute = async ({ url, clientAddress }) => {
+/**
+ * Resolve `?exclude=<ref>` into the calendar event id to ignore.
+ *
+ * Amending has to see the slot the booking already occupies as free, or a hirer
+ * moving 08:00-09:00 to 08:30-09:30 is blocked by their own booking. The server
+ * side of amend has always done this; the grid the hirer picks from did not, so
+ * the move was refused by a UI that never offered it.
+ *
+ * Proof of ownership is required. The signature and the reference scope are checked
+ * -- deliberately not `authorise()`, which spends one of the token's hourly uses:
+ * the picker refetches on every date change, so a hirer browsing a fortnight would
+ * lock themselves out of their own booking. Nothing here is a write, and the worst
+ * a forged exclusion could achieve is seeing one slot as free that takeHold will
+ * refuse anyway.
+ */
+async function resolveExclusion(
+  ref: string, token: string | null, roomSlug: string,
+): Promise<{ ok: true; eventId: string | null } | { ok: false; status: 403 | 404; error: string }> {
+  const v = verify(token ?? '');
+  if (!v.ok || v.payload.ref !== ref) {
+    return { ok: false, status: 403, error: 'That link is not valid for this booking.' };
+  }
+  const booking = await getBooking(ref);
+  if (!booking) return { ok: false, status: 404, error: 'We cannot find that booking.' };
+  // A token for a Lounge booking must not shift the Studio's availability.
+  if (booking.room !== roomSlug) {
+    return { ok: false, status: 403, error: 'That booking is for a different room.' };
+  }
+  return { ok: true, eventId: booking.calendarEventId ?? null };
+}
+
+export const GET: APIRoute = async ({ url, clientAddress, request }) => {
   const slug = (url.searchParams.get('room') ?? '').trim();
+  const exclude = (url.searchParams.get('exclude') ?? '').trim();
   const today = instantToLocalDate(new Date());
   const from = (url.searchParams.get('from') ?? today).trim();
   const to = (url.searchParams.get('to') ?? from).trim();
@@ -69,13 +104,27 @@ export const GET: APIRoute = async ({ url, clientAddress }) => {
   const timeMin = addMinutes(londonToInstant(from, '00:00'), -pad);
   const timeMax = addMinutes(londonToInstant(dates[dates.length - 1], '23:59'), pad);
 
+  // Header rather than a query parameter: tokens end up in access logs, Referer
+  // headers and browser history, and this URL is fetched from a page that already
+  // holds the token in a script variable.
+  let excludeEventId: string | null = null;
+  if (exclude) {
+    const resolved = await resolveExclusion(exclude, request.headers.get('X-Booking-Token'), room.slug);
+    if (!resolved.ok) return json({ error: resolved.error }, resolved.status);
+    excludeEventId = resolved.eventId;
+  }
+
   try {
     // Keyed by the exact window, so a different range is a different entry. A
     // stale answer can only cause a refusal at purchase, never a double booking.
+    // The exclusion is part of the key: without it an amend view's answer would be
+    // served to everyone else, showing a slot that is genuinely taken as free.
     const busy = await cached(
-      `busy|${room.slug}|${timeMin.toISOString()}|${timeMax.toISOString()}`,
+      `busy|${room.slug}|${timeMin.toISOString()}|${timeMax.toISOString()}|x:${excludeEventId ?? ''}`,
       AVAILABILITY_TTL_MS,
-      () => fetchBusy(room.calendarId, timeMin, timeMax),
+      () => (excludeEventId
+        ? fetchBusyExcluding(room.calendarId, timeMin, timeMax, excludeEventId)
+        : fetchBusy(room.calendarId, timeMin, timeMax)),
     );
     const result = computeAvailability({ room, from, to, busy, now: new Date() });
 
@@ -86,7 +135,7 @@ export const GET: APIRoute = async ({ url, clientAddress }) => {
       hourlyRatePence: room.hourlyRatePence,
       capacityNote: room.capacityNote,
       intakeQuestions: room.intakeQuestions,
-    }, 200, 'public, max-age=30, s-maxage=30');
+    }, 200, excludeEventId ? 'no-store, private' : 'public, max-age=30, s-maxage=30');
   } catch (err) {
     const status = err instanceof CalendarError ? 502 : 500;
     console.error('booking/availability: calendar read failed', {

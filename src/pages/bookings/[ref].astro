@@ -12,7 +12,7 @@ import { getBooking } from '../../lib/booking/store.ts';
 import { getRoomConfig } from '../../lib/booking/config-reader.ts';
 import { normaliseReference } from '../../lib/booking/reference.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
-import { instantToLocalTime } from '../../lib/booking/time.ts';
+import { instantToLocalTime, instantToLocalDate } from '../../lib/booking/time.ts';
 import { refundFor } from '../../lib/booking/policy.ts';
 import { doorCodeFor } from '../../lib/booking/event-format.ts';
 
@@ -212,6 +212,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
   <script define:vars={{
     ref, token, canManage, canAmend,
     currentDurationMins: booking?.durationMins ?? 60,
+    currentDate: start ? instantToLocalDate(start) : null,
     roomSlug: booking?.room ?? null,
     squareAppId, squareLocationId, billingCountry,
   }}>
@@ -318,7 +319,11 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
       if (canAmend) {
       $('bc-amend-open').addEventListener('click', () => {
         clear(); $('bc-cancel').hidden = true; $('bc-amend').hidden = false;
-        if (!$('bc-date').value) $('bc-date').value = new Date().toISOString().slice(0, 10);
+        // Open on the day they already booked, not today. An amendment usually
+        // moves a booking by an hour, not by a month, so today is the wrong guess
+        // almost every time -- and toISOString() gave the UTC date, which is the
+        // day before for anything from 23:00 through a British summer.
+        if (!$('bc-date').value) $('bc-date').value = currentDate ?? new Date().toLocaleDateString('en-CA');
         loadSlots();
         reveal($('bc-amend'));
       });
@@ -332,7 +337,13 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
         $('bc-durations').hidden = true; $('bc-amend-quote').hidden = true;
         $('bc-amend-confirm').hidden = true;
         try {
-          const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}`);
+          // exclude=ref makes this booking's own slot show as free. Without it a
+          // hirer moving 08:00-09:00 to 08:30 is blocked by their own booking: the
+          // server would allow the move, but the grid never offered it.
+          const res = await fetch(
+            `/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}&exclude=${encodeURIComponent(ref)}`,
+            { headers: { 'X-Booking-Token': token } },
+          );
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
           const day = data.days[0];
