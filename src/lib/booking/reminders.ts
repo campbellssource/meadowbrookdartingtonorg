@@ -9,18 +9,28 @@ import { recordToken } from './store.ts';
 import { send, HOUSEKEEPING, type Email } from './email.ts';
 import { formatPence } from './pricing.ts';
 import { instantToLocalTime } from './time.ts';
-import { doorCodeFor } from './event-format.ts';
+import { doorCodeOf } from './door-code.ts';
+import type { AllocatedDoorCode } from './door-code.ts';
 
 export interface ReminderReport { sent: number; skipped: number; failed: number }
 
-function reminderEmail(args: {
+// The phone-number explanation only when the code really is the phone number.
+const doorCodeSentence = (d: AllocatedDoorCode): string =>
+  d.source === 'phone'
+    ? `Your door code is ${d.code} — the last four digits of your mobile number.`
+    : `Your door code is ${d.code}.`;
+const doorCodeSentenceHtml = (d: AllocatedDoorCode): string =>
+  `Your door code is <strong style="font-family:ui-monospace,monospace;">${d.code}</strong>`
+  + (d.source === 'phone' ? ' — the last four digits of your mobile number.' : '.');
+
+export function reminderEmail(args: {
   to: string; roomName: string; start: Date; end: Date; pricePence: number;
-  reference: string; manageUrl: string; capacityNote?: string; doorCode?: string | null;
+  reference: string; manageUrl: string; capacityNote?: string; doorCode?: AllocatedDoorCode | null;
 }): Email {
   const when = `${instantToLocalTime(args.start)}–${instantToLocalTime(args.end)}`;
   const text = [
     `Tomorrow: ${args.roomName}, ${when}.`, '',
-    args.doorCode ? `Your door code is ${args.doorCode}.` : '',
+    args.doorCode ? doorCodeSentence(args.doorCode) : '',
     args.capacityNote ?? '', '',
     `Reference: ${args.reference}`,
     `Paid: ${formatPence(args.pricePence)}`, '',
@@ -37,7 +47,7 @@ function reminderEmail(args: {
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
 <h1 style="margin:0 0 16px;font-size:22px;">Tomorrow: ${args.roomName}</h1>
 <p style="font-size:17px;font-weight:600;margin:0 0 14px;">${when}</p>
-${args.doorCode ? `<p style="margin:0 0 14px;">Your door code is <strong style="font-family:ui-monospace,monospace;">${args.doorCode}</strong>.</p>` : ''}
+${args.doorCode ? `<p style="margin:0 0 14px;">${doorCodeSentenceHtml(args.doorCode)}</p>` : ''}
 ${args.capacityNote ? `<p style="font-size:14px;color:#5B4E42;margin:0 0 14px;">${args.capacityNote}</p>` : ''}
 <p style="margin:20px 0 0;"><a href="${args.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Change or cancel</a></p>
 <p style="font-size:13px;color:#8B7C6E;margin:18px 0 0;">Reference ${args.reference} · paid ${formatPence(args.pricePence)}</p>
@@ -86,7 +96,7 @@ export async function sendReminders(origin: string, now = new Date()): Promise<R
         pricePence: b.pricePence, reference: doc.id,
         manageUrl: `${origin}/bookings/${doc.id}?t=${token}`,
         capacityNote: room?.capacityNote,
-        doorCode: doorCodeFor(b.customer.phone ?? ''),
+        doorCode: doorCodeOf(b),
       }));
       await doc.ref.update({ reminderSentAt: Timestamp.now() });
       report.sent += 1;

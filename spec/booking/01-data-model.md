@@ -42,6 +42,7 @@ a guessable reference plus an email address should not be enough to find a booki
 | `paidPence` | number | Sum of captured payments minus refunds. Equals `pricePence` when settled |
 | `customer` | map | `{ name, email, phone?, organisation?, notes? }` |
 | `calendarEventId` | string \| null | The event we created on the room calendar |
+| `doorCode` | map | `{ code, source, allocatedAt }`. `code` is a **string** (`"0044"`), `source` is `phone` \| `generated`. Allocated with the booking; never changes on amend. Absent on bookings made before 3 Sep 2026 — see `13` |
 | `payments` | array\<map\> | Append-only ledger, see below |
 | `seriesId` | string \| null | Reserved for recurring bookings. Always `null` in v1 |
 | `createdAt` | Timestamp | |
@@ -100,6 +101,21 @@ Magic-link tokens are signed and self-contained, so this collection exists purel
 | `lastUsedAt` | Timestamp \| null | |
 | `useCount` | number | |
 
+### `doorCodes/{code}`
+
+Which booking holds a door code, and until when. Global across rooms, because every booking
+uses the Entrance lock and TTLock refuses a code value already on a lock (`13`).
+
+| Field | Type | Notes |
+|---|---|---|
+| `code` | string | The document ID, repeated |
+| `bookingRef` | string | |
+| `room`, `start`, `end` | | Same shape as the booking |
+| `expiresAt` | Timestamp | `end + 24h`. The code is free to reallocate from here; a TTL policy deletes the record |
+
+Written in the same transaction as the booking. Moved with the booking on amendment. Not
+touched on cancellation — the code may still be on the lock until the door system removes it.
+
 ### `counters/{name}`
 
 Reserved. Not used in v1 — booking references are random, not sequential.
@@ -139,6 +155,7 @@ description:
     Calendar: Studio - Large room
     Name: Jane Smith
     Phone: +447700900000
+    Pass Code: 48213
     Email: jane@example.com
     Price: £20.00
     Paid Online: £20.00
@@ -227,7 +244,7 @@ next 90 days of each room calendar and compares it with Firestore:
 
 | Situation | Action |
 |---|---|
-| Confirmed booking, no matching calendar event | Recreate the event from the booking. Log a warning |
+| Confirmed booking, no matching calendar event | Recreate the event from the booking. Log a warning. **Only on a positive "not there" from Google** — a failed read (500, 429, auth) is "could not tell", is reported once per run, and recreates nothing. Reading a failure as "gone" produced duplicate events |
 | Our event (`mbBookingRef` set), no matching booking | Leave the event alone, email the owner. Never auto-delete something a person might be relying on |
 | Times disagree | Calendar wins for occupancy; flag the booking `needsReview` and email the owner with both times. Do not auto-refund |
 | Booking stuck `held` past `expiresAt` with no payment | Mark `orphaned`, release |

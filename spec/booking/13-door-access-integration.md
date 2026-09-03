@@ -63,7 +63,12 @@ calendar from the mappings above, and the webhook resolves which calendar fired 
 channel ID. All three rooms provision door codes. The Snooker Room has a third lock the other
 two do not.
 
-### 3. The door code is the last four digits of the booker's phone number
+### 3. The door code is the last four digits of the booker's phone number — superseded 3 Sep 2026
+
+**Superseded.** Allocation moved into the booking system; see "Door codes are allocated here"
+below. The description of the phone-derived rule is kept because the door system still
+behaves this way until it is changed to read the `Pass Code:` line.
+
 
 `utils/phoneExtractor.js`, `extractPasscodeFromDescription`. The description is matched against
 `Phone:\s*(\+?\d{10,})` and the passcode is `digits.slice(-4)`.
@@ -128,6 +133,76 @@ like a cancellation to a system that reacts to cancellations.
 system will hold its own record in Firestore for far longer (`12`). Both are downstream of the
 same calendar event. The privacy policy needs to describe both, and a deletion request has to
 be honoured in both.
+
+## Door codes are allocated here — 3 Sep 2026
+
+The phone-derived rule failed in production three ways the door system could not see coming:
+TTLock rejects "too simple" codes (`-2032`: 5555, 0123, 4321 were all refused), refuses to add a
+code value that already exists on a lock even for a booking at a different time (`-3007`), and a
+phone fragment can equal a permanent staff code. So the booking system now allocates the code
+and writes it onto the event. The door system was changed separately the same day
+(`ttlock-calendar-integration`, `parsePassCodeLine`): it reads the line and falls back to the
+phone number when the line is absent.
+
+### The rule
+
+- Default: the last four digits of the booker's phone number, if the lock would accept them and
+  nothing live is using them.
+- Otherwise: a random **five**-digit code. Five so it can never equal a phone-derived code, and
+  so it reads as "a door code" rather than a fragment of someone's number. TTLock takes 4–9.
+- "Too simple" is a conservative superset of TTLock's unpublished rule: any run of four or more
+  adjacent digits that is all one digit, or strictly consecutive by one in either direction,
+  with 9→0 and 0→9 counting as consecutive. Confirmed rejections and acceptances from production
+  are encoded as unit tests in `test/booking-door-code.test.ts`.
+- A code is a **string**, everywhere. `0044` is a code; `44` is not the same code. Nothing
+  stores, formats or logs it as a number.
+
+### Where it lives
+
+- `bookings/{ref}.doorCode` — `{ code, source: 'phone' | 'generated', allocatedAt }`.
+  Allocated inside the same transaction that confirms the booking, so a confirmed booking always
+  has one. Idempotent: amending or rescheduling never changes it.
+- `doorCodes/{code}` — the reservation: which booking holds the code, and `expiresAt`, the
+  release instant of **end + 24 hours**. Every booking uses the Entrance lock, so reservations
+  are global across rooms. Cancelling does not release early — the code may still be on the
+  lock until the door system's hourly sweep removes it. A TTL policy on `expiresAt` tidies the
+  record; the allocator treats a record past it as free in the meantime.
+- Bookings made before this change carry no `doorCode`. They are shown the phone fragment the
+  door system derived (`doorCodeOf`), and are only allocated a code when something is about to
+  rewrite their event anyway — an amendment, or the reconcile sweep restoring a deleted event.
+
+### The event
+
+One more line in the description, directly after `Phone:`, exactly:
+
+```
+Pass Code: 48213
+```
+
+Label, colon, one space, digits, nothing else. Four or five digits. The `Phone:` line is left
+exactly as it was — the door system still reads it for call screening. `sanitiseForCalendar`
+refuses a booker's name that contains `Pass Code:`, for the same reason it refuses `Phone:`.
+
+If a booking's code and its event ever disagree — a hand edit, or a write that half-failed —
+the hourly reconcile sweep rewrites **that line only** (`setPassCodeLine`), leaving every other
+line byte-for-byte. Bookings with no stored code are deliberately left alone: rewriting every
+live pre-change event at once would ask the door system to re-provision every booking in the
+same hour.
+
+### Guest communication
+
+Every guest-facing mention — confirmation, reminder, manage page — shows the allocated code,
+and only says "the last four digits of your mobile number" when `source` is `phone`.
+
+### Still open
+
+- ~~The door system must read `Pass Code:`~~ **Done, 3 Sep 2026** — live, with phone as the
+  fallback.
+- Permanent staff codes are not known to the allocator. `allocateDoorCode` takes an `avoid`
+  list, so wiring a configured list in is one line once the DRA supplies the codes.
+- Live bookings made before this change keep their phone-derived codes on the lock without a
+  reservation here, so for up to 90 days a new booking's phone fragment could still collide
+  with one of them — the failure that already existed, now shrinking rather than growing.
 
 ## Incidental finding, not ours to fix
 

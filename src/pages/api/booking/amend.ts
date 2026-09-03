@@ -16,7 +16,9 @@ import { buildEvent } from '../../../lib/booking/event-format.ts';
 import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor, formatPence } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
-import { takeHold, releaseHold, applyChange, SlotUnavailableError, isImported } from '../../../lib/booking/store.ts';
+import {
+  takeHold, releaseHold, applyChange, ensureDoorCode, SlotUnavailableError, isImported,
+} from '../../../lib/booking/store.ts';
 import type { Payment } from '../../../lib/booking/store.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
 import { issueRefund } from '../../../lib/booking/refunds.ts';
@@ -138,6 +140,12 @@ export const POST: APIRoute = async ({ request, url }) => {
     const cfg = squareConfig();
     if (!cfg) return json({ error: 'Changes are temporarily unavailable.' }, 500);
 
+    // The booking keeps its code across a move: allocation is idempotent. Only a
+    // booking from before codes were allocated here gets one now, since its event
+    // is about to be rewritten anyway. Before the charge, so a failure here
+    // changes nothing.
+    const doorCode = await ensureDoorCode(ref, now);
+
     // Dearer: take the money FIRST. If the card fails, nothing has changed and the
     // hirer still has the booking they paid for.
     let paymentEntry;
@@ -167,7 +175,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     const eventBody = buildEvent({
       room, name: booking.customer.name, phone: booking.customer.phone ?? '',
       email: booking.customer.email, start, end, pricePence: newPrice, reference: ref,
-      isTest: process.env.NODE_ENV !== 'production',
+      passCode: doorCode.code, isTest: process.env.NODE_ENV !== 'production',
     });
     try {
       if (calendarEventId) {

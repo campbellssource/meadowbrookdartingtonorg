@@ -140,6 +140,8 @@ add_ttl() {
 }
 
 add_ttl ratelimits
+# Door-code reservations release themselves a day after the booking ends (13).
+add_ttl doorCodes
 
 if gcloud firestore fields ttls list --project="$PROJECT_ID" \
      --format='value(name)' 2>/dev/null | grep -q 'collectionGroups/holds/fields/expiresAt'; then

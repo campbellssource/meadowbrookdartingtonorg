@@ -155,7 +155,8 @@ describe('door codes come from one place', () => {
     // doorCodeFor returns null below 10 digits; a bare slice(-4) shows a code the
     // lock was never given.
     for (const f of ['src/lib/booking/reminders.ts', 'src/pages/bookings/[ref].astro',
-                     'src/pages/admin/bookings.astro']) {
+                     'src/pages/admin/bookings.astro', 'src/pages/api/admin/action.ts',
+                     'src/pages/api/booking/create.ts', 'src/lib/booking/email.ts']) {
       const src = readFileSync(f, 'utf8');
       assert.ok(!/phone[^\n]*replace\(\/\\D\/g, ''\)\.slice\(-4\)/.test(src),
         `${f} derives a door code directly instead of using doorCodeFor`);

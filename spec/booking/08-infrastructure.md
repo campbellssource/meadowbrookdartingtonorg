@@ -62,6 +62,8 @@ New secrets to create:
   security rules. Ship a `firestore.rules` that **denies all client access** anyway, so an
   accidental client-side SDK later fails closed.
 - **TTL policy on `holds.expiresAt`**, so expired holds are swept without a cron job.
+- **TTL policy on `doorCodes.expiresAt`**, so released door-code reservations are swept the same
+  way (`13`). Not load-bearing: the allocator treats a record past `expiresAt` as free anyway.
 - Composite index: `bookings` on `(room ASC, localDate ASC, status ASC)` — the overlap query.
 - Composite index: `bookings` on `(status ASC, start ASC)` — the reminder job and admin list.
 - Point-in-time recovery on. It is pennies and this is the only copy of the booking records.

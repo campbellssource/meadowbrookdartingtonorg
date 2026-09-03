@@ -123,3 +123,7 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     whose numbers share their last four digits get the same code. Recorded because it is now a
     known and accepted risk rather than an undiscovered one — and because the privacy policy
     should still tell hirers where their code comes from.
+    **REVISED 3 Sep 2026.** The phone fragment is still the default, but the booking system now
+    allocates the code, falls back to a random five-digit one when the lock would refuse the
+    fragment or another live booking holds it, and writes the result to the event as
+    `Pass Code:` (`13`). The door system still has to be changed to read that line.

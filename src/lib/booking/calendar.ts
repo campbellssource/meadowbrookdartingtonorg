@@ -197,6 +197,35 @@ export async function getEvent(calendarId: string, eventId: string): Promise<Cal
   return toEvent(raw);
 }
 
+export type EventLookup =
+  | { status: 'present'; event: CalendarEvent }
+  | { status: 'gone' }
+  | { status: 'unknown'; error: unknown };
+
+/**
+ * `getEvent` with "could not tell" kept apart from "gone".
+ *
+ * The distinction is the whole point. `getEvent` returns null only when Google
+ * positively says the event is not there (404, 410, or `status: "cancelled"`);
+ * a 500, a 429 rate limit or an auth failure throws. The reconcile sweep used to
+ * fold that throw into null, and so a passing Google wobble made it recreate the
+ * calendar event of every booking it checked -- a duplicate event each, the room
+ * blocked twice, and the door system asking the lock for a code it already had.
+ * Not knowing must never be read as gone.
+ *
+ * `fetchEvent` is a test seam.
+ */
+export async function lookupEvent(
+  calendarId: string, eventId: string, fetchEvent: typeof getEvent = getEvent,
+): Promise<EventLookup> {
+  try {
+    const event = await fetchEvent(calendarId, eventId);
+    return event ? { status: 'present', event } : { status: 'gone' };
+  } catch (error) {
+    return { status: 'unknown', error };
+  }
+}
+
 export async function updateEvent(
   calendarId: string, eventId: string, event: CalendarEventInput,
 ): Promise<CalendarEvent> {

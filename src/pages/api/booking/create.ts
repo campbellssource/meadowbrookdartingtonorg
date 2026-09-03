@@ -11,7 +11,8 @@ import { invalidateRoom } from '../../../lib/booking/cache.ts';
 import { subscribeToNewsletter, NEWSLETTER_CONSENT_TEXT } from '../../../lib/booking/newsletter.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { fetchBusy, createEvent, CalendarError } from '../../../lib/booking/calendar.ts';
-import { buildEvent, doorCodeFor } from '../../../lib/booking/event-format.ts';
+import { buildEvent } from '../../../lib/booking/event-format.ts';
+import { doorCodeOf } from '../../../lib/booking/door-code.ts';
 import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
@@ -166,6 +167,8 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
     }
 
     // 7 — the money is real from here on. Nothing below may lose the booking.
+    // The door code is allocated inside this write, so a confirmed booking always
+    // has one and the event below can carry it.
     let booking;
     try {
       booking = await confirmBooking({
@@ -207,7 +210,8 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
     try {
       const event = await createEvent(room.calendarId, buildEvent({
         room, name, phone: phone || '', email, start, end, pricePence,
-        reference: bookingRef, isTest: process.env.NODE_ENV !== 'production',
+        reference: bookingRef, passCode: booking.doorCode?.code ?? null,
+        isTest: process.env.NODE_ENV !== 'production',
       }));
       calendarEventId = event.id;
       const { getDb } = await import('../../../lib/booking/store.ts');
@@ -242,7 +246,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
       reference: bookingRef, roomName: room.shortName, start, end, durationMins,
       pricePence, customerName: name, customerEmail: email, manageUrl,
       capacityNote: room.capacityNote,
-      doorCode: doorCodeFor(phone),
+      doorCode: doorCodeOf(booking),
       nonRefundable: !refundableAtBooking(start, now),
     };
     try {

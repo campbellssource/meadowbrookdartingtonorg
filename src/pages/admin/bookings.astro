@@ -5,7 +5,7 @@ import { listBookings } from '../../lib/booking/store.ts';
 import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
-import { doorCodeFor } from '../../lib/booking/event-format.ts';
+import { doorCodeOf } from '../../lib/booking/door-code.ts';
 import { instantToLocalTime } from '../../lib/booking/time.ts';
 
 export const prerender = false;
@@ -165,8 +165,16 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
                             )}
                             <h4>Reference</h4>
                             <p class="ad-mono">{ref}</p>
-                            {doorCodeFor(b.customer.phone ?? '') && (
-                              <><h4>Door code</h4><p class="ad-mono">{doorCodeFor(b.customer.phone ?? '')}</p></>
+                            {doorCodeOf(b) && (
+                              <>
+                                <h4>Door code</h4>
+                                <p class="ad-mono">{doorCodeOf(b)!.code}</p>
+                                <p class="ad-sub">
+                                  {doorCodeOf(b)!.source === 'phone'
+                                    ? 'The last four digits of their phone number.'
+                                    : 'Generated: the last four digits of their phone number were too simple for the lock, already in use, or there was no number.'}
+                                </p>
+                              </>
                             )}
                           </div>
                           <div>

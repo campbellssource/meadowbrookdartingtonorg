@@ -14,7 +14,7 @@ import { normaliseReference } from '../../lib/booking/reference.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
 import { instantToLocalTime, instantToLocalDate } from '../../lib/booking/time.ts';
 import { refundFor } from '../../lib/booking/policy.ts';
-import { doorCodeFor } from '../../lib/booking/event-format.ts';
+import { doorCodeOf } from '../../lib/booking/door-code.ts';
 
 export const prerender = false;
 
@@ -76,9 +76,9 @@ const durationWords = (m: number) => {
   const h = Math.floor(m / 60); const r = m % 60;
   return h && r ? `${h} hours ${r} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${r} minutes`;
 };
-// doorCodeFor, not a local slice: it returns null below 10 digits rather than
-// showing a code the lock was never given.
-const doorCode = doorCodeFor(booking?.customer.phone ?? '');
+// The allocated code -- or, for a booking made before codes were allocated here,
+// the phone fragment the door system derived. Never a local slice of the phone.
+const doorCode = booking ? doorCodeOf(booking) : null;
 
 // Amending to a dearer slot takes the difference, so this page needs a card form too.
 const sqEnv = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
@@ -122,7 +122,7 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
               <div><dt>Length</dt><dd id="bc-length">{durationWords(booking!.durationMins)}</dd></div>
               <div><dt>Paid</dt><dd id="bc-paid">{formatPence(booking!.paidPence)}</dd></div>
               <div><dt>Reference</dt><dd class="bc-ref">{ref}</dd></div>
-              {doorCode && booking!.status === 'confirmed' && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
+              {doorCode && booking!.status === 'confirmed' && <div><dt>Door code</dt><dd class="bc-ref">{doorCode.code}</dd></div>}
             </dl>
           </div>
 
@@ -142,8 +142,9 @@ const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 
           {doorCode && booking!.status === 'confirmed' && (
             <p class="bc-note">
-              Your door entry code is <strong>{doorCode}</strong> — the last four digits of your
-              mobile number. It works for the length of your booking.
+              Your door entry code is <strong>{doorCode.code}</strong>{doorCode.source === 'phone'
+                ? ' — the last four digits of your mobile number.'
+                : '.'} It works for the length of your booking.
             </p>
           )}
 
