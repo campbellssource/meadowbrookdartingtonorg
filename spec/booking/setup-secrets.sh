@@ -43,7 +43,7 @@ generated() { # name
 prompted() { # name, description
   if exists "$1"; then ok "$1 — already set"; return; fi
   printf '  %s\n    %s\n    value (input hidden, blank to skip): ' "$1" "$2"
-  read -rs value; echo
+  read -rs value || true; echo
   if [[ -z "$value" ]]; then warn "$1 — skipped, deploy will fail until it is set"; return; fi
   put "$1" "$value"
 }
