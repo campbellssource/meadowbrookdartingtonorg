@@ -12,6 +12,7 @@
 // The secret is refused in production unless explicitly allowed, so the weaker
 // proof cannot quietly become the one in use.
 
+import { timingSafeEqual } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { env } from './env.ts';
 
@@ -48,8 +49,13 @@ export async function authoriseCron(request: Request, expectedAudience: string):
     if (process.env.NODE_ENV === 'production' && env('BOOKING_CRON_ALLOW_SECRET') !== 'true') {
       return { ok: false, reason: 'secret-not-allowed-in-production' };
     }
-    // Length-checked before comparing; a mismatch here is a refusal either way.
-    if (provided.length === secret.length && provided === secret) return { ok: true, via: 'secret' };
+    // Constant-time. `===` on strings short-circuits at the first differing byte,
+    // which is a measurable oracle on an internet-reachable endpoint. Length is
+    // checked first because timingSafeEqual throws on a mismatch -- and length is
+    // not the secret.
+    const a = Buffer.from(provided);
+    const b = Buffer.from(secret);
+    if (a.length === b.length && timingSafeEqual(a, b)) return { ok: true, via: 'secret' };
     return { ok: false, reason: 'bad-secret' };
   }
 

@@ -4,6 +4,7 @@
 // trail and a shrug when someone asks in six months why a refund was issued.
 
 import type { APIRoute } from 'astro';
+import { canonicalOrigin } from '../../../lib/booking/env.ts';
 import { verifySession, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
 import { getBooking, applyChange, revokeTokensFor, recordToken } from '../../../lib/booking/store.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
@@ -44,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     reference: ref, roomName, start, end: booking.end.toDate(),
     durationMins: booking.durationMins, pricePence: booking.pricePence,
     customerName: booking.customer.name, customerEmail: booking.customer.email,
-    manageUrl: new URL(`/bookings/${ref}`, url.origin).toString(),
+    manageUrl: new URL(`/bookings/${ref}`, canonicalOrigin(url.origin)).toString(),
     capacityNote: room?.capacityNote,
     doorCode: doorCodeFor(booking.customer.phone ?? ''),
   };

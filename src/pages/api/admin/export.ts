@@ -10,10 +10,19 @@ import { instantToLocalTime } from '../../../lib/booking/time.ts';
 
 export const prerender = false;
 
-/** Prefixed if it could be read as a formula — a CSV opened in Excel is executable. */
+/**
+ * Prefixed if it could be read as a formula — a CSV opened in Excel is executable.
+ *
+ * The test ignores leading whitespace, because Excel and Sheets do too: `" =CMD"`
+ * is parsed as a formula while a first-character check sees a space and passes it
+ * through. Also covers the non-breaking space, which survives a copy-paste from a
+ * web page and is not matched by `\s`.
+ */
+const FORMULA_START = /^[\s\u00a0]*[=+\-@\t\r]/;
+
 const cell = (v: unknown): string => {
   const s = String(v ?? '');
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  const safe = FORMULA_START.test(s) ? `'${s}` : s;
   return `"${safe.replace(/"/g, '""')}"`;
 };
 

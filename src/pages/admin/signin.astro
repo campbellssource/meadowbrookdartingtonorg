@@ -1,7 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { ADMIN_HEADERS, devLoginAllowed, adminEmails, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { randomUUID } from 'node:crypto';
 import { env } from '../../lib/booking/env.ts';
+import { OAUTH_STATE_COOKIE } from '../../lib/booking/admin-auth.ts';
 
 export const prerender = false;
 for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
@@ -10,10 +12,25 @@ if (verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value)) return Astro.redirect
 
 const clientId = env('BOOKING_ADMIN_OAUTH_CLIENT_ID');
 const redirectUri = new URL('/admin/auth/callback', Astro.url.origin).toString();
+
+// A `state` value, stored in a short cookie and required to match on the way back.
+// Without it, an attacker can complete their own authorisation and hand the victim
+// the resulting callback URL, silently signing them into the attacker's account --
+// login CSRF. The allowlist limits who can be signed in as, but that bounds the
+// damage rather than preventing it, and the parameter costs nothing.
+const state = clientId ? randomUUID() : null;
+if (state) {
+  Astro.cookies.set(OAUTH_STATE_COOKIE, state, {
+    httpOnly: true, sameSite: 'lax', path: '/admin',
+    secure: Astro.url.protocol === 'https:', maxAge: 600,
+  });
+}
+
 const googleUrl = clientId
   ? 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
       client_id: clientId, redirect_uri: redirectUri, response_type: 'code',
       scope: 'openid email', hd: 'meadowbrookdartington.org', prompt: 'select_account',
+      state: state!,
     }).toString()
   : null;
 
@@ -34,7 +51,9 @@ const dev = devLoginAllowed();
         <p class="ad-deny">
           {denied === 'not-allowed'
             ? 'That Google account is not on the admin list.'
-            : 'Sign-in failed. Please try again.'}
+            : denied === 'state'
+              ? 'That sign-in link did not come from this browser, or it expired. Please start again.'
+              : 'Sign-in failed. Please try again.'}
         </p>
       )}
       <div class="ad-card">

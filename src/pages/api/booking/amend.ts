@@ -21,7 +21,7 @@ import { squareConfig, charge, refund as squareRefund, PaymentError } from '../.
 import { refundFor, refundableAtBooking } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { amendmentEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
-import { envBool } from '../../../lib/booking/env.ts';
+import { envBool, canonicalOrigin } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
 
@@ -224,7 +224,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       reference: ref, roomName: room.shortName, start, end, durationMins,
       pricePence: newPrice, customerName: booking.customer.name,
       customerEmail: booking.customer.email,
-      manageUrl: new URL(`/bookings/${ref}`, url.origin).toString(),
+      manageUrl: new URL(`/bookings/${ref}`, canonicalOrigin(url.origin)).toString(),
     };
     try {
       await send(amendmentEmail(summary, decision));

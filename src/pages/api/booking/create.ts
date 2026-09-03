@@ -22,7 +22,7 @@ import { issue } from '../../../lib/booking/token.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
 import { confirmationEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { refundableAtBooking } from '../../../lib/booking/policy.ts';
-import { envBool } from '../../../lib/booking/env.ts';
+import { envBool, canonicalOrigin } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
 
@@ -220,7 +220,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
 
     // 9 — issue the magic link, then email. Both best-effort: a failure here must
     // not fail a paid booking, and /bookings/find can re-issue a link later.
-    let manageUrl = new URL(`/bookings/${bookingRef}`, url.origin).toString();
+    let manageUrl = new URL(`/bookings/${bookingRef}`, canonicalOrigin(url.origin)).toString();
     try {
       const { token, jti } = issue(bookingRef, email, end);
       await recordToken(jti, bookingRef, email);

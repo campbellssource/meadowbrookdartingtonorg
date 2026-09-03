@@ -17,7 +17,7 @@ import { refundFor } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
 import { cancellationEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
-import { envBool } from '../../../lib/booking/env.ts';
+import { envBool, canonicalOrigin } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
 
@@ -62,9 +62,14 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (body.confirm !== true) {
     return json({
       quote: true, refundPence: decision.refundPence, paidPence: booking.paidPence,
+      // The no-refund branch covers two different situations, and telling someone
+      // their booking "starts within the hour" when it finished yesterday reads as
+      // a bug in the system rather than a policy.
       message: decision.refundPence > 0
         ? `You will be refunded ${formatPence(decision.refundPence)}.`
-        : 'This booking starts within the hour, so no refund is due.',
+        : start <= now
+          ? 'This booking has already started, so no refund is due.'
+          : 'This booking starts within the hour, so no refund is due.',
     });
   }
 
@@ -144,7 +149,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     reference: ref, roomName, start, end: booking.end.toDate(),
     durationMins: booking.durationMins, pricePence: booking.pricePence,
     customerName: booking.customer.name, customerEmail: booking.customer.email,
-    manageUrl: new URL(`/bookings/${ref}`, url.origin).toString(),
+    manageUrl: new URL(`/bookings/${ref}`, canonicalOrigin(url.origin)).toString(),
   };
   try {
     await send(cancellationEmail(summary, decision.refundPence));

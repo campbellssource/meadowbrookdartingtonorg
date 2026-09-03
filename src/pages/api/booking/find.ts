@@ -11,6 +11,7 @@ import { issue } from '../../../lib/booking/token.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { findLinksEmail, send } from '../../../lib/booking/email.ts';
 import { BOOKING_HEADERS } from '../../../lib/booking/session.ts';
+import { canonicalOrigin } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
 
@@ -44,7 +45,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
     const bookings = await upcomingBookingsFor(email);
     if (bookings.length > 0) {
-      const origin = new URL(request.url).origin;
+      // Not request.url: these links are emailed and outlive the request.
+      const origin = canonicalOrigin(new URL(request.url).origin);
       const items = [];
       for (const { ref, booking } of bookings) {
         // Re-issuing invalidates the old link, so a forwarded or leaked one stops

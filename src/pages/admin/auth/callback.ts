@@ -5,7 +5,8 @@
 // issues a short session.
 
 import type { APIRoute } from 'astro';
-import { isAllowed, signSession, ADMIN_COOKIE } from '../../../lib/booking/admin-auth.ts';
+import { timingSafeEqual } from 'node:crypto';
+import { isAllowed, signSession, ADMIN_COOKIE, OAUTH_STATE_COOKIE } from '../../../lib/booking/admin-auth.ts';
 import { env } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
@@ -18,6 +19,16 @@ export const GET: APIRoute = async ({ url, cookies }) => {
   const clientId = env('BOOKING_ADMIN_OAUTH_CLIENT_ID');
   const clientSecret = env('BOOKING_ADMIN_OAUTH_CLIENT_SECRET');
   if (!code || !clientId || !clientSecret) return fail('config');
+
+  // The callback must belong to a sign-in this browser started. Compared in
+  // constant time and consumed either way, so a state cannot be replayed.
+  const expected = cookies.get(OAUTH_STATE_COOKIE)?.value;
+  const received = url.searchParams.get('state');
+  cookies.delete(OAUTH_STATE_COOKIE, { path: '/admin' });
+  if (!expected || !received) return fail('state');
+  const a = Buffer.from(expected);
+  const b = Buffer.from(received);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return fail('state');
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

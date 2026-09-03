@@ -18,3 +18,22 @@ export function envBool(name: string, fallback: boolean): boolean {
   if (raw === undefined) return fallback;
   return raw !== 'false' && raw !== '0';
 }
+
+/**
+ * The origin to use in links we email.
+ *
+ * `request.url` reflects the Host header, so deriving an emailed link from it lets
+ * a forged Host put an attacker's domain into a real, signed magic link. Astro's
+ * `security.allowedDomains` rejects unknown hosts today, which makes this defence
+ * in depth rather than the only guard -- but a link that outlives the request and
+ * lands in someone's inbox should not depend on a config entry staying in place.
+ *
+ * Falls back to the request origin only in development, where the host is
+ * localhost and there is nothing to spoof.
+ */
+export function canonicalOrigin(requestOrigin: string): string {
+  const configured = env('PUBLIC_SITE_ORIGIN') ?? env('ORIGIN');
+  if (configured) return configured.replace(/\/$/, '');
+  if (process.env.NODE_ENV === 'production') return 'https://meadowbrookdartington.org';
+  return requestOrigin;
+}

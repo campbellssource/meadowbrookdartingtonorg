@@ -61,6 +61,7 @@ const DELIBERATELY_ABSENT: Record<string, string> = {
   FIRESTORE_EMULATOR_HOST: 'local development only',
   GOOGLE_SERVICE_ACCOUNT_JSON: 'the Workspace blocks key downloads; impersonation is used',
   NODE_ENV: 'set by the container image',
+  ORIGIN: 'legacy name, read only as a fallback to PUBLIC_SITE_ORIGIN',
 };
 
 describe('the deploy supplies what the code reads', () => {

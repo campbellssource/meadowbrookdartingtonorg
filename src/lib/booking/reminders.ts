@@ -9,6 +9,7 @@ import { recordToken } from './store.ts';
 import { send, HOUSEKEEPING, type Email } from './email.ts';
 import { formatPence } from './pricing.ts';
 import { instantToLocalTime } from './time.ts';
+import { doorCodeFor } from './event-format.ts';
 
 export interface ReminderReport { sent: number; skipped: number; failed: number }
 
@@ -82,7 +83,7 @@ export async function sendReminders(origin: string, now = new Date()): Promise<R
         pricePence: b.pricePence, reference: doc.id,
         manageUrl: `${origin}/bookings/${doc.id}?t=${token}`,
         capacityNote: room?.capacityNote,
-        doorCode: b.customer.phone?.replace(/\D/g, '').slice(-4) ?? null,
+        doorCode: doorCodeFor(b.customer.phone ?? ''),
       }));
       await doc.ref.update({ reminderSentAt: Timestamp.now() });
       report.sent += 1;

@@ -13,6 +13,8 @@ import { env } from './env.ts';
 
 const SESSION_HOURS = 12;
 export const ADMIN_COOKIE = 'mb_admin';
+/** Short-lived, ties an OAuth callback to the browser that started it. */
+export const OAUTH_STATE_COOKIE = 'mb_admin_state';
 
 export function adminEmails(): string[] {
   return (env('BOOKING_ADMIN_EMAILS') ?? '')

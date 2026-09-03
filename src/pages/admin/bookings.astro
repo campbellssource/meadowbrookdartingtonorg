@@ -5,6 +5,7 @@ import { listBookings } from '../../lib/booking/store.ts';
 import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
+import { doorCodeFor } from '../../lib/booking/event-format.ts';
 import { instantToLocalTime } from '../../lib/booking/time.ts';
 
 export const prerender = false;
@@ -155,8 +156,8 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
                             {b.customer.notes && <p class="ad-sub">{b.customer.notes}</p>}
                             <h4>Reference</h4>
                             <p class="ad-mono">{ref}</p>
-                            {b.customer.phone && (
-                              <><h4>Door code</h4><p class="ad-mono">{b.customer.phone.replace(/\D/g, '').slice(-4)}</p></>
+                            {doorCodeFor(b.customer.phone ?? '') && (
+                              <><h4>Door code</h4><p class="ad-mono">{doorCodeFor(b.customer.phone ?? '')}</p></>
                             )}
                           </div>
                           <div>
