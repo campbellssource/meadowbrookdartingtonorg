@@ -17,12 +17,36 @@ The deploy already uses `--update-secrets` for `SQUARE_ACCESS_TOKEN`; these join
 | `BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY` | Square, when the webhook subscription is created (step 4) |
 | `BOOKING_ADMIN_OAUTH_CLIENT_SECRET` | The OAuth client created in step 3 |
 
-```sh
-printf '%s' "$(openssl rand -base64 32)" | \
-  gcloud secrets create BOOKING_MAGIC_LINK_SECRET --data-file=- --project=meadowbrookdartington
-```
+**Run `bash spec/booking/setup-secrets.sh`.** It generates the two random secrets, prompts for
+the three only you have, grants the Cloud Run service account read access to each, and is safe
+to re-run — existing secrets are left alone unless you pass `--rotate`.
 
-## 2. Environment variables on the Cloud Run service
+Rotating `BOOKING_MAGIC_LINK_SECRET` invalidates every live manage link, so hirers with a
+booking would need to use `/bookings/find`. Worth doing only deliberately.
+
+## 2. Environment variables — already in the deploy workflow
+
+`.github/workflows/deploy.yml` now sets all of these; the five marked below come from **GitHub
+repository variables** (Settings → Secrets and variables → Actions → Variables) rather than
+being hardcoded, because they differ between sandbox and production:
+
+| Repository variable | Value |
+|---|---|
+| `BOOKING_ADMIN_EMAILS` | `michael.campbell@meadowbrookdartington.org` |
+| `BOOKING_ADMIN_OAUTH_CLIENT_ID` | from the OAuth client (step 3) |
+| `PUBLIC_BOOKING_SQUARE_ENVIRONMENT` | `production` |
+| `PUBLIC_BOOKING_SQUARE_APPLICATION_ID` | Square production application id |
+| `PUBLIC_BOOKING_SQUARE_LOCATION_ID` | Square production location id |
+
+Variables rather than secrets: all five reach the browser anyway.
+
+`test/deploy-config.test.ts` compares what the code reads against what the workflow supplies, so
+adding a variable without wiring it fails the build rather than the deploy. Three are absent on
+purpose and the test records why: `BOOKING_EMAIL_TRANSPORT` (production refuses `console`),
+`BOOKING_ADMIN_DEV_LOGIN` (refused when `NODE_ENV=production`), and `BOOKING_CRON_ALLOW_SECRET`
+(Scheduler uses OIDC).
+
+### The full list, for reference
 
 ```
 BOOKING_PROJECT_ID=meadowbrook-booking
