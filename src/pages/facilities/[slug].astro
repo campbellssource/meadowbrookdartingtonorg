@@ -1,5 +1,12 @@
 ---
-export const prerender = true;
+// Deliberately NOT prerendered. This page embeds BookingWidget, which needs the
+// PUBLIC_BOOKING_SQUARE_* values at *request* time. Prerendering evaluates the
+// frontmatter during `npm run build` -- in CI, where those variables do not
+// exist -- and bakes `undefined` into static HTML. That shipped on 2 Sep 2026 and
+// broke the live payment form with "undefined is not an object (evaluating
+// 'e.length')", because Square's SDK was handed an undefined application ID.
+// test/astro-prerender-env.test.ts guards this.
+export const prerender = false;
 
 import Layout from '../../layouts/Layout.astro';
 import BookingWidget from '../../components/BookingWidget.astro';
@@ -8,16 +15,6 @@ import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
 import { DocumentRenderer } from '@keystatic/core/renderer';
 import { zoneFor } from '../../lib/zones';
-
-export async function getStaticPaths() {
-  const reader = createReader(process.cwd(), keystaticConfig);
-  const allFacilities = await reader.collections.facilities.all();
-  // these slugs have dedicated static .astro pages that take routing priority
-  const staticPages = new Set(['pool', 'playground', 'bike-track', 'woodland-and-brook']);
-  return allFacilities
-    .filter(({ slug }) => !staticPages.has(slug))
-    .map(({ slug }) => ({ params: { slug } }));
-}
 
 const { slug } = Astro.params;
 const reader = createReader(process.cwd(), keystaticConfig);
