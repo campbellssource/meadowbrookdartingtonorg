@@ -154,6 +154,15 @@ const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
                             <h4>Contact</h4>
                             <p>{b.customer.name}<br />{b.customer.email}<br />{b.customer.phone ?? '—'}</p>
                             {b.customer.notes && <p class="ad-sub">{b.customer.notes}</p>}
+                            {b.newsletter && (
+                              <p class="ad-sub">
+                                {b.newsletter.optIn
+                                  ? 'Opted in to the newsletter when booking.'
+                                  : 'Did not opt in to the newsletter.'}
+                                {' '}Unsubscribes happen in Brevo, so this records what
+                                they chose that day rather than whether they are still subscribed.
+                              </p>
+                            )}
                             <h4>Reference</h4>
                             <p class="ad-mono">{ref}</p>
                             {doorCodeFor(b.customer.phone ?? '') && (

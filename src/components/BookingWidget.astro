@@ -8,6 +8,7 @@
 // what you have chosen at every moment. The old version was compact and fiddly and
 // made you remember your own choices.
 import type { RoomBookingConfig } from '../lib/booking/config.ts';
+import { NEWSLETTER_CONSENT_TEXT } from '../lib/booking/newsletter.ts';
 
 interface Props { room: RoomBookingConfig; heading?: string }
 const { room, heading } = Astro.props;
@@ -101,6 +102,10 @@ const wid = `bw-${room.slug}`;
         <label class="bw-input"><span>{q.label}</span>
           <textarea id={`${wid}-q-${q.key}`} rows="3" data-q={q.key} required={q.required}></textarea></label>
       ))}
+      <label class="bw-optin">
+        <input type="checkbox" id={`${wid}-newsletter`} />
+        <span>{NEWSLETTER_CONSENT_TEXT}</span>
+      </label>
       <p class="bw-fieldmsg" id={`${wid}-detailsmsg`} role="alert" hidden></p>
       <div class="bw-actions">
         <button type="button" class="mw-btn mw-btn-ghost" data-back="1">Back</button>
@@ -572,6 +577,7 @@ const wid = `bw-${room.slug}`;
             room: roomSlug, start: state.slot.start, durationMins: state.durationMins,
             pricePence: state.pricePence, sourceId: result.token, acceptedTerms: true,
             customer: { name, email, phone: $('phone').value.trim(), ...(notes ? { notes } : {}) },
+            newsletterOptIn: $('newsletter').checked === true,
           }),
         });
         const data = await res.json();
@@ -745,6 +751,11 @@ const wid = `bw-${room.slug}`;
     border-color: #C0392B; outline: 2px solid rgba(192,57,43,0.25); outline-offset: 0; }
   .bw-terms.is-invalid { outline: 2px solid #C0392B; outline-offset: 6px; border-radius: 6px; }
   .bw-terms.is-invalid input { outline: 2px solid #C0392B; outline-offset: 2px; }
+  /* Deliberately quieter than .bw-terms: this is optional, and it must not look
+     like a second thing you have to agree to before you can book. */
+  .bw-optin { display: flex; gap: 12px; align-items: flex-start; font-size: 15px;
+    line-height: 1.5; margin: 4px 0 16px; color: var(--ink); }
+  .bw-optin input { width: 20px; height: 20px; margin-top: 1px; flex: none; }
   .bw-fieldmsg { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #8A2C0D; }
   .bw-fieldmsg::before { content: '⚠ '; }
   /* Square renders its own labels inside the iframe once includeInputLabels is on,

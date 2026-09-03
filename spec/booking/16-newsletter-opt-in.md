@@ -4,7 +4,8 @@ Requested by the DRA on 3 Sep 2026. A hirer booking a room is one of the warmest
 audiences Meadowbrook has — they have just chosen to spend money on the building —
 and there is currently no moment where they are invited to hear from it again.
 
-Not built. This is the design, and the questions worth settling before it is.
+**Built 3 Sep 2026.** The DRA supplied the list: Brevo list **2**, "newsletter". This
+records what was built and what is still open.
 
 ## The shape of it
 
@@ -25,8 +26,21 @@ Brevo already sends every booking email, so the contact usually exists there
 already as a transactional recipient. Opting in means **adding them to a marketing
 list**, which is a different thing from having emailed them a receipt.
 
-- Add to a named Brevo list (`BOOKING_NEWSLETTER_LIST_ID`), not the general contact
-  pool, so the marketing audience is auditable and separable.
+- Added to Brevo list `BOOKING_NEWSLETTER_LIST_ID` (**2**, "newsletter"), not the
+  general contact pool, so the marketing audience is auditable and separable.
+
+**Look up, then add — never upsert.** A single create-or-update call is one request
+instead of two, and it is the wrong shape twice over: it would overwrite the
+attributes of a contact who has been subscribed for years with whatever name someone
+typed into a booking form, and it would report "created" for a person who was already
+a subscriber, which is the one thing we might later need to be certain about. So:
+`GET /contacts/{email}` → 404 creates with the list attached, already on the list does
+nothing at all, otherwise `POST /contacts/lists/2/contacts/add`.
+
+**`emailBlacklisted` is never sent.** Brevo holds the unsubscribe state on the
+contact, and adding an unsubscribed person to a list leaves them unsubscribed — which
+is correct. Sending `emailBlacklisted: false` would silently undo an opt-out, so a
+test asserts that field never appears in a request body.
 - Record the consent on the booking document: `newsletterOptIn: boolean`, plus the
   timestamp and the exact wording shown. **The wording matters**: proving consent
   means proving what they agreed to, and the sentence above will be edited one day.
@@ -45,21 +59,31 @@ list**, which is a different thing from having emailed them a receipt.
   unsubscribed there, not here. The booking record is evidence of what was agreed on
   that day, not a live subscription state. Do not read it as one.
 
-## Open questions
+## Still open
 
-1. Which Brevo list? Is there an existing one the newsletter already goes to, or
-   should hirers be their own list so their engagement can be seen separately?
-2. Does the DRA want a double opt-in confirmation email, or is the ticked box
-   enough? A tick is legally sufficient; double opt-in is better hygiene and costs
-   one more email.
-3. Should the amend/cancel pages offer the same invitation, or only the first
-   booking? Asking repeatedly is the fastest way to make it annoying.
+1. ~~Which Brevo list?~~ **List 2, "newsletter"**, decided by the DRA on 3 Sep 2026.
+   Hirers are not separated from the general newsletter audience, so "how engaged are
+   room hirers" is not answerable from Brevo alone. The booking record carries the
+   flag, so it stays answerable from our side.
+2. **Double opt-in?** Not implemented. A ticked box is legally sufficient, and this
+   sends nothing extra. Worth revisiting if list hygiene ever matters more than
+   conversion.
+3. **Only at booking.** The amend and cancel pages do not ask. Asking repeatedly is
+   the fastest way to make it annoying, and someone amending a booking is not in a
+   receptive frame of mind.
+4. The privacy policy should mention that booking is where the invitation appears.
+   Part of the outstanding policy work in `12`.
 
 ## Acceptance criteria
 
-- [ ] The box is never pre-ticked, in any state of the form.
-- [ ] A booking completes identically whether it is ticked or not.
-- [ ] Brevo being down does not fail or delay a booking.
-- [ ] The booking record stores the consent, its timestamp and the wording shown.
-- [ ] The admin booking row shows the flag.
-- [ ] The privacy policy describes it before it ships.
+- [x] The box is never pre-ticked, in any state of the form. *(asserted against the
+      component source, not just intended)*
+- [x] A booking completes identically whether it is ticked or not — the Brevo call
+      happens after the booking is confirmed and its failure is caught and alerted.
+- [x] Brevo being down does not fail or delay a booking.
+- [x] The booking record stores the consent, its timestamp and the wording shown.
+- [x] Only a strict `true` counts as opting in.
+- [x] An unsubscribed contact is never resubscribed.
+- [x] Local development cannot add anyone to the real list.
+- [x] The admin booking detail shows the flag.
+- [ ] The privacy policy describes it. Outstanding with the rest of `12`.

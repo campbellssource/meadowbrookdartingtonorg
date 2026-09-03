@@ -56,6 +56,13 @@ export interface Booking {
   payments: Payment[];
   seriesId: string | null;
   termsVersion: string;
+  /**
+   * Consent to the newsletter, captured at booking. Evidence of what was agreed on
+   * the day -- not a live subscription state. Someone who later unsubscribes is
+   * unsubscribed in Brevo, and this record stays true about what they ticked. Absent
+   * on bookings made before the checkbox existed, which is different from `false`.
+   */
+  newsletter?: { optIn: boolean; at: Timestamp; wording: string };
   createdAt: Timestamp;
   updatedAt: Timestamp;
   history: HistoryEntry[];
@@ -246,6 +253,8 @@ export interface ConfirmInput {
   payment: Omit<Payment, 'at'>;
   calendarEventId: string | null;
   termsVersion: string;
+  newsletterOptIn?: boolean;
+  newsletterWording?: string;
 }
 
 /** Turns a paid hold into a booking, and releases the hold, in one write. */
@@ -266,6 +275,13 @@ export async function confirmBooking(input: ConfirmInput): Promise<Booking> {
     payments: [{ ...input.payment, at: now }],
     seriesId: null,
     termsVersion: input.termsVersion,
+    ...(input.newsletterOptIn === undefined ? {} : {
+      newsletter: {
+        optIn: input.newsletterOptIn,
+        at: now,
+        wording: input.newsletterWording ?? '',
+      },
+    }),
     createdAt: now,
     updatedAt: now,
     history: [{ at: now, action: 'created', actor: 'booker' }],
