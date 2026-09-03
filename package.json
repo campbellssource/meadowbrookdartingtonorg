@@ -16,7 +16,8 @@
     "test:watch": "node --experimental-strip-types --test --watch test/*.test.ts",
     "booking:check": "node --experimental-strip-types scripts/booking-test-events.ts",
     "booking:cleanup": "node --experimental-strip-types scripts/booking-test-events.ts --cleanup",
-    "booking:concurrency": "node --experimental-strip-types scripts/booking-test-events.ts --concurrency"
+    "booking:concurrency": "node --experimental-strip-types scripts/booking-test-events.ts --concurrency",
+    "booking:import-acuity": "node --experimental-strip-types scripts/import-acuity.ts"
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",

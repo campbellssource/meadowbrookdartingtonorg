@@ -6,7 +6,7 @@
 import type { APIRoute } from 'astro';
 import { canonicalOrigin } from '../../../lib/booking/env.ts';
 import { verifySession, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
-import { getBooking, applyChange, revokeTokensFor, recordToken } from '../../../lib/booking/store.ts';
+import { getBooking, applyChange, revokeTokensFor, recordToken, isImported } from '../../../lib/booking/store.ts';
 import type { Payment } from '../../../lib/booking/store.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
@@ -39,6 +39,17 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (!raw) return json({ error: 'No such booking.' }, 404);
   // The refund box is capped by paidPence and the cancel path prices from it.
   const booking = await freshenOne(ref, raw);
+
+  // Imported Acuity history (`17`) is a record, not something this system can act on:
+  // no calendar event of ours, no payment of ours, no magic-link token to resend.
+  // Every write action is refused; the booking still reads normally in the list.
+  if (isImported(booking) && action !== 'note') {
+    return json({
+      error: 'This booking was imported from Acuity for reporting. It has no calendar event '
+        + 'or payment in this system, so it cannot be amended, refunded, cancelled or resent. '
+        + 'Notes are still allowed.',
+    }, 409);
+  }
 
   const room = await getRoomConfig(booking.room);
   const roomName = room?.shortName ?? booking.room;

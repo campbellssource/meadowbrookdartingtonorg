@@ -11,7 +11,7 @@ import { invalidateRoom } from '../../../lib/booking/cache.ts';
 import { authorise, BOOKING_HEADERS } from '../../../lib/booking/session.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
-import { applyChange, revokeTokensFor } from '../../../lib/booking/store.ts';
+import { applyChange, revokeTokensFor, isImported } from '../../../lib/booking/store.ts';
 import { squareConfig, PaymentError } from '../../../lib/booking/square.ts';
 import { issueRefund } from '../../../lib/booking/refunds.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
@@ -51,6 +51,15 @@ export const POST: APIRoute = async ({ request, url }) => {
   }
   if (booking.status !== 'confirmed') {
     return json({ error: 'That booking cannot be cancelled.' }, 409);
+  }
+  // Imported history (`17`). No calendar event of ours to delete and no payment of
+  // ours to refund -- a refund here would be attempted against a Square payment that
+  // was never in our account.
+  if (isImported(booking)) {
+    return json({
+      error: 'This booking was made in our previous booking system, so it cannot be cancelled '
+        + 'here. Please email bookings@meadowbrookdartington.org and we will sort it out.',
+    }, 409);
   }
 
   const start = booking.start.toDate();

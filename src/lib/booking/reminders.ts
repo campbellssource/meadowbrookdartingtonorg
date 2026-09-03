@@ -67,6 +67,9 @@ export async function sendReminders(origin: string, now = new Date()): Promise<R
   for (const doc of snap.docs) {
     const b = doc.data() as Booking & { reminderSentAt?: Timestamp | null };
     if (b.status !== 'confirmed') { report.skipped += 1; continue; }
+    // Imported Acuity bookings (`17`). Acuity sent its own reminders at the time, and
+    // these people never gave us their address for this system to email them from.
+    if (b.source === 'acuity') { report.skipped += 1; continue; }
     if (b.reminderSentAt) { report.skipped += 1; continue; }
     // A booking made after the reminder would have gone out does not need one:
     // the confirmation email is minutes old and says the same things.
