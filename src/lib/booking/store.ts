@@ -401,6 +401,28 @@ export async function useToken(jti: string, now = new Date()): Promise<TokenChec
   });
 }
 
+/**
+ * Whether the reconcile sweep may recreate this booking's calendar event.
+ *
+ * Lives here rather than in reconcile.ts so it can be tested without dragging the
+ * Keystatic reader into the test runner -- and it is worth testing, because getting
+ * it wrong writes to a live calendar, and writing a calendar event is what
+ * provisions a door passcode.
+ *
+ * Imported Acuity bookings are the trap: `calendarEventId` is null by design, since
+ * the event already exists and was written by Acuity years ago. Read naively that
+ * null says "the hirer has paid and the room is not blocked". On 3 Sep 2026 the
+ * sweep duplicated the two future imports minutes after the backfill.
+ */
+export function eligibleForCalendarRestore(
+  b: Pick<Booking, 'status' | 'end' | 'source'>, now: Date,
+): boolean {
+  if (b.status !== 'confirmed') return false;
+  if (b.end.toDate() < now) return false;
+  if (b.source === 'acuity') return false;
+  return true;
+}
+
 /** A booking imported from Acuity: history, not something this system can act on. */
 export const isImported = (b: Pick<Booking, 'source'>): boolean => b.source === 'acuity';
 
