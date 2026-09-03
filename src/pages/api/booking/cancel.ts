@@ -12,7 +12,8 @@ import { authorise, BOOKING_HEADERS } from '../../../lib/booking/session.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
 import { applyChange, revokeTokensFor } from '../../../lib/booking/store.ts';
-import { squareConfig, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
+import { squareConfig, PaymentError } from '../../../lib/booking/square.ts';
+import { issueRefund } from '../../../lib/booking/refunds.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
@@ -77,47 +78,50 @@ export const POST: APIRoute = async ({ request, url }) => {
   const roomName = room?.shortName ?? booking.room;
 
   // 1 — money first.
-  let refundEntry;
+  let refundEntries: Awaited<ReturnType<typeof issueRefund>>['entries'] = [];
   if (decision.refundPence > 0) {
     const cfg = squareConfig();
     if (!cfg) {
       console.error('booking/cancel: Square not configured');
       return json({ error: 'Cancellation is temporarily unavailable. Please contact us.' }, 500);
     }
-    const charged = booking.payments.find((p) => p.kind === 'charge' && p.status === 'completed');
-    if (!charged) {
-      await alert('[ALERT] Cancel with no completed charge', [`Reference: ${ref}`]);
-      return json({ error: 'We could not process a refund automatically. Please contact us.' }, 500);
-    }
-    try {
-      const result = await squareRefund(cfg, {
-        squarePaymentId: charged.squarePaymentId,
-        amountPence: decision.refundPence,
-        // Deterministic: derived from the booking and its history length, so a
-        // replayed cancellation cannot refund twice.
-        idempotencyKey: `${ref}:${booking.history.length}`,
-        reason: 'Booking cancelled by customer',
-      });
-      refundEntry = {
-        kind: 'refund' as const, amountPence: decision.refundPence,
-        squarePaymentId: charged.squarePaymentId, squareRefundId: result.squareRefundId,
-        idempotencyKey: `${ref}:${booking.history.length}`,
-        status: result.status, reason: 'cancel' as const,
-      };
-    } catch (err) {
+    // Spread across every charge holding money. An amended-upwards booking has more
+    // than one, and refunding the total against the first is what Square refuses.
+    const outcome = await issueRefund(cfg, {
+      ref, payments: booking.payments, amountPence: decision.refundPence,
+      historyLength: booking.history.length,
+      reason: 'Booking cancelled by customer', ledgerReason: 'cancel',
+    });
+
+    if (!outcome.ok) {
       // The slot is deliberately still held. Never release what we have not refunded.
-      console.error('booking/cancel: refund failed', err);
+      console.error('booking/cancel: refund failed', outcome.error);
+      const err = outcome.error;
       await alert('[ALERT] Refund failed on cancellation', [
         `Reference: ${ref}`, `Amount: ${decision.refundPence}p`, `Booker: ${booking.customer.email}`,
         err instanceof PaymentError ? `Code: ${err.code ?? 'unknown'}` : String(err),
+        ...(outcome.refundedPence > 0
+          ? [`PARTIAL: ${outcome.refundedPence}p of ${decision.refundPence}p was refunded and is`,
+             'recorded on the booking. Only the remainder needs refunding by hand.']
+          : ['No money has moved.']),
         'The booking is STILL CONFIRMED and the slot is still held. Refund by hand in Square,',
         'then cancel from /admin.',
       ]);
+      // Whatever did go through is written to the ledger before failing: the money
+      // has left Square regardless, and a refund missing from the ledger reads as
+      // drift to reconciliation and as an overcharge to the booker.
+      if (outcome.entries.length) {
+        await applyChange({
+          ref, payments: outcome.entries,
+          history: { action: `partial refund ${outcome.refundedPence}p on failed cancellation`, actor: 'system' },
+        }).catch((e) => console.error('booking/cancel: could not record partial refund', e));
+      }
       return json({
         error: 'We could not process your refund automatically. Your booking has not been '
           + 'cancelled and we have been alerted — please contact us and we will sort it out.',
       }, 502);
     }
+    refundEntries = outcome.entries;
   }
 
   // 2 — release the room.
@@ -139,7 +143,7 @@ export const POST: APIRoute = async ({ request, url }) => {
   // 3 — record it.
   const updated = await applyChange({
     ref, status: 'cancelled', calendarEventId: null,
-    ...(refundEntry ? { payment: refundEntry } : {}),
+    ...(refundEntries.length ? { payments: refundEntries } : {}),
     history: { action: 'cancelled', actor: 'booker' },
   });
 

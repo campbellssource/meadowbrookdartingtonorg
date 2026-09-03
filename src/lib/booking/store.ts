@@ -388,7 +388,11 @@ export interface ApplyChangeInput {
   pricePence?: number;
   status?: BookingStatus;
   calendarEventId?: string | null;
-  payment?: Omit<Payment, 'at'>;
+  /**
+   * Appended to the ledger. A list because one refund can span several payments:
+   * an amended-upwards booking holds its money in more than one charge.
+   */
+  payments?: Omit<Payment, 'at'>[];
   history: Omit<HistoryEntry, 'at'>;
 }
 
@@ -407,7 +411,9 @@ export async function applyChange(input: ApplyChangeInput): Promise<Booking> {
     const b = snap.data() as Booking;
     const now = Timestamp.now();
 
-    const payments = input.payment ? [...b.payments, { ...input.payment, at: now }] : b.payments;
+    const payments = input.payments?.length
+      ? [...b.payments, ...input.payments.map((entry) => ({ ...entry, at: now }))]
+      : b.payments;
     const paidPence = payments.reduce((sum, p) => {
       if (p.status !== 'completed') return sum;
       return p.kind === 'charge' ? sum + p.amountPence : sum - p.amountPence;

@@ -17,7 +17,9 @@ import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor, formatPence } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
 import { takeHold, releaseHold, applyChange, SlotUnavailableError } from '../../../lib/booking/store.ts';
-import { squareConfig, charge, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
+import type { Payment } from '../../../lib/booking/store.ts';
+import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
+import { issueRefund } from '../../../lib/booking/refunds.ts';
 import { refundFor, refundableAtBooking } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { amendmentEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
@@ -183,35 +185,33 @@ export const POST: APIRoute = async ({ request, url }) => {
     }
 
     // Cheaper: refund after the move.
-    let refundEntry;
+    // Spread across every charge holding money: shortening a booking that was
+    // previously extended refunds against more than one payment.
+    let refundEntries: Omit<Payment, 'at'>[] = [];
     if (decision.refundPence > 0) {
-      const charged = booking.payments.find((p) => p.kind === 'charge' && p.status === 'completed');
-      if (charged) {
-        try {
-          const result = await squareRefund(cfg, {
-            squarePaymentId: charged.squarePaymentId, amountPence: decision.refundPence,
-            idempotencyKey: `${ref}:${booking.history.length}`, reason: 'Booking shortened',
-          });
-          refundEntry = {
-            kind: 'refund' as const, amountPence: decision.refundPence,
-            squarePaymentId: charged.squarePaymentId, squareRefundId: result.squareRefundId,
-            idempotencyKey: `${ref}:${booking.history.length}`,
-            status: result.status, reason: 'amend-down' as const,
-          };
-        } catch (err) {
-          console.error('booking/amend: refund failed', err);
-          await alert('[ALERT] Refund failed on amendment', [
-            `Reference: ${ref}`, `Amount owed back: ${decision.refundPence}p`,
-            `Booker: ${booking.customer.email}`,
-            'The booking HAS been moved. Refund by hand in Square.',
-          ]);
-        }
+      const outcome = await issueRefund(cfg, {
+        ref, payments: booking.payments, amountPence: decision.refundPence,
+        historyLength: booking.history.length,
+        reason: 'Booking shortened', ledgerReason: 'amend-down',
+      });
+      refundEntries = outcome.entries;
+      if (!outcome.ok) {
+        console.error('booking/amend: refund failed', outcome.error);
+        await alert('[ALERT] Refund failed on amendment', [
+          `Reference: ${ref}`, `Amount owed back: ${decision.refundPence}p`,
+          `Booker: ${booking.customer.email}`,
+          outcome.refundedPence > 0
+            ? `PARTIAL: ${outcome.refundedPence}p went through and is recorded on the booking; `
+              + `${decision.refundPence - outcome.refundedPence}p is still owed.`
+            : 'No money has moved.',
+          'The booking HAS been moved. Refund the remainder by hand in Square.',
+        ]);
       }
     }
 
     const updated = await applyChange({
       ref, start, end, pricePence: newPrice, calendarEventId,
-      ...(paymentEntry ? { payment: paymentEntry } : refundEntry ? { payment: refundEntry } : {}),
+      ...(paymentEntry ? { payments: [paymentEntry] } : refundEntries.length ? { payments: refundEntries } : {}),
       history: {
         action: 'amended', actor: 'booker',
         from: booking.start.toDate().toISOString(), to: start.toISOString(),
