@@ -11,7 +11,7 @@
 // all, the books would still come right within the hour.
 
 import { Timestamp } from '@google-cloud/firestore';
-import { getDb } from './store.ts';
+import { getDb, eligibleForCalendarRestore } from './store.ts';
 import type { Booking, Payment } from './store.ts';
 import { squareConfig } from './square.ts';
 import { getEvent, createEvent } from './calendar.ts';
@@ -207,8 +207,7 @@ export async function reconcile(now = new Date()): Promise<ReconcileReport> {
   // is not blocked, so this is the most urgent thing the sweep does.
   for (const doc of all.docs) {
     const b = doc.data() as Booking;
-    if (b.status !== 'confirmed') continue;
-    if (b.end.toDate() < now) continue;
+    if (!eligibleForCalendarRestore(b, now)) continue;
 
     let needsEvent = !b.calendarEventId;
     const room = await getRoomConfig(b.room);
