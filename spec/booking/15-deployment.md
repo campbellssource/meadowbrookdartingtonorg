@@ -123,6 +123,40 @@ The booking form is reachable at `/book/[slug]` and linked from nowhere. Point t
 pages at it when the DRA is ready — both systems run in parallel until Acuity is switched off
 (`09`).
 
+## Rolling back
+
+Cloud Run keeps every revision, and each one captures its own environment and secret
+configuration. So a rollback is a traffic switch rather than a rebuild — seconds, not minutes,
+and it does not depend on git or on the build pipeline being healthy.
+
+```sh
+# What is live, and what came before it
+gcloud run revisions list --service=meadowbrook-site --region=europe-west2 \
+  --project=meadowbrookdartington --limit=5
+
+# Send all traffic back to the previous revision
+gcloud run services update-traffic meadowbrook-site --region=europe-west2 \
+  --project=meadowbrookdartington --to-revisions=meadowbrook-site-00161-427=100
+```
+
+The revision live before the booking system is **`meadowbrook-site-00161-427`** (30 Aug 2026).
+Rolling back to it also drops the booking environment variables, because they belong to the
+newer revision — so it is a clean removal rather than a half-configured state.
+
+Reverting the merge on `main` is the *permanent* undo, and it triggers a fresh build. Use the
+traffic switch to stop the bleeding, then decide about the branch.
+
+### What a rollback does not undo
+
+- **Bookings already taken.** They stay in Firestore and their calendar events stay on the
+  calendars, so the rooms remain correctly blocked. But the code that manages them is gone: a
+  hirer's manage link 404s, and they cannot amend or cancel until it is back.
+- **Money already taken.** Refunds would have to be issued by hand in Square.
+- **Emails already sent**, including manage links that will not work while rolled back.
+
+None of that argues against rolling back — it argues for doing the real-money test early, while
+the only booking that exists is yours.
+
 ## Acceptance criteria
 
 - [ ] All five secrets exist and the service starts.
