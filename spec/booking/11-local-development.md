@@ -22,6 +22,35 @@ Firestore. This file is what stops that.
 Two substitutions, both deliberate. Everything that carries risk — the calendar writes, the
 money, the availability arithmetic — runs against the real API.
 
+## ⚠️ Correction, 3 Sep 2026: the emulator half of this was never built
+
+**This document describes a local setup that does not exist.** There is no
+`npm run dev:booking`, the Firestore emulator is not installed, and
+`FIRESTORE_EMULATOR_HOST` was never in `.env`. Everything below about the emulator
+was the plan and was never implemented — and nothing failed, because the Firestore
+client silently used the real database instead.
+
+The consequence showed up on 3 Sep 2026: **four test bookings were sitting in
+production Firestore**, £42.50 of sandbox money in the DRA's income reporting, and
+their calendar events kept being recreated by the reconcile sweep. They were found
+by the `isTest` flag, which is the one part of this design that did its job.
+
+The DRA's decision, 3 Sep 2026: **leave it as it is for now** and keep testing
+against production, knowing that is what is happening. At this volume the real risk
+was never corruption but pollution, and `isTest` makes that findable and removable.
+
+**If it is ever wired up, all three of these are needed — the variable alone makes
+things worse, not better.** Setting `FIRESTORE_EMULATOR_HOST` without an emulator
+running points every Firestore call at a dead port, and the failure appears at the
+first booking rather than at startup:
+
+```sh
+gcloud components install cloud-firestore-emulator
+gcloud emulators firestore start --host-port=localhost:8080
+# and only then, in .env:
+FIRESTORE_EMULATOR_HOST=localhost:8080
+```
+
 ## The three hazards, and the fix for each
 
 ### 1. Writing test bookings onto live room calendars

@@ -2,13 +2,16 @@
 
 Draft terms for `/room-hire-terms`, linked from the booking form and from every confirmation
 email. The booking form requires an explicit tick against these before payment, and the booking
-record stores which version was agreed to (`termsVersion` on the booking document, `01`).
+record stores which version was agreed to (`termsVersion` on the booking document, `02`).
 
 > **This is a draft for the committee, not legal advice.** The cancellation, pricing and
 > conduct clauses are the DRA's own decisions and are safe to set here. The **liability,
-> insurance and safeguarding** clauses (9, 10, 11) are the ones where a wrong word is
-> expensive — they should be read by whoever handles the DRA's insurance, and checked against
-> the policy's actual requirements, before this page goes live. Marked ⚠️ below.
+> insurance, restricted activities and safeguarding** clauses (9–12) are the ones where a wrong
+> word is expensive — they should be read by whoever handles the DRA's insurance, and checked
+> against the policy's actual requirements, before this page goes live. Clause 12's restricted
+> list is drawn from the current Aviva Commercial Combined policy (no. 100676176CCI) activities
+> exclusions — it must be re-checked at every renewal or change of insurer, not treated as fixed.
+> Marked ⚠️ below.
 
 Written to be edited: once built, this lives in Keystatic (`src/content/misc-pages/`) so the
 committee can change it without a deploy. Changing it bumps `termsVersion`.
@@ -35,20 +38,14 @@ by the time your slot ends.
 
 **3. Changing or cancelling.** Use the link in your confirmation email.
 
-**More than 1 hour before your booking starts**, you can do either:
-
-- **Cancel** — refunded in full, automatically.
-- **Change the time or length** — the price is recalculated. If it costs more you pay the
+- Cancel **more than 1 hour before** your booking starts: full refund, automatically.
+- Cancel **within 1 hour** of the start, or after it: no refund.
+- Change the time or length: the price is recalculated. If it costs more you pay the
   difference; if it costs less we refund the difference.
 
-**Within 1 hour of the start, the booking is fixed.** It can no longer be changed, and
-cancelling it is not refunded. If something has genuinely gone wrong, email us and we will do
-what we can — we would rather know the room is free than have it sit empty.
-
 **If you book a room that starts within the hour** — which is common and welcome for the
-Snooker Room — that booking is fixed from the moment you make it: it cannot be changed or
-refunded, because it is already inside the window. We will tell you this on the booking form
-before you pay.
+Snooker Room — your booking cannot be refunded, because it is already inside the cancellation
+window. We will tell you this on the booking form before you pay.
 
 **4. If we have to cancel.** Very occasionally we may need to cancel a booking — a burst pipe,
 a power cut, an emergency closure. You will get a full refund and as much notice as we can
@@ -80,9 +77,9 @@ the hirer.
 **8. Noise and neighbours.** Meadowbrook sits close to homes. Please keep noise reasonable,
 especially after 9pm, and keep doors and windows shut if you are playing music.
 
-## Responsibility ⚠️
+## Responsibility, insurance and restricted activities ⚠️
 
-> Clauses 9–11 need checking against the DRA's insurance policy before publication.
+> Clauses 9–12 need checking against the DRA's insurance policy before publication.
 
 **9. ⚠️ You are responsible for your group.** The person who makes the booking is responsible
 for everyone attending, for their behaviour, and for their safety while in the room. The DRA
@@ -93,45 +90,89 @@ adults, you are responsible for their supervision and for any safeguarding, DBS 
 assessment that your activity requires. The DRA does not provide supervision and does not check
 this on your behalf.
 
-**11. ⚠️ Insurance and liability.** If you are hiring the room to run a business, a class or a
-public event, you must hold your own public liability insurance and be able to show it to us on
-request. The DRA is not responsible for loss of or damage to your belongings or equipment left
-in the building. Nothing in these terms limits our liability for death or personal injury
-caused by our negligence, or for anything else that cannot lawfully be excluded.
+**11. ⚠️ Insurance is your responsibility, not ours.** The DRA holds buildings and public
+liability insurance for Meadowbrook, but that cover does **not** extend to your activity, your
+equipment, or the people taking part in it. In particular:
+
+- Our insurance does not cover injury to anyone taking part in a sporting, fitness, martial
+  arts, coached or training activity — including practice, drills or warm-ups — unless the
+  injury is caused by a defect in the room itself or in equipment the DRA provided. If you are
+  running, or your booking involves, this kind of activity, **you must hold your own public
+  liability insurance covering injury to participants**, and be able to show it to us on
+  request.
+- If you are hiring the room to run a business, a class, a course, coaching, or a public event
+  of any kind, you must hold your own public liability insurance and be able to show it to us
+  on request.
+- If you are selling or supplying goods (not just food and drink to be consumed on the
+  premises), our cover does not extend to products liability for those goods — you need your
+  own cover for this too.
+- The DRA is not responsible for loss of or damage to your belongings or equipment left in the
+  building.
+- Nothing in these terms limits our liability for death or personal injury caused by our
+  negligence, or for anything else that cannot lawfully be excluded.
+
+**12. ⚠️ Activities and equipment we cannot cover.** Because of what our insurance does and
+doesn't include, the following are **not permitted** in the room without our prior written
+agreement — and in some cases cannot be agreed to at all, because no amount of paperwork brings
+them within our cover:
+
+- **Weapons of any kind**, or events involving them — not permitted under any circumstances.
+- **Bouncy castles and other inflatable devices** — not permitted under any circumstances.
+- **Fireworks, pyrotechnics or bonfires** — not permitted under any circumstances.
+- **Punch bags and other sporting or exercise equipment** — you're welcome to bring your own
+  for a session (boxing, fitness, martial arts and similar), but our insurance does not cover
+  injury to participants using it. See clause 11 — this is exactly the kind of activity that
+  needs your own public liability cover.
+- Motor sports, go-karting or quad biking; parachuting, paragliding, parascending, bungee
+  jumping, abseiling or ballooning; passenger-carrying amusement devices; remote-controlled
+  model aircraft; animal rides or displays — none of these are things we can host at
+  Meadowbrook's indoor rooms, insured or not, and a booking made for one of them will be
+  declined or cancelled.
+
+If you're not sure whether something you're planning falls into one of these categories, ask us
+before you book — we would rather answer a question up front than cancel a booking on the day.
 
 ## Other
 
-**12. Alcohol and public events.** Please talk to us before selling alcohol or ticketing a
+**13. Alcohol and public events.** Please talk to us before selling alcohol or ticketing a
 public event on the premises — licensing may apply, and it is our licence.
 
-**13. Equipment.** Where equipment is provided — snooker cues, tables, chairs — please treat it
+**14. Equipment.** Where equipment is provided — snooker cues, tables, chairs — please treat it
 with care and put it back. The Snooker Room's bar downstairs is not always open; it keeps its
 own hours and is not part of your booking.
 
-**14. Behaviour.** We may end a booking, without refund, if the room is being used in a way
+**15. Behaviour.** We may end a booking, without refund, if the room is being used in a way
 that is unsafe, that damages the building, or that is abusive towards staff, volunteers or
 other users.
 
-**15. Your data.** We keep your name, email, phone number and booking details in order to
+**16. Your data.** We keep your name, email, phone number and booking details in order to
 manage your booking and our rooms. See the [privacy policy](/privacy). We do not store your
 card details — payments are handled by Square.
 
-**16. Questions.** Email bookings@meadowbrookdartington.org.
+**17. Questions.** Email bookings@meadowbrookdartington.org.
 
 ---
 
 ## Build notes
 
 - Terms are a Keystatic-managed page so the committee can edit them; `termsVersion` is a field
-  on that page, bumped by hand when a change is material.
+  on that page, bumped by hand when a change is material. This revision (restricted activities
+  list, expanded insurance clause) should ship as `termsVersion: "02"`.
 - The booking form links here in a new tab and requires an explicit checkbox. The checkbox is
   not pre-ticked.
 - `termsVersion` is written onto the booking document at creation, so a dispute can be settled
   against the terms as they stood that day rather than as they stand now.
 - Clause 3's "within the hour" warning is rendered from `refundFor(booking, 'cancel', bookedAt)`
   (`04`), not hardcoded — the page and the actual refund behaviour cannot drift apart.
-- Clauses 9–11 must not be published until insurance-checked. Track as a launch blocker in
-  `OPEN-QUESTIONS.md`.
+- Clause 12's restricted-activities list is derived from the Activities and Events Exceptions
+  and Injury to Participants Exception in the current Aviva Commercial Combined policy
+  (no. 100676176CCI). It is static content, not config — but it must be reviewed by hand
+  against the new policy schedule every renewal, and immediately if the DRA changes insurer.
+  Track that review as a recurring item, not a one-off.
+- Clauses 9–12 must not be published until insurance-checked. Track as a launch blocker in
+  `OPEN-QUESTIONS.md`. Open question for that review: whether to specify a minimum limit of
+  indemnity for a hirer's own public liability insurance (e.g. matching the DRA's own £5m), or
+  leave it unspecified — needs the insurance adviser's steer, not a guess.
 
 ## Acceptance criteria
 

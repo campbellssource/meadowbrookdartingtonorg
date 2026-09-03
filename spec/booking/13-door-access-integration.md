@@ -129,6 +129,81 @@ system will hold its own record in Firestore for far longer (`12`). Both are dow
 same calendar event. The privacy policy needs to describe both, and a deletion request has to
 be honoured in both.
 
+## Where should code-setting live, now that we own the booking system? — 3 Sep 2026
+
+The DRA raised this: the original design had to wait for a calendar event because
+that was the only way to learn a hirer's phone number. We now know it at the moment
+of booking, so the round-trip is no longer forced. They also report the integration
+is **fragile and fails often**, and named the two causes that matter.
+
+### Keep it in `calendartopasscode`. The reason is coverage, not preference.
+
+The calendar trigger serves **every** event, not just ours: Acuity's while it still
+runs, and — more importantly — **hand-made committee events**. Someone is given
+access for a one-off, and a volunteer creates a calendar entry with a phone number
+in it. The evidence is already in this file: a Lounge event whose entire description
+was `Phone: +440000002216`, made for no other purpose than to grant a code.
+
+Move code-setting into the booking system and every one of those silently stops
+working. That is a much worse failure than the ones being fixed. The contact sync is
+a second, independent reason: it is address-book plumbing, nothing to do with room
+booking, and it belongs where it is.
+
+### The two failures are not location problems
+
+Neither is caused by where the code is set, so moving it would fix neither.
+
+**1. A booker with two bookings.** The code is derived per booking, but a lock holds
+code *values*, not bookings. The same person booking twice produces the same value
+twice, and TTLock refuses the duplicate. Nor would anyone want two codes to remember.
+
+This is an **allocation** problem. The fix is one passcode per *(person, lock)* with
+a validity window that covers all their bookings — on a second booking, extend or
+modify the existing passcode rather than create another. Deletion has to become
+reference-counted to match: `cleanupExpiredCodes` must not remove a code because one
+booking ended while another is still live.
+
+**2. The gateway or wifi is down when the code is set.** Creation is fire-and-forget
+at event time, which assumes the lock is reachable at that exact moment. Often it is
+not, and the retry loop observed on 3 Sep 2026 hammered the same rejection every 40
+seconds without ever succeeding.
+
+This is a **delivery** problem, and the shape of the fix is to stop treating a code
+as an event to handle once and start treating it as **desired state to converge on**.
+A periodic reconciler compares "codes that should exist over the next N days" against
+"codes actually on the lock" and fixes the difference. Retries stop being a special
+case — they are simply the next pass. It is the same move that made the booking
+system's own payment reconciliation reliable.
+
+### What our side should change regardless
+
+**We email a code we have never verified.** `doorCodeFor(phone)` computes an
+assumption and the confirmation email states it as fact. If the lock rejected it, was
+unreachable, or assigned something else, the hirer arrives holding a number that was
+never on the door — and everything in our system says the booking is fine.
+
+Two levels, and the first is worth doing on its own:
+
+- **Verify before arrival.** A check shortly before the booking starts, asking whether
+  a code actually exists for it, alerting `it@` when it does not. This needs no change
+  in the other project and turns a silent failure into a known one while there is
+  still time to phone someone.
+- **Make the lock system the authority on the code, and have it report back** — a
+  webhook to the booking site, or an extended property on the calendar event. Then we
+  only ever state a code that exists, and the case where two different people's
+  numbers end in the same four digits stops being unsolvable: the lock system picks
+  an alternative and tells us what it chose.
+
+### Sequence, smallest first
+
+1. Verify-before-arrival alert. Ours alone, no coordination.
+2. One code per person per lock, with a merged validity window. Fixes the common case.
+3. Reconciler replacing fire-and-forget retries. Fixes the flaky-gateway case.
+4. Report-back contract, so emails only ever carry a real code.
+
+The "passcode is too simple" rejection (`5555`, `1234`) is real but rare, and the DRA
+has deprioritised it. Step 4 makes it a non-issue for free.
+
 ## Incidental finding, not ours to fix
 
 The logs show a passcode currently failing to provision on both locks:
