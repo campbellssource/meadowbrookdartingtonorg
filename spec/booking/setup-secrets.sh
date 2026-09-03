@@ -40,11 +40,45 @@ generated() { # name
   put "$1" "$(openssl rand -base64 32)"
 }
 
+# Checks a value looks right before storing it. Input is hidden, so a double-paste
+# is invisible -- which is exactly what happened on the first run: a 64-character
+# Square token stored as 128 characters, accepted silently, and only caught later
+# when the API returned 401.
+validate() { # name, value -> prints a complaint, or nothing
+  local name="$1" value="$2" len=${#2}
+  case "$name" in
+    BOOKING_SQUARE_ACCESS_TOKEN)
+      [[ "$value" =~ ^EAAA ]] || { echo "does not start with EAAA"; return; }
+      (( len == 64 )) || echo "is $len characters; a Square access token is 64 (a doubled paste gives 128)"
+      ;;
+    BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY)
+      (( len >= 20 && len <= 60 )) || echo "is $len characters, which is outside the usual range"
+      ;;
+    BOOKING_ADMIN_OAUTH_CLIENT_SECRET)
+      [[ "$value" =~ ^GOCSPX- ]] || echo "does not start with GOCSPX-, which Google client secrets do"
+      ;;
+  esac
+  # Catches the general case: any value that is exactly itself twice.
+  local half=$(( len / 2 ))
+  if (( len % 2 == 0 )) && [[ "${value:0:half}" == "${value:half}" ]]; then
+    echo "appears to be the same value pasted twice"
+  fi
+}
+
 prompted() { # name, description
   if exists "$1"; then ok "$1 — already set"; return; fi
   printf '  %s\n    %s\n    value (input hidden, blank to skip): ' "$1" "$2"
   read -rs value || true; echo
   if [[ -z "$value" ]]; then warn "$1 — skipped, deploy will fail until it is set"; return; fi
+
+  local complaint
+  complaint="$(validate "$1" "$value")"
+  if [[ -n "$complaint" ]]; then
+    warn "that value $complaint"
+    printf '    store it anyway? [y/N]: '
+    read -r answer || true
+    [[ "$answer" == [yY] ]] || { warn "$1 — not stored"; return; }
+  fi
   put "$1" "$value"
 }
 
@@ -62,6 +96,25 @@ prompted BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY \
   "Square webhook signature key, shown when the subscription is created (see 15, step 4)"
 prompted BOOKING_ADMIN_OAUTH_CLIENT_SECRET \
   "OAuth client secret for /admin sign-in (see 15, step 3)"
+
+bold "Checking the Square token against Square"
+if exists BOOKING_SQUARE_ACCESS_TOKEN; then
+  tok="$(gcloud secrets versions access latest --secret=BOOKING_SQUARE_ACCESS_TOKEN --project="$PROJECT" 2>/dev/null)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $tok" \
+    -H 'Square-Version: 2024-01-17' https://connect.squareup.com/v2/locations)"
+  if [[ "$code" == "200" ]]; then
+    ok "token works against Square production"
+    curl -s -H "Authorization: Bearer $tok" -H 'Square-Version: 2024-01-17' \
+      https://connect.squareup.com/v2/locations \
+      | grep -oE '"id":"[A-Z0-9]+"' | head -1 \
+      | sed 's/.*:"/    location id (for PUBLIC_BOOKING_SQUARE_LOCATION_ID): /;s/"$//'
+  else
+    warn "Square returned HTTP $code for that token — it will not take payments"
+  fi
+  unset tok
+else
+  warn "BOOKING_SQUARE_ACCESS_TOKEN not set, so nothing to check"
+fi
 
 bold "Already present for the existing site"
 for s in BREVO_API_KEY SQUARE_ACCESS_TOKEN; do
