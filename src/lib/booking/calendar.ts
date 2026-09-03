@@ -7,6 +7,7 @@
 import { getAccessToken } from './google-auth.ts';
 import { isProductionCalendar } from './config.ts';
 import type { Interval } from './time.ts';
+import { londonToInstant } from './time.ts';
 
 const BASE = 'https://www.googleapis.com/calendar/v3';
 
@@ -137,10 +138,15 @@ export interface CalendarEventInput {
 
 export interface CalendarEvent extends CalendarEventInput { id: string }
 
-interface RawEvent {
+export interface RawEvent {
   id: string; summary?: string; description?: string;
   status?: string;
-  start?: { dateTime?: string }; end?: { dateTime?: string };
+  // "Free" events. freeBusy omits them, so anything deriving busy time from
+  // events.list has to omit them too or the two disagree.
+  transparency?: string;
+  // All-day events carry `date` instead of `dateTime`. A committee member blocking
+  // a whole day for a jumble sale creates one of these.
+  start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string };
 }
 
 const toEvent = (r: RawEvent): CalendarEvent => ({
@@ -232,15 +238,60 @@ export async function deleteEvent(calendarId: string, eventId: string): Promise<
 export async function fetchBusyExcluding(
   calendarId: string, timeMin: Date, timeMax: Date, excludeEventId: string | null,
 ): Promise<Interval[]> {
-  const events = await listEvents(calendarId, timeMin, timeMax);
-  return events
-    .filter((e) => e.id !== excludeEventId)
-    .map((e) => ({ start: e.start, end: e.end }));
+  return busyFromRaw(await listRaw(calendarId, timeMin, timeMax), excludeEventId);
+}
+
+/**
+ * The freeBusy-equivalent reduction of events.list, split out to be testable.
+ *
+ * Every other availability read in the system goes through freeBusy. This one
+ * cannot, because freeBusy returns intervals with no ids and amending needs one
+ * event ignored. So the rules freeBusy applies have to be reproduced here, and a
+ * mismatch is invisible in either direction: the amend grid silently disagrees
+ * with the booking grid about which slots are free.
+ */
+export function busyFromRaw(raw: RawEvent[], excludeEventId: string | null): Interval[] {
+  return raw
+    .filter((r) => r.id !== excludeEventId)
+    .filter((r) => r.status !== 'cancelled')
+    // "Free" events -- someone's personal reminder on a room calendar. freeBusy
+    // omits them, so they must not block a room here either.
+    .filter((r) => r.transparency !== 'transparent')
+    .map(toInterval)
+    .filter((i): i is Interval => i !== null);
+}
+
+/**
+ * An event's occupied interval, all-day events included.
+ *
+ * `listEvents` drops anything without a `dateTime` because its callers want timed
+ * events they can rewrite. Busy time cannot: an all-day "HALL CLOSED" blocks the
+ * room exactly as a timed event does, and freeBusy reports it. Dropping it here
+ * would let someone amend into a day the building is shut.
+ */
+function toInterval(r: RawEvent): Interval | null {
+  if (r.start?.dateTime && r.end?.dateTime) {
+    return { start: new Date(r.start.dateTime), end: new Date(r.end.dateTime) };
+  }
+  if (r.start?.date && r.end?.date) {
+    // Google's all-day end date is exclusive, and both are wall dates, so they are
+    // resolved in London rather than UTC -- during BST midnight UTC is 01:00 local.
+    return { start: londonToInstant(r.start.date, '00:00'), end: londonToInstant(r.end.date, '00:00') };
+  }
+  return null;
 }
 
 /** Every event in a window, used by the cleanup script and the reconcile job. */
 export async function listEvents(calendarId: string, timeMin: Date, timeMax: Date): Promise<CalendarEvent[]> {
-  const out: CalendarEvent[] = [];
+  // Timed events only: every caller here wants an event it can identify and rewrite.
+  return (await listRaw(calendarId, timeMin, timeMax))
+    .filter((r) => r.start?.dateTime)
+    .map(toEvent);
+}
+
+/** The paginated events.list read. Shared by listEvents and fetchBusyExcluding. */
+async function listRaw(calendarId: string, timeMin: Date, timeMax: Date): Promise<RawEvent[]> {
+  const out: RawEvent[] = [];
   let pageToken: string | undefined;
   do {
     const params = new URLSearchParams({
@@ -253,7 +304,7 @@ export async function listEvents(calendarId: string, timeMin: Date, timeMax: Dat
       throw new CalendarError(`listEvents failed: ${res.status} ${(await res.text()).slice(0, 200)}`, res.status);
     }
     const page = await res.json() as { items?: RawEvent[]; nextPageToken?: string };
-    out.push(...(page.items ?? []).filter((r) => r.start?.dateTime).map(toEvent));
+    out.push(...(page.items ?? []));
     pageToken = page.nextPageToken;
   } while (pageToken);
   return out;
