@@ -4,6 +4,7 @@ import { ADMIN_HEADERS, devLoginAllowed, adminEmails, verifySession, ADMIN_COOKI
 import { randomUUID } from 'node:crypto';
 import { env } from '../../lib/booking/env.ts';
 import { OAUTH_STATE_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { ALERT_EMAIL } from '../../lib/booking/email.ts';
 
 export const prerender = false;
 for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
@@ -56,6 +57,13 @@ const dev = devLoginAllowed();
               : 'Sign-in failed. Please try again.'}
         </p>
       )}
+      {denied === 'not-allowed' && (
+        <p class="ad-ask">
+          Access is granted per person. To request it, email{' '}
+          <a href={`mailto:${ALERT_EMAIL}?subject=Bookings%20admin%20access`}>{ALERT_EMAIL}</a>{' '}
+          from your Meadowbrook address, saying which pages you need.
+        </p>
+      )}
       <div class="ad-card">
         {googleUrl ? (
           <a href={googleUrl} class="mw-btn mw-btn-primary mw-btn-lg">Sign in with Google</a>
@@ -65,6 +73,12 @@ const dev = devLoginAllowed();
             See <code>spec/booking/08-infrastructure.md</code>.
           </p>
         )}
+        <p class="ad-note ad-ask-quiet">
+          These pages show bookers' contact details and can move money, so they are limited
+          to named Meadowbrook accounts. You will need a
+          <strong> @meadowbrookdartington.org</strong> Google account. To be added, email{' '}
+          <a href={`mailto:${ALERT_EMAIL}?subject=Bookings%20admin%20access`}>{ALERT_EMAIL}</a>.
+        </p>
         {dev && (
           <div class="ad-dev">
             <p class="ad-note"><strong>Local development.</strong> Signs in without Google.</p>
@@ -109,5 +123,11 @@ const dev = devLoginAllowed();
     border: 1.5px solid var(--sand); background: #fff; width: 100%; }
   .ad-deny { margin: 0 0 18px; padding: 12px 14px; border-radius: 10px;
     background: #FCECE7; color: #8A2C0D; font-weight: 600; font-size: 14px; }
+  /* Sits under the refusal, so it reads as the answer to "what now?" rather than as
+     more of the same bad news. */
+  .ad-ask { margin: -6px 0 18px; padding: 12px 14px; border-radius: 10px;
+    background: var(--paper-deep); font-size: 14px; line-height: 1.55; }
+  .ad-ask-quiet { margin-top: 18px; font-size: 13px; line-height: 1.55; opacity: 0.85; }
+  .ad-ask a, .ad-ask-quiet a { color: inherit; }
   code { font-size: 13px; background: var(--paper-deep); padding: 2px 6px; border-radius: 4px; }
 </style>
