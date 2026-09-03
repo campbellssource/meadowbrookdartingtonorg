@@ -6,6 +6,57 @@ chart has nothing to compare against. Acuity holds years of it.
 
 Not built. This is the design, and the hazards are the point of writing it down.
 
+## What the export actually contains
+
+The DRA supplied `private/acuity-bookings.csv` on 3 Sep 2026 (gitignored — see
+`private/README.md`). Read rather than assumed, because three of the open questions
+below were answered by looking:
+
+| | |
+|---|---|
+| Rows | 879 |
+| Range | 6 Oct 2024 → 26 Sep 2026 |
+| Past / future | 877 / 2 |
+| Columns | 19, including `Appointment ID`, `Calendar`, `Type`, `Start Time`, `End Time`, `Appointment Price`, `Amount Paid Online`, `Paid?`, `Date Scheduled`, `Date Rescheduled` |
+
+**`Appointment ID` is unique across all 879 rows**, so `ACU-<id>` is a safe document
+id and the import is idempotent as designed.
+
+**17 rows are not room bookings at all** — 15 donations (`£10 Donation`, `£5
+Suggested family donation`) and 2 event entries (`Extravaganza entry`, `Soul Sauna
+Sisterhood Ceremony`). Every one of them has an **empty `Calendar`**, and every
+genuine room booking has one, so `Calendar` is a clean filter. Importing the
+donations as bookings would put £0-duration rows into occupancy and money into
+room revenue that no room earned. **862 rows are real bookings.**
+
+`Calendar` maps directly onto our rooms, with no ambiguity:
+
+| Acuity `Calendar` | Room | Rows |
+|---|---|---|
+| `Snooker room` | `snooker-room` | 730 |
+| `Studio - Large room` | `large-room` | 104 |
+| `Lounge - Small room` | `small-room` | 28 |
+
+**Times are local wall times** (`October 6, 2024 13:00`) with `Timezone` set to
+`Europe/London` on every row. They must be resolved in London, not parsed as UTC —
+the same trap as all-day calendar events, and here it would shift a year of bookings
+by an hour across every BST period.
+
+**`Appointment Price` and `Amount Paid Online` differ**, and the difference is
+meaningful: rows priced £10.00 with £0.00 paid online are bookings settled in person
+or never collected. **39 rows are `Paid? = no`**, mostly Large room. Store the price
+as `pricePence` and the online amount as `paidPence`, so "what the rooms were worth"
+and "what actually came through the payment provider" stay separable — they are
+different questions and the treasurer asks both.
+
+**There is no cancellation column.** The export appears to hold live appointments
+only, so historical revenue will not be overstated by cancellations — but a
+cancellation *rate* cannot be computed for the Acuity period, and the reporting page
+should not imply one. `Date Rescheduled` is set on 51 rows.
+
+**Gaps:** 31 rows have no email and 121 no phone. Neither matters for reporting —
+and since nothing is written to a calendar, no door code depends on them.
+
 ## What is being imported, and what is not
 
 **Imported:** the booking record — room, start, end, duration, price, booker name and
@@ -75,13 +126,15 @@ same purpose, and the lawful basis in `12` is contract and legal obligation), bu
 
 ## Open questions
 
-1. **How far back?** Everything Acuity holds, or the last N years? The 7-year retention
-   horizon is a natural stop, and so is "since the current pricing came in".
+1. ~~**How far back?**~~ Moot — the export starts 6 Oct 2024, comfortably inside the
+   7-year horizon, so all of it can be imported.
 2. **Export or API?** A CSV export is a one-off and simple; the API allows a repeatable
    import while both systems run in parallel (`09`). The parallel-running period is
    real, so the API may be worth it.
-3. Does the Acuity export distinguish **cancelled and refunded** bookings? If not,
-   revenue totals will be optimistic and should be labelled as such.
+3. ~~Does the export distinguish **cancelled** bookings?~~ It contains none, so totals
+   are not inflated by them. Still open: should the **39 unpaid** rows count as
+   revenue? They occupied a room, so they belong in occupancy; `paidPence: 0` keeps
+   them out of income, which is the honest treatment.
 4. Should the occupancy chart draw a **line at the changeover date**? The two periods
    are not measured identically — Acuity's rules were not ours — and a chart that hides
    that invites the wrong conclusion.
@@ -96,3 +149,8 @@ same purpose, and the lawful basis in `12` is contract and legal obligation), bu
 - [ ] Reconciliation ignores `acuity` bookings and never flags them for review.
 - [ ] Reporting can show totals with and without imported history.
 - [ ] Nothing older than the retention horizon is imported.
+- [ ] Rows with an empty `Calendar` (donations and event entries) are excluded.
+- [ ] Times are resolved in Europe/London, verified against a booking either side of
+      a BST boundary.
+- [ ] The 2 future-dated bookings do not create a second record for a slot the room
+      calendar already shows as busy.
