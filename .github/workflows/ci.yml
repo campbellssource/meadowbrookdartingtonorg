@@ -1,0 +1,40 @@
+name: CI
+
+# Runs on every pull request, and on main so a direct push is covered too.
+#
+# Before this existed, nothing ran the test suite until the production deploy —
+# which meant the guards in it (deploy config coverage, Astro script placement,
+# the refund policy boundaries) were only as good as someone remembering to run
+# them locally.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # 22, not 20: the test suite runs TypeScript directly through
+          # --experimental-strip-types, which arrived in 22.6.
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        # Deliberately no .env. The build must not depend on secrets being
+        # present, and this is what proves it — a missing variable should leave a
+        # feature unconfigured, never break the build.
+        run: npm run build
