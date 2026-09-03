@@ -70,7 +70,7 @@ analysis, which is the whole reason for doing it.
 | **Calendar events** | They are already there. Acuity wrote them years ago and the door-lock system (`13`) watched them at the time. Re-creating them would duplicate every historical booking on the room calendars — and creating a calendar event is not inert: it is what provisions a door code. A bulk import that wrote events would attempt thousands of TTLock passcodes. |
 | **Emails** | Nobody should receive a confirmation for a booking they attended in 2024. |
 | **Magic-link tokens** | There is nothing to manage. |
-| **Payment ledger entries with Square ids** | The money moved through Acuity, not through our Square account. A ledger entry with a `squarePaymentId` we do not own would make reconciliation (`04`) chase payments that were never ours. |
+| **Square payment ids** | The money moved through Acuity, not our Square account. A ledger entry with a `squarePaymentId` we do not own would make reconciliation (`04`) chase payments that were never ours. |
 
 ## The flag, and why it has to exist
 
@@ -91,6 +91,11 @@ historical record as a live one:
 - **Reporting shows them**, which is the entire purpose — but the admin list should
   mark them, and the reporting page should be able to exclude them so "how are we doing
   since we took over our own bookings" is answerable.
+- **`/bookings/find` must not offer them.** It emails a magic link for any upcoming
+  booking matching an address, and two imported bookings are still in the future.
+  A link would open a manage page whose every button refuses.
+- **The reminder job must skip them.** Acuity sent its own reminders at the time, and
+  these people never gave us their address for this system to email from.
 
 ## References
 
@@ -102,11 +107,32 @@ re-run is a backfill nobody dares to re-run.
 
 ## Money
 
-Acuity's export carries what was charged. Store it as `pricePence` and `paidPence`
-with an **empty `payments` array**, and let `source: 'acuity'` explain the absence
-rather than inventing ledger entries to fill it. Reporting sums `pricePence` for
-revenue, so the numbers work; reconciliation skips them, so the empty ledger is never
-read as drift.
+**Corrected 3 Sep 2026, while building the importer.** This section previously said to
+store an **empty `payments` array** and let `pricePence` carry the revenue. That is
+wrong, and checking `reporting.ts` rather than trusting the plan is what caught it:
+
+```ts
+const completed = (b, kind) =>
+  b.payments.filter((p) => p.kind === kind && p.status === 'completed')
+    .reduce((s, p) => s + p.amountPence, 0);
+```
+
+Revenue, net revenue, average booking value and revenue-by-room-by-month all sum the
+**ledger**, not `pricePence`. An imported booking with no payments would have reported
+£0 — every chart flat, the entire backfill pointless, and nothing anywhere would have
+errored to say so.
+
+So each imported booking carries **one synthetic completed charge** for the
+appointment price, with an **empty `squarePaymentId`**. That is the detail that keeps
+it safe: `reconcile.ts` only inspects entries that have a payment id, so it never
+chases a payment that was never in our Square account, and it only acts on `pending`
+entries, so a `completed` one is inert.
+
+`Appointment Price` and `Amount Paid Online` differ on 39 rows. **The DRA's decision
+(3 Sep 2026): include them at full price** — the rooms were used and the income
+question is not worth the complication. What Acuity actually collected online is kept
+on `acuity.paidOnlinePence` alongside `acuity.paid`, so the distinction is recoverable
+without complicating reporting.
 
 Cancelled and refunded historical bookings need thought: if the export distinguishes
 them, carry the status across, because counting a refunded 2024 booking as revenue

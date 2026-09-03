@@ -16,7 +16,7 @@ import { buildEvent } from '../../../lib/booking/event-format.ts';
 import { isBookable } from '../../../lib/booking/availability.ts';
 import { priceFor, formatPence } from '../../../lib/booking/pricing.ts';
 import { addMinutes, MINUTE } from '../../../lib/booking/time.ts';
-import { takeHold, releaseHold, applyChange, SlotUnavailableError } from '../../../lib/booking/store.ts';
+import { takeHold, releaseHold, applyChange, SlotUnavailableError, isImported } from '../../../lib/booking/store.ts';
 import type { Payment } from '../../../lib/booking/store.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
 import { issueRefund } from '../../../lib/booking/refunds.ts';
@@ -51,6 +51,9 @@ export const POST: APIRoute = async ({ request, url }) => {
   const booking = await freshenOne(ref, raw);
   const now = new Date();
   if (booking.status !== 'confirmed') return json({ error: 'That booking cannot be changed.' }, 409);
+  // Imported history (`17`). There is no calendar event of ours to move and no
+  // payment of ours to take or refund, so this must refuse before it tries either.
+  if (isImported(booking)) return json({ error: 'This booking was made in our previous booking system, so it cannot be changed here. Please email bookings@meadowbrookdartington.org and we will sort it out.' }, 409);
   if (booking.start.toDate() <= now) return json({ error: 'That booking has already started.' }, 409);
 
   // Inside the cancellation window a booking is fixed: no changes, no refund.

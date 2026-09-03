@@ -44,6 +44,21 @@ export interface Customer {
 
 export interface Booking {
   room: string;
+  /**
+   * Which system took the booking. Absent means 'meadowbrook' -- bookings predate
+   * the field. `acuity` records were imported for reporting history only: there is
+   * no calendar event of ours to move and no payment of ours to refund, so amend,
+   * cancel, refunds, reminders and magic links all refuse them. See `17`.
+   */
+  source?: 'meadowbrook' | 'acuity';
+  /** Provenance for imported rows, so an oddity can be traced back to the export. */
+  acuity?: {
+    appointmentId: string;
+    /** What Acuity actually collected online, which is not always the price. */
+    paidOnlinePence: number;
+    paid: boolean;
+    type: string;
+  };
   status: BookingStatus;
   start: Timestamp;
   end: Timestamp;
@@ -263,6 +278,7 @@ export async function confirmBooking(input: ConfirmInput): Promise<Booking> {
   const now = Timestamp.now();
   const booking: Booking = {
     room: input.room.slug,
+    source: 'meadowbrook',
     status: 'confirmed',
     start: Timestamp.fromDate(input.start),
     end: Timestamp.fromDate(input.end),
@@ -385,6 +401,9 @@ export async function useToken(jti: string, now = new Date()): Promise<TokenChec
   });
 }
 
+/** A booking imported from Acuity: history, not something this system can act on. */
+export const isImported = (b: Pick<Booking, 'source'>): boolean => b.source === 'acuity';
+
 /** Bookings for an email address that have not yet ended. Powers /bookings/find. */
 export async function upcomingBookingsFor(email: string, now = new Date()): Promise<
   { ref: string; booking: Booking }[]
@@ -394,6 +413,10 @@ export async function upcomingBookingsFor(email: string, now = new Date()): Prom
     .where('customer.email', '==', email.toLowerCase()).get();
   return snap.docs
     .map((d) => ({ ref: d.id, booking: d.data() as Booking }))
+    // Imported Acuity bookings are excluded on purpose. Offering a magic link for one
+    // would open a manage page whose buttons all refuse -- and Acuity, not us, is
+    // still the system that booking belongs to.
+    .filter(({ booking }) => booking.source !== 'acuity')
     .filter(({ booking }) => booking.status === 'confirmed' && booking.end.toDate() > now);
 }
 
