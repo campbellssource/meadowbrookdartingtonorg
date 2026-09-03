@@ -1,0 +1,40 @@
+---
+// Standalone booking page, for anyone arriving from a direct link. The form itself
+// now lives on the facility page, which is where Acuity's widget used to sit and
+// where hirers expect it; this route stays so an emailed or printed link works.
+import Layout from '../../layouts/Layout.astro';
+import BookingWidget from '../../components/BookingWidget.astro';
+import { getRoomConfig } from '../../lib/booking/config-reader.ts';
+
+export const prerender = false;
+
+// Collects a name, email and phone, and the URL identifies the room.
+Astro.response.headers.set('Cache-Control', 'no-store, private');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+
+const { slug } = Astro.params;
+const room = slug ? await getRoomConfig(slug) : null;
+if (!room) return Astro.redirect('/facilities', 302);
+---
+
+<Layout
+  title={`Book the ${room.shortName}`}
+  description={`Book the ${room.shortName} at Meadowbrook, £${(room.hourlyRatePence / 100).toFixed(2)} per hour.`}
+  noindex={true}
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-4);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Booking</span>
+      <h1>Book the {room.shortName}.</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-4);">
+    <div class="mw-wrap">
+      <BookingWidget room={room} heading={`Book the ${room.shortName}`} />
+      <p style="margin-top: var(--space-5); font-size: 14px;">
+        <a href={`/facilities/${room.slug}`}>More about the {room.shortName} →</a>
+      </p>
+    </div>
+  </section>
+</Layout>

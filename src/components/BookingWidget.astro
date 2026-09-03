@@ -1,0 +1,775 @@
+---
+// The booking flow, as a component, so a facility page can drop it in where the
+// Acuity iframe used to sit.
+//
+// Three steps — when, who, pay — but the first one is deliberately roomy: a month
+// calendar always on screen rather than behind a date picker, start times as
+// visible options rather than a list you have to open, and a summary bar that says
+// what you have chosen at every moment. The old version was compact and fiddly and
+// made you remember your own choices.
+import type { RoomBookingConfig } from '../lib/booking/config.ts';
+
+interface Props { room: RoomBookingConfig; heading?: string }
+const { room, heading } = Astro.props;
+
+const env = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
+const squareSdkUrl = env === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
+const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+// Sandbox validates the card form's postal field as a US ZIP. A sandbox artefact,
+// not a real requirement — derived so nobody "fixes" production to match it.
+const billingCountry = env === 'sandbox' ? 'US' : 'GB';
+
+// Opening hours are the same every day for all three rooms; the grid uses the
+// first entry so unavailable times can be drawn rather than omitted.
+const openingFrom = room.openingHours[0]?.from ?? '08:00';
+const openingTo = room.openingHours[0]?.to ?? '23:00';
+
+const rate = `£${(room.hourlyRatePence / 100).toFixed(2)}`;
+const wid = `bw-${room.slug}`;
+---
+
+<div class="bw" id={wid} data-room={room.slug}>
+  <div class="bw-head">
+    <div>
+      <span class="mw-eyebrow">Booking</span>
+      <h2>{heading ?? `Book the ${room.shortName}`}</h2>
+    </div>
+    <p class="bw-rate">{rate} <span>per hour</span></p>
+  </div>
+
+  <ol class="bw-steps">
+    <li class="bw-stepdot is-on" data-dot="1"><span>1</span>When</li>
+    <li class="bw-stepdot" data-dot="2"><span>2</span>Your details</li>
+    <li class="bw-stepdot" data-dot="3"><span>3</span>Pay</li>
+  </ol>
+
+  <!-- ── Step 1: when ───────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="1">
+    <div class="bw-when">
+      <div class="bw-cal-wrap">
+        <div class="bw-cal-head">
+          <button type="button" class="bw-nav" data-nav="-1" aria-label="Previous month">‹</button>
+          <strong id={`${wid}-month`}>&nbsp;</strong>
+          <button type="button" class="bw-nav" data-nav="1" aria-label="Next month">›</button>
+        </div>
+        <div class="bw-dow" aria-hidden="true">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+        </div>
+        <div class="bw-days" id={`${wid}-days`} role="group" aria-label="Choose a date"></div>
+        <p class="bw-sr" id={`${wid}-calhelp`}>Use the arrow keys to move between dates, and Enter to choose one.</p>
+      </div>
+
+      <div class="bw-pick">
+        <div class="bw-pick-empty" id={`${wid}-empty`}>
+          <p>Pick a date to see what's free.</p>
+        </div>
+
+        <div class="bw-pick-body" id={`${wid}-body`} hidden>
+          <h3 id={`${wid}-dayname`}></h3>
+
+          <fieldset class="bw-field">
+            <legend id={`${wid}-timeslegend`}>Start time</legend>
+            <div class="bw-times" id={`${wid}-times`} role="radiogroup"
+                 aria-labelledby={`${wid}-timeslegend`} aria-live="polite"></div>
+          </fieldset>
+
+          <fieldset class="bw-field" id={`${wid}-durwrap`} hidden>
+            <legend id={`${wid}-durslegend`}>How long?</legend>
+            <div class="bw-durs" id={`${wid}-durs`} role="radiogroup"
+                 aria-labelledby={`${wid}-durslegend`}></div>
+            <button type="button" class="bw-more" id={`${wid}-more`} hidden>Show longer bookings</button>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 2: details ────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="2" hidden>
+    <div class="bw-form">
+      <label class="bw-input"><span>Your name</span>
+        <input type="text" id={`${wid}-name`} autocomplete="name" required /></label>
+      <label class="bw-input"><span>Email</span>
+        <input type="email" id={`${wid}-email`} autocomplete="email" required />
+        <small>We'll send your confirmation and a link to change or cancel.</small></label>
+      <label class="bw-input"><span>Mobile number</span>
+        <input type="tel" id={`${wid}-phone`} autocomplete="tel" required /></label>
+      {room.intakeQuestions.map((q) => (
+        <label class="bw-input"><span>{q.label}</span>
+          <textarea id={`${wid}-q-${q.key}`} rows="3" data-q={q.key} required={q.required}></textarea></label>
+      ))}
+      <p class="bw-fieldmsg" id={`${wid}-detailsmsg`} role="alert" hidden></p>
+      <div class="bw-actions">
+        <button type="button" class="mw-btn mw-btn-ghost" data-back="1">Back</button>
+        <button type="button" class="mw-btn mw-btn-primary" id={`${wid}-to3`}>Continue to payment</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Step 3: pay ────────────────────────────────────────────── -->
+  <section class="bw-panel" data-panel="3" hidden>
+    <div class="bw-form">
+      <div class="bw-warn" id={`${wid}-norefund`} hidden></div>
+      <label class="bw-terms" id={`${wid}-termsrow`}>
+        <input type="checkbox" id={`${wid}-terms`} />
+        <span>I agree to the <a href="/room-hire-terms" target="_blank" rel="noopener">room hire terms</a>.</span>
+      </label>
+      <p class="bw-cardlabel">Card details</p>
+      <div class="bw-card" id={`${wid}-card`}></div>
+      <p class="bw-note">Payments are processed securely by Square. We never store your card details.</p>
+      <p class="bw-fieldmsg" id={`${wid}-paymsg`} role="alert" hidden></p>
+      <div class="bw-actions">
+        <button type="button" class="mw-btn mw-btn-ghost" data-back="2">Back</button>
+        <button type="button" class="mw-btn mw-btn-primary mw-btn-lg" id={`${wid}-pay`}>
+          Pay <span id={`${wid}-total`}></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <noscript>
+    <div class="bw-noscript">
+      <p><strong>Booking needs JavaScript.</strong> The calendar and the card form both run in
+      your browser, so this form cannot work without it.</p>
+      <p>If you would rather not turn it on, email
+      <a href="mailto:bookings@meadowbrookdartington.org">bookings@meadowbrookdartington.org</a>
+      with the room, the date and the time you would like, and we will book it for you.</p>
+    </div>
+  </noscript>
+
+  <p class="bw-error" id={`${wid}-error`} role="alert" hidden></p>
+  <p class="bw-sr" id={`${wid}-announce`} role="status" aria-live="polite"></p>
+
+  <!-- Always says what you have chosen, so nothing has to be remembered. -->
+  <div class="bw-summary" id={`${wid}-summary`} hidden>
+    <div class="bw-summary-text">
+      <strong id={`${wid}-sum-when`}></strong>
+      <span id={`${wid}-sum-detail`}></span>
+    </div>
+    <div class="bw-summary-right">
+      <span class="bw-price" id={`${wid}-sum-price`}></span>
+      <button type="button" class="mw-btn mw-btn-primary" id={`${wid}-continue`}>Continue</button>
+    </div>
+  </div>
+</div>
+
+<script src={squareSdkUrl} is:inline></script>
+<script define:vars={{ wid, roomSlug: room.slug, squareAppId, squareLocationId, billingCountry, maxAdvanceDays: room.maxAdvanceDays, minDuration: room.minDurationMins, openingFrom, openingTo, granularity: room.slotGranularityMins }}>
+  (() => {
+    const root = document.getElementById(wid);
+    if (!root) return;
+    const $ = (suffix) => document.getElementById(`${wid}-${suffix}`);
+    const state = { month: null, date: null, slots: [], slot: null, durationMins: null, pricePence: null, card: null, showAllDurs: false };
+
+    const money = (p) => `£${(p / 100).toFixed(2)}`;
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const showErr = (m) => { const e = $('error'); e.textContent = m; e.hidden = false; e.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    const clearErr = () => { $('error').hidden = true; };
+
+    // Validation on click rather than a disabled button. A disabled button cannot
+    // tell you why it is disabled -- you press it, nothing happens, and there is
+    // nowhere to look. So the button always works, and pressing it marks the field
+    // that is wrong and says so immediately above itself.
+    function invalid(el, msgEl, message) {
+      el.classList.add('is-invalid');
+      el.setAttribute('aria-invalid', 'true');
+      msgEl.textContent = message;
+      msgEl.hidden = false;
+      const focusable = el.matches('input,textarea,select') ? el : el.querySelector('input,textarea,select');
+      focusable?.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return false;
+    }
+
+    function clearInvalid(el, msgEl) {
+      el.classList.remove('is-invalid');
+      el.removeAttribute('aria-invalid');
+      if (msgEl) msgEl.hidden = true;
+    }
+
+    // Once someone starts fixing a field, stop shouting about it.
+    root.querySelectorAll('.bw-input input, .bw-input textarea').forEach((el) => {
+      el.addEventListener('input', () => clearInvalid(el, $('detailsmsg')));
+    });
+
+    const smoothOk = () => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    /**
+     * Move to a step as though it were its own page.
+     *
+     * Goes to the top of the whole widget, so the heading is the first thing you
+     * see -- "Book the Studio", then the step you are on. The DRA's model is that
+     * each step behaves like a page load, and scrolling to the newly revealed
+     * element instead drops you into the middle of it with no context above.
+     *
+     * `scroll-margin-top` on the widget keeps it clear of the sticky nav.
+     */
+    function revealStep() {
+      requestAnimationFrame(() => {
+        root.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'start' });
+      });
+    }
+
+    /**
+     * Nudge something into view *within* a step, and only when it is actually out
+     * of sight. Picking a time should not throw the page around when the durations
+     * are already visible right beneath it.
+     */
+    function revealIfHidden(el) {
+      if (!el) return;
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        const visible = r.top >= 96 && r.bottom <= window.innerHeight;
+        if (!visible) el.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'nearest' });
+      });
+    }
+
+    const announce = (m) => { const el = $('announce'); if (el) el.textContent = m; };
+
+    /**
+     * Roving tabindex plus arrow keys, for a set of buttons that behaves as one
+     * control.
+     *
+     * Without this the ARIA is a lie: `role="radiogroup"` promises arrow-key
+     * navigation and a single tab stop, and 57 individually tabbable buttons
+     * deliver neither. A screen-reader user was being told "radio, 1 of 57" and
+     * then finding the arrows did nothing.
+     *
+     * `cols` makes up and down move by a week in the calendar and by a row in the
+     * time grid, which is what the shape on screen implies.
+     */
+    function wireRovingGroup(container, cols) {
+      const items = () => [...container.querySelectorAll('[data-nav-item]:not([disabled])')];
+      const list = items();
+      if (list.length === 0) return;
+
+      // Exactly one tab stop: the chosen item, else the first.
+      const selected = list.find((el) => el.getAttribute('aria-checked') === 'true'
+        || el.classList.contains('is-sel'));
+      list.forEach((el) => { el.tabIndex = el === (selected ?? list[0]) ? 0 : -1; });
+
+      if (container.dataset.roving === 'on') return;
+      container.dataset.roving = 'on';
+
+      container.addEventListener('keydown', (e) => {
+        const current = items().indexOf(document.activeElement);
+        if (current === -1) return;
+        const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+        let next = null;
+        if (step !== undefined) next = current + step;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = items().length - 1;
+        else return;
+
+        e.preventDefault();
+        const all = items();
+        next = Math.max(0, Math.min(all.length - 1, next));
+        all.forEach((el) => { el.tabIndex = -1; });
+        all[next].tabIndex = 0;
+        all[next].focus();
+      });
+    }
+
+    function step(n) {
+      root.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
+      root.querySelectorAll('.bw-stepdot').forEach((d) => {
+        const i = Number(d.dataset.dot);
+        d.classList.toggle('is-on', i === n);
+        d.classList.toggle('is-done', i < n);
+      });
+      $('continue').hidden = n !== 1;
+      clearErr();
+      announce(['', 'Step 1 of 3, choose a time.', 'Step 2 of 3, your details.',
+                'Step 3 of 3, payment.'][n]);
+      revealStep();
+    }
+
+    // ── calendar ──────────────────────────────────────────────────
+    // The calendar deliberately does NOT ask which days have availability. Nearly
+    // every day has something free, so a whole extra round trip bought a dot that
+    // almost always said the same thing -- and it delayed the calendar appearing.
+    // Days are simply bookable or out of range; what is free shows in the times.
+    function renderMonth(first) {
+      state.month = first;
+      $('month').textContent = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+      const horizon = new Date(today.getTime() + maxAdvanceDays * 86400000);
+
+      const lead = (first.getDay() + 6) % 7; // Monday-first
+      let html = '';
+      for (let i = 0; i < lead; i += 1) html += '<span class="bw-day is-blank"></span>';
+      for (let d = 1; d <= last.getDate(); d += 1) {
+        const day = new Date(first.getFullYear(), first.getMonth(), d);
+        const key = iso(day);
+        const out = day < today || day > horizon;
+        const sel = state.date === key ? ' is-sel' : '';
+        const label = day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        html += `<button type="button" class="bw-day ${out ? 'is-out' : 'is-open'}${sel}" data-date="${key}"`
+          + `${out ? ' disabled' : ' data-nav-item'} aria-label="${label}"`
+          + `${sel ? ' aria-current="date"' : ''}><span class="n">${d}</span></button>`;
+      }
+      $('days').innerHTML = html;
+      $('days').querySelectorAll('.bw-day[data-date]:not([disabled])').forEach((b) => {
+        b.addEventListener('click', () => pickDate(b.dataset.date));
+      });
+      wireRovingGroup($('days'), 7);
+    }
+
+    root.querySelectorAll('.bw-nav').forEach((b) => b.addEventListener('click', () => {
+      const d = new Date(state.month.getFullYear(), state.month.getMonth() + Number(b.dataset.nav), 1);
+      renderMonth(d);
+    }));
+
+    // ── times and durations ───────────────────────────────────────
+    async function pickDate(date) {
+      state.date = date; state.slot = null; state.durationMins = null; state.showAllDurs = false;
+      root.querySelectorAll('.bw-day').forEach((b) => b.classList.toggle('is-sel', b.dataset.date === date));
+      $('empty').hidden = true; $('body').hidden = false;
+      $('durwrap').hidden = true;
+      updateSummary();
+      // On a narrow screen the times sit below the calendar, so picking a date
+      // otherwise changes something entirely off screen.
+      if (window.matchMedia?.('(max-width: 820px)').matches) revealIfHidden($('body'));
+
+      const d = new Date(`${date}T12:00:00`);
+      $('dayname').textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+      $('times').innerHTML = '<p class="bw-loading">Loading…</p>';
+
+      try {
+        const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Could not load times.');
+        state.slots = data.days[0].slots;
+        if (!state.slots.length) { $('times').innerHTML = '<p class="bw-none">Nothing free that day.</p>'; return; }
+
+        // Draw the whole day and cross out what is taken, rather than listing only
+        // what is free. A gap-free grid means the same time sits in the same place
+        // whichever day you look at, and a crossed-out 7pm reads as "booked"
+        // instead of leaving you wondering whether the room opens then at all.
+        const byStart = new Map(state.slots.map((s, i) => [s.start.slice(11, 16), i]));
+        const [oh, om] = openingFrom.split(':').map(Number);
+        const [ch, cm] = openingTo.split(':').map(Number);
+        const cells = [];
+        for (let m = oh * 60 + om; m < ch * 60 + cm; m += granularity) {
+          const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+          const i = byStart.get(hhmm);
+          cells.push(i === undefined
+            ? `<span class="bw-time is-gone" aria-label="${hhmm}, not available"><s>${hhmm}</s></span>`
+            : `<button type="button" role="radio" aria-checked="false" class="bw-time" data-i="${i}">${hhmm}</button>`);
+        }
+        $('times').innerHTML = cells.join('');
+        $('times').querySelectorAll('.bw-time[data-i]').forEach((b) =>
+          b.addEventListener('click', () => pickTime(Number(b.dataset.i))));
+        wireRovingGroup($('times'), 4);
+        announce(`${state.slots.length} start times available on ${$('dayname').textContent}.`);
+      } catch (e) {
+        $('times').innerHTML = `<p class="bw-none">${e.message}</p>`;
+      }
+    }
+
+    function pickTime(i) {
+      const slot = state.slots[i];
+      state.slot = slot; state.showAllDurs = false;
+      $('times').querySelectorAll('.bw-time').forEach((b) => {
+        const on = Number(b.dataset.i) === i;
+        b.classList.toggle('is-sel', on);
+        b.setAttribute('aria-checked', String(on));
+      });
+      // Deliberately no default length. Pre-selecting an hour meant the summary bar
+      // showed a price nobody had chosen, and a booking is easy to complete without
+      // ever noticing the duration. The DRA judged the extra click worth it.
+      state.durationMins = null;
+      state.pricePence = null;
+      renderDurations();
+      $('durwrap').hidden = false;
+      updateSummary();
+      revealIfHidden($('durwrap'));
+    }
+
+    function renderDurations() {
+      const all = state.slot.durations;
+      const SHOWN = 6;
+      const list = state.showAllDurs ? all : all.slice(0, SHOWN);
+      if (state.durationMins === null) $('summary').hidden = true;
+      $('durs').innerHTML = list.map((d) => {
+        const h = Math.floor(d.mins / 60); const m = d.mins % 60;
+        const label = h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+        const on = d.mins === state.durationMins;
+        return `<button type="button" role="radio" aria-checked="${on}" data-nav-item class="bw-dur${on ? ' is-sel' : ''}" data-mins="${d.mins}" data-p="${d.pricePence}" aria-label="${label}, ${money(d.pricePence)}">`
+          + `<b>${label}</b><span>${money(d.pricePence)}</span></button>`;
+      }).join('');
+      wireRovingGroup($('durs'), 3);
+      $('durs').querySelectorAll('.bw-dur').forEach((b) => b.addEventListener('click', () => {
+        state.durationMins = Number(b.dataset.mins);
+        state.pricePence = Number(b.dataset.p);
+        renderDurations(); updateSummary();
+      }));
+      $('more').hidden = state.showAllDurs || all.length <= SHOWN;
+      $('more').textContent = `Show ${all.length - SHOWN} longer option${all.length - SHOWN === 1 ? '' : 's'}`;
+    }
+    $('more').addEventListener('click', () => { state.showAllDurs = true; renderDurations(); });
+
+    function updateSummary() {
+      const ok = state.slot && state.durationMins;
+      $('summary').hidden = !ok;
+      if (!ok) return;
+      const s = new Date(state.slot.start);
+      const e = new Date(s.getTime() + state.durationMins * 60000);
+      const fmt = (x) => x.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const h = Math.floor(state.durationMins / 60); const m = state.durationMins % 60;
+      $('sum-when').textContent = `${s.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}, ${fmt(s)}–${fmt(e)}`;
+      $('sum-detail').textContent = `${h ? `${h} hour${h > 1 ? 's' : ''}` : ''}${m ? ` ${m} min` : ''}`.trim();
+      $('sum-price').textContent = money(state.pricePence);
+      $('total').textContent = money(state.pricePence);
+    }
+
+    $('continue').addEventListener('click', () => {
+      if (!state.slot || !state.durationMins) return showErr('Please choose a time first.');
+      step(2);
+    });
+    root.querySelectorAll('[data-back]').forEach((b) =>
+      b.addEventListener('click', () => step(Number(b.dataset.back))));
+
+    // ── details → payment ─────────────────────────────────────────
+    $('to3').addEventListener('click', async () => {
+      const msg = $('detailsmsg');
+      const name = $('name').value.trim();
+      const email = $('email').value.trim();
+      const phone = $('phone').value.trim();
+      [$('name'), $('email'), $('phone')].forEach((el) => clearInvalid(el, null));
+      msg.hidden = true;
+
+      if (name.length < 2) return invalid($('name'), msg, 'Please give your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return invalid($('email'), msg, 'Please enter a valid email address — this is where your confirmation goes.');
+      }
+      if (phone.replace(/\D/g, '').length < 10) {
+        return invalid($('phone'), msg, 'Please enter a valid mobile number.');
+      }
+      for (const el of root.querySelectorAll('[data-q][required]')) {
+        if (!el.value.trim()) return invalid(el, msg, 'Please answer the question below the phone number.');
+      }
+      // Same rule the refund itself uses: inside the hour, nothing comes back.
+      const mins = (new Date(state.slot.start).getTime() - Date.now()) / 60000;
+      const w = $('norefund');
+      if (mins <= 60) {
+        w.textContent = 'This booking starts within the hour, so it cannot be changed or refunded once confirmed.';
+        w.hidden = false;
+      } else { w.hidden = true; }
+      step(3);
+      await mountCard();
+    });
+
+    async function mountCard() {
+      if (state.card) return;
+      if (typeof Square === 'undefined') return showErr('The payment form could not load.');
+      const loc = window.location;
+      if (loc.protocol !== 'https:' && !loc.hostname.endsWith('localhost')) {
+        return showErr(`Square's payment form only loads over HTTPS or on "localhost" — this page is on ${loc.hostname}.`);
+      }
+      try {
+        const payments = await Square.payments(squareAppId, squareLocationId);
+        // Square's fields live in an iframe for PCI reasons, so the markup cannot
+        // be replaced -- but `style` and `includeInputLabels` are supported API,
+        // not a hack, and between them fix what people were tripping over.
+        //
+        // includeInputLabels puts a visible "Card number" above the field. Without
+        // it Square shows only a faint placeholder inside an unstyled box, which a
+        // booker did not recognise as somewhere to type.
+        // The postal-code field is always shown. It was briefly prefilled in
+        // sandbox to hide a nuisance -- Square validates it against the billing
+        // country, so a UK postcode never satisfies the sandbox's US rule and the
+        // hint sits there permanently. Hiding it made testing pleasanter and the
+        // form different from the one that ships, which is the wrong trade: the
+        // field is a real address check in production and should be exercised.
+        //
+        // While testing in sandbox, a US ZIP such as 94103 satisfies it.
+        const cardOptions = { includeInputLabels: true };
+        // Colours and borders only. Square validates this list strictly and
+        // rejects the whole card if anything in it is unknown -- fontSize and
+        // fontFamily are both refused despite appearing in the documentation, so
+        // this stays to what the deployed SDK actually accepts.
+        const cardStyle = {
+          input: { backgroundColor: '#ffffff', color: '#28201A' },
+          '.input-container': { borderColor: '#D1B08B', borderRadius: '10px', borderWidth: '1.5px' },
+          '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
+          '.input-container.is-error': { borderColor: '#C0392B' },
+          '.message-text.is-error': { color: '#8A2C0D' },
+          '.message-icon.is-error': { color: '#8A2C0D' },
+        };
+
+        try {
+          state.card = await payments.card({ ...cardOptions, style: cardStyle });
+        } catch (styleErr) {
+          // Styling is cosmetic; taking payment is not. A rejected style rule must
+          // never leave a booker unable to pay, so fall back to Square's own look
+          // and log the reason rather than failing the step.
+          console.warn('booking: card style rejected, falling back to default', styleErr);
+          state.card = await payments.card(cardOptions);
+        }
+        await state.card.attach(`#${wid}-card`);
+      } catch (e) {
+        showErr(`The payment form could not load (${e.message || e.name}).`);
+      }
+    }
+
+    // Ticking the box clears the warning, but nothing disables the button: the
+    // check happens when Pay is pressed, so there is always an explanation.
+    $('terms').addEventListener('change', () => {
+      if ($('terms').checked) clearInvalid($('termsrow'), $('paymsg'));
+    });
+
+    $('pay').addEventListener('click', async () => {
+      clearErr();
+      const paymsg = $('paymsg');
+      if (!$('terms').checked) {
+        return invalid($('termsrow'), paymsg, 'Please accept the room hire terms before paying.');
+      }
+      if (!state.card) {
+        paymsg.textContent = 'The payment form is still loading. Please try again in a moment.';
+        paymsg.hidden = false;
+        return;
+      }
+      paymsg.hidden = true;
+
+      const btn = $('pay');
+      btn.disabled = true; btn.textContent = 'Processing…';
+      const name = $('name').value.trim();
+      const email = $('email').value.trim();
+      const [givenName, ...rest] = name.split(/\s+/);
+      const reset = () => { btn.disabled = false; btn.innerHTML = `Pay <span id="${wid}-total">${money(state.pricePence)}</span>`; };
+
+      let result;
+      try {
+        result = await state.card.tokenize({
+          amount: (state.pricePence / 100).toFixed(2),
+          currencyCode: 'GBP', intent: 'CHARGE',
+          customerInitiated: true, sellerKeyedIn: false,
+          billingContact: { givenName, ...(rest.length ? { familyName: rest.join(' ') } : {}), email, countryCode: billingCountry },
+        });
+      } catch (e) {
+        showErr('We could not verify your card with your bank. Please try again or use a different card.');
+        return reset();
+      }
+      if (result.status !== 'OK') {
+        showErr(result.errors?.[0]?.message ?? 'Card details invalid. Please check and try again.');
+        return reset();
+      }
+
+      const notes = Array.from(root.querySelectorAll('[data-q]'))
+        .map((el) => `${el.parentElement?.querySelector('span')?.textContent ?? ''} ${el.value}`.trim())
+        .filter((s) => s.length > 1).join('\n');
+
+      try {
+        const res = await fetch('/api/booking/create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room: roomSlug, start: state.slot.start, durationMins: state.durationMins,
+            pricePence: state.pricePence, sourceId: result.token, acceptedTerms: true,
+            customer: { name, email, phone: $('phone').value.trim(), ...(notes ? { notes } : {}) },
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Booking failed.');
+        // manageUrl carries the magic-link token; the bare reference would land
+        // the booker on "we need your booking link" seconds after paying.
+        window.location.href = data.manageUrl ?? `/bookings/${data.bookingRef}`;
+      } catch (e) {
+        showErr(e.message);
+        reset();
+      }
+    });
+
+    const now = new Date();
+    renderMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  })();
+</script>
+
+<style>
+  /* Zone themes (`zone-snooker`, `zone-studio`…) flip --fg to white and --accent
+     to bone for the dark facility pages. A light card that does not set its own
+     colours therefore inherits white text onto a white background, which is
+     exactly what happened on the Snooker Room page. Everything below states its
+     colour explicitly, the way .mw-card already does. */
+  .bw { background: var(--bone); color: var(--ink); border-radius: var(--r-lg); padding: 28px; margin: 2rem 0; }
+
+  /* The site nav is sticky, so anything scrolled to with block:'start' lands
+     underneath it. Roughly the nav's height plus a little breathing room. */
+  .bw, .bw-panel, .bw-pick-body, .bw-field, .bw-form { scroll-margin-top: 96px; }
+
+  /* Visible focus on everything, in one place. These are custom-styled buttons, so
+     the browser's own ring is easily lost against a filled background -- the double
+     ring (dark, then light) stays visible on both the pale chips and the green
+     selected ones. :focus-visible so a mouse click does not leave a ring behind. */
+  .bw :is(button, input, select, textarea, a):focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  .bw-days :global(.bw-day:focus-visible),
+  .bw-times :global(.bw-time:focus-visible),
+  .bw-durs :global(.bw-dur:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .bw-noscript { padding: 18px 20px; border-radius: var(--r-lg); background: #FDF3E3;
+    border: 1.5px solid #E8C08A; color: #7A4B12; font-size: 15px; line-height: 1.6; }
+  .bw-noscript p { margin: 0 0 10px; }
+  .bw-noscript p:last-child { margin: 0; }
+  .bw-noscript a { color: #7A4B12; }
+
+  /* Available to screen readers, not on screen. */
+  .bw-sr {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* `.mw-btn` sets `display: inline-flex` and `.bw-summary` sets `display: flex`.
+     Both are class selectors and therefore beat the browser's own
+     `[hidden] { display: none }`, so setting el.hidden on them did nothing at all
+     -- which is why a second, dead "Continue" stayed on screen at the payment
+     step. Anything toggled with `hidden` inside this widget needs this. */
+  .bw [hidden] { display: none !important; }
+
+  /* `.mw-btn-primary` is `background: var(--accent)`, and the facility zones set
+     --accent to bone: white on white until you hover it. Inside the widget the
+     primary action is always green, whatever the room's paint.
+     
+     --green-dark rather than --green: white on --green (#74A953) is 2.78:1, which
+     fails WCAG AA for text. --green-dark (#4D7A33) is 5.06:1 and passes. The site's
+     own .mw-btn-primary has the same problem wherever --accent resolves to --green;
+     flagged rather than changed here, since that is every button on the site. */
+  .bw .mw-btn-primary { background: var(--green-dark); color: #fff; }
+  .bw .mw-btn-primary:hover { background: #3E6329; }
+  .bw .mw-btn-secondary { background: var(--paper-deep); color: var(--ink); }
+  .bw .mw-btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--sand); }
+  .bw .mw-btn-ghost:hover { background: var(--paper-deep); }
+  /* global.css gives h1/h2/h3 `font-family: var(--font-display)`, and each zone
+     swaps that for its own face -- Billiard on the Snooker Room. Those faces are
+     for large display text; this is a form, so it stays in the body font. */
+  .bw h2, .bw h3 { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em; }
+  .bw h2, .bw h3, .bw strong, .bw legend, .bw label > span, .bw b { color: var(--ink); }
+  .bw .mw-eyebrow { color: var(--green-dark); }
+  .bw a { color: var(--green-dark); }
+
+  .bw-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+  .bw-head h2 { margin: 8px 0 0; font-size: clamp(1.5rem, 3vw, 2rem); }
+  .bw-rate { margin: 0; font-size: 22px; font-weight: 700; white-space: nowrap; color: var(--ink); }
+  .bw-rate span { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+
+  .bw-steps { display: flex; gap: 20px; list-style: none; margin: 0 0 24px; padding: 0 0 18px;
+    border-bottom: 1px solid var(--paper-deep); font-size: 13px; flex-wrap: wrap; }
+  .bw-stepdot { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-weight: 600; }
+  .bw-stepdot span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--paper-deep); color: var(--ink-soft); font-size: 12px; }
+  .bw-stepdot.is-on { color: var(--ink); }
+  .bw-stepdot.is-on span { background: var(--green); color: #fff; }
+  .bw-stepdot.is-done span { background: var(--green-dark); color: #fff; }
+
+  .bw-when { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 32px; align-items: start; }
+  .bw-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .bw-cal-head strong { font-size: 16px; }
+  .bw-nav { font: inherit; font-size: 20px; line-height: 1; width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid var(--sand); background: #fff; cursor: pointer; color: var(--ink); }
+  .bw-nav:hover { border-color: var(--green); }
+  .bw-dow, .bw-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .bw-dow { margin-bottom: 6px; }
+  .bw-dow span { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+
+  /* Days, times and lengths are built at runtime with innerHTML, so they never
+     receive Astro's data-astro-cid-* attribute and scoped selectors cannot match
+     them -- the rules compile to `.bw-day[data-astro-cid-x]` and silently apply to
+     nothing. Anchoring each rule to a container that IS in the template and
+     marking the child :global() keeps the styles working without letting them
+     escape the widget. */
+  .bw-days :global(.bw-day) { position: relative; aspect-ratio: 1; display: grid; place-items: center;
+    font: inherit; font-size: 15px; border: 0; border-radius: 10px; background: var(--paper-deep);
+    color: var(--ink); cursor: pointer; padding: 0; }
+  .bw-days :global(.bw-day.is-blank) { background: none; }
+  .bw-days :global(.bw-day.is-out) { background: transparent; color: var(--ink-mute); opacity: 0.4; cursor: default; }
+  .bw-days :global(.bw-day.is-open:hover) { box-shadow: inset 0 0 0 2px var(--green); }
+  /* Unmistakable rather than tinted: filled, bold, and ringed clear of its neighbours. */
+  .bw-days :global(.bw-day.is-sel) { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
+
+  .bw-pick-empty { color: var(--ink-soft); padding: 40px 0; font-size: 16px; }
+  .bw-pick-body h3 { margin: 0 0 18px; font-size: 20px; }
+  .bw-field { border: 0; padding: 0; margin: 0 0 22px; }
+  .bw-field legend { font-size: 15px; font-weight: 700; padding: 0; margin-bottom: 12px; }
+
+  .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
+  .bw-times :global(.bw-time) { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums;
+    padding: 11px 4px; border: 0; border-radius: 10px; background: var(--paper-deep); color: var(--ink);
+    cursor: pointer; text-align: center; }
+  .bw-times :global(.bw-time:hover) { box-shadow: inset 0 0 0 2px var(--sand); }
+  .bw-times :global(.bw-time.is-sel) { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
+  /* Taken slots keep their place so the day reads as a consistent grid. */
+  .bw-times :global(.bw-time.is-gone) { background: transparent; color: var(--ink-soft); opacity: 0.75;
+    cursor: default; display: grid; place-items: center; }
+  .bw-times :global(.bw-time.is-gone s) { text-decoration-thickness: 1.5px; }
+
+  .bw-durs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .bw-durs :global(.bw-dur) { display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+    font: inherit; padding: 12px 14px; border: 1.5px solid var(--sand); border-radius: 10px;
+    background: #fff; color: var(--ink); cursor: pointer; }
+  .bw-durs :global(.bw-dur b) { font-size: 15px; color: var(--ink); }
+  .bw-durs :global(.bw-dur span) { font-size: 12px; color: var(--ink-soft); }
+  .bw-durs :global(.bw-dur.is-sel) { border-color: var(--green-dark); border-width: 2px; background: #EDF5E4; }
+  .bw-durs :global(.bw-dur.is-sel b), .bw-durs :global(.bw-dur.is-sel span) { color: var(--green-dark); font-weight: 700; }
+  .bw-more { font: inherit; font-size: 13px; margin-top: 10px; background: none; border: 0;
+    color: var(--green-dark); text-decoration: underline; cursor: pointer; padding: 0; }
+  .bw-times :global(.bw-loading), .bw-times :global(.bw-none) { color: var(--ink-soft); font-size: 15px; margin: 0; }
+  .bw-pick :global(.bw-label) { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--ink); }
+
+  .bw-form { max-width: 520px; }
+  .bw-input { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .bw-input > span { font-size: 15px; font-weight: 700; }
+  .bw-input small { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+  .bw-input input, .bw-input textarea { font: inherit; font-size: 16px; padding: 13px 14px;
+    border: 1.5px solid var(--sand); border-radius: 10px; background: #fff; color: var(--ink); }
+  .bw-input input:focus, .bw-input textarea:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+  .bw-terms { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.5;
+    margin-bottom: 8px; color: var(--ink); }
+  .bw-terms input { width: 20px; height: 20px; margin-top: 2px; }
+  /* The invalid state has to survive the zone themes, so it states its own colour
+     rather than leaning on a token. Outline rather than border, so nothing shifts
+     when it appears. */
+  .bw-input input.is-invalid, .bw-input textarea.is-invalid {
+    border-color: #C0392B; outline: 2px solid rgba(192,57,43,0.25); outline-offset: 0; }
+  .bw-terms.is-invalid { outline: 2px solid #C0392B; outline-offset: 6px; border-radius: 6px; }
+  .bw-terms.is-invalid input { outline: 2px solid #C0392B; outline-offset: 2px; }
+  .bw-fieldmsg { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #8A2C0D; }
+  .bw-fieldmsg::before { content: '⚠ '; }
+  /* Square renders its own labels inside the iframe once includeInputLabels is on,
+     so this just gives the block room and a heading of its own. */
+  .bw-card { margin: 8px 0 14px; min-height: 132px; }
+  .bw-cardlabel { font-size: 15px; font-weight: 700; margin: 18px 0 8px; color: var(--ink); }
+  .bw-note { font-size: 14px; color: var(--ink-soft); margin: 0 0 18px; }
+  .bw-warn { padding: 13px 15px; border-radius: 10px; font-size: 14px; margin-bottom: 18px;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .bw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .bw-error { margin: 18px 0 0; padding: 13px 15px; border-radius: 10px; background: #FCECE7;
+    color: #8A2C0D; font-weight: 600; font-size: 14px; }
+
+  .bw-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    margin-top: 24px; padding: 18px 20px; background: var(--ink); color: #fff; border-radius: var(--r-lg); }
+  .bw-summary strong, .bw-summary .bw-price { color: #fff; }
+  .bw-summary-text { display: flex; flex-direction: column; gap: 2px; }
+  .bw-summary-text strong { font-size: 16px; }
+  .bw-summary-text span { font-size: 13px; color: rgba(255,255,255,0.72); }
+  .bw-summary-right { display: flex; align-items: center; gap: 16px; }
+  .bw-price { font-size: 22px; font-weight: 700; }
+
+  @media (max-width: 820px) {
+    .bw { padding: 20px; }
+    .bw-when { grid-template-columns: 1fr; gap: 24px; }
+    .bw-summary { position: sticky; bottom: 0; z-index: 5; }
+  }
+</style>

@@ -1,0 +1,533 @@
+---
+// Manage a booking: view, amend, cancel.
+//
+// Authorisation is the magic-link token (D5). It arrives as ?t= from the email,
+// is exchanged for a scoped HttpOnly cookie, and is then stripped from the address
+// bar by the client -- tokens in URLs leak into history, Referer headers and
+// screenshots. The cookie is what makes a refresh work afterwards.
+import Layout from '../../layouts/Layout.astro';
+import { authorise, BOOKING_HEADERS } from '../../lib/booking/session.ts';
+import { verify } from '../../lib/booking/token.ts';
+import { getBooking } from '../../lib/booking/store.ts';
+import { getRoomConfig } from '../../lib/booking/config-reader.ts';
+import { normaliseReference } from '../../lib/booking/reference.ts';
+import { formatPence } from '../../lib/booking/pricing.ts';
+import { instantToLocalTime } from '../../lib/booking/time.ts';
+import { refundFor } from '../../lib/booking/policy.ts';
+import { doorCodeFor } from '../../lib/booking/event-format.ts';
+
+export const prerender = false;
+
+for (const [k, v] of Object.entries(BOOKING_HEADERS)) Astro.response.headers.set(k, v);
+
+const ref = normaliseReference(Astro.params.ref ?? '');
+const COOKIE = 'mb_booking_token';
+const urlToken = Astro.url.searchParams.get('t');
+const token = urlToken ?? Astro.cookies.get(COOKIE)?.value ?? null;
+
+let auth = ref ? await authorise(ref, token) : { ok: false as const, status: 404 as const, message: 'We cannot find that booking.' };
+
+// Cancelling revokes the booking's tokens, which is right -- a cancelled booking's
+// link should not stay live. But it also means the page the booker lands on
+// immediately afterwards refuses them, which reads as though the cancellation
+// failed. A revoked token is still cryptographically ours and still proves the
+// holder had the link, so it is enough to show a cancelled booking's own outcome.
+let cancelledView: Awaited<ReturnType<typeof getBooking>> = null;
+if (!auth.ok && token) {
+  const v = verify(token);
+  if (v.ok && v.payload.ref === ref) {
+    const b = await getBooking(ref!);
+    if (b?.status === 'cancelled') cancelledView = b;
+  }
+}
+
+if (auth.ok && urlToken) {
+  Astro.cookies.set(COOKIE, urlToken, {
+    httpOnly: true, sameSite: 'lax', path: '/bookings',
+    secure: Astro.url.protocol === 'https:',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+}
+
+const booking = auth.ok ? auth.booking : cancelledView;
+const room = booking ? await getRoomConfig(booking.room) : null;
+const start = booking?.start.toDate();
+const end = booking?.end.toDate();
+const now = new Date();
+
+// What was actually returned, for a booking that has already been cancelled.
+const refundedPence = booking?.payments
+  ?.filter((p) => p.kind === 'refund')
+  .reduce((s, p) => s + p.amountPence, 0) ?? 0;
+
+const refundIfCancelled = booking
+  ? refundFor({ paidPence: booking.paidPence, currentPence: booking.pricePence, start: start!, change: 'cancel' }, now).refundPence
+  : 0;
+const started = start ? start <= now : false;
+const canManage = booking?.status === 'confirmed' && !started;
+// Inside the hour the booking is fixed. Cancelling is still allowed -- releasing
+// the slot helps even with no refund due -- but changing the time is not.
+const canAmend = canManage && refundIfCancelled > 0;
+
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', {
+  timeZone: 'Europe/London', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+}).replace(',', '');
+const durationWords = (m: number) => {
+  const h = Math.floor(m / 60); const r = m % 60;
+  return h && r ? `${h} hours ${r} minutes` : h ? `${h} hour${h > 1 ? 's' : ''}` : `${r} minutes`;
+};
+// doorCodeFor, not a local slice: it returns null below 10 digits rather than
+// showing a code the lock was never given.
+const doorCode = doorCodeFor(booking?.customer.phone ?? '');
+
+// Amending to a dearer slot takes the difference, so this page needs a card form too.
+const sqEnv = import.meta.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? process.env.PUBLIC_BOOKING_SQUARE_ENVIRONMENT ?? 'sandbox';
+const squareSdkUrl = sqEnv === 'sandbox'
+  ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+  : 'https://web.squarecdn.com/v1/square.js';
+const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
+const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
+---
+
+<Layout title={booking ? `Booking ${ref}` : 'Booking'} description="Your Meadowbrook room booking." noindex={true}>
+  {!auth.ok && !cancelledView ? (
+    <section class="mw-zone-hero">
+      <div class="mw-wrap">
+        <span class="mw-eyebrow">{auth.status === 401 ? 'Link needed' : 'Not available'}</span>
+        <h1>{auth.status === 404 ? "We can't find that booking." : 'We need your booking link.'}</h1>
+        <p>{auth.message}</p>
+        <p><a href="/bookings/find" class="mw-btn mw-btn-primary">Email me a new link</a></p>
+      </div>
+    </section>
+  ) : (
+    <>
+      <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+        <div class="mw-wrap">
+          <span class="mw-eyebrow">{booking!.status === 'cancelled' ? 'Cancelled' : started ? 'Past booking' : 'Confirmed'}</span>
+          <h1>{booking!.status === 'cancelled' ? 'This booking was cancelled.' : "You're booked in."}</h1>
+          {booking!.status !== 'cancelled' && (
+            <p>{booking!.customer.name.split(/\s+/)[0]}, here's everything about your booking.</p>
+          )}
+        </div>
+      </section>
+
+      <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+        <div class="mw-wrap" style="max-width: 640px;">
+          <div class="bc-card">
+            <dl class="bc-list">
+              <div><dt>Booked for</dt><dd>{booking!.customer.name}</dd></div>
+              <div><dt>Room</dt><dd>{room?.shortName ?? booking!.room}</dd></div>
+              <div><dt>When</dt><dd id="bc-when">{fmt(start!)}<br />{instantToLocalTime(start!)}–{instantToLocalTime(end!)}</dd></div>
+              <div><dt>Length</dt><dd id="bc-length">{durationWords(booking!.durationMins)}</dd></div>
+              <div><dt>Paid</dt><dd id="bc-paid">{formatPence(booking!.paidPence)}</dd></div>
+              <div><dt>Reference</dt><dd class="bc-ref">{ref}</dd></div>
+              {doorCode && booking!.status === 'confirmed' && <div><dt>Door code</dt><dd class="bc-ref">{doorCode}</dd></div>}
+            </dl>
+          </div>
+
+          {booking!.status === 'cancelled' && (
+            <>
+              <p class="bc-note">
+                This booking has been cancelled and the room released.
+                {refundedPence > 0
+                  ? ` We're refunding ${formatPence(refundedPence)} to the card you paid with — refunds usually take 5 to 10 working days to appear.`
+                  : ' No refund was due, because it was cancelled within an hour of the start time.'}
+              </p>
+              <p style="margin-top: var(--space-5);">
+                <a href={`/facilities/${booking!.room}`} class="mw-btn mw-btn-primary">Make another booking</a>
+              </p>
+            </>
+          )}
+
+          {doorCode && booking!.status === 'confirmed' && (
+            <p class="bc-note">
+              Your door entry code is <strong>{doorCode}</strong> — the last four digits of your
+              mobile number. It works for the length of your booking.
+            </p>
+          )}
+
+          {canManage && (
+            <div class="bc-actions">
+              {canAmend && <button class="mw-btn mw-btn-primary" id="bc-amend-open">Change the time</button>}
+              <button class="mw-btn mw-btn-secondary" id="bc-cancel-open">Cancel booking</button>
+            </div>
+          )}
+
+          {canManage && (
+            <p class="bc-note">
+              {refundIfCancelled > 0
+                ? `Cancel now and you'll be refunded ${formatPence(refundIfCancelled)} in full. Within an hour of the start time the booking is fixed — it can no longer be changed, and cancelling is not refunded.`
+                : 'This booking starts within the hour, so it can no longer be changed and cancelling would not be refunded. If you need to move it, please contact us.'}
+              {' '}To change room instead, cancel this booking and make a new one.
+            </p>
+          )}
+
+          {started && booking!.status === 'confirmed' && (
+            <p class="bc-note">This booking has started or already happened, so it can no longer be changed.</p>
+          )}
+
+          <!-- Amend -->
+          <div class="bc-panel" id="bc-amend" hidden>
+            <h2>Change the time</h2>
+            <label class="bc-field"><span>Date</span><input type="date" id="bc-date" /></label>
+            <div id="bc-slots" class="bc-slots"><p class="bc-muted">Loading…</p></div>
+            <div id="bc-durations" hidden></div>
+            <div id="bc-amend-quote" class="bc-quote" hidden></div>
+            <div id="bc-amend-pay" hidden>
+              <p class="bc-label">Card details for the difference</p>
+              <div id="bc-card" class="bc-card-mount"></div>
+              <p class="bc-muted">Processed securely by Square. We never store your card details.</p>
+            </div>
+            <div class="bc-actions">
+              <button class="mw-btn mw-btn-primary" id="bc-amend-confirm" hidden>Confirm change</button>
+              <button class="mw-btn mw-btn-ghost" id="bc-amend-close">Never mind</button>
+            </div>
+          </div>
+
+          <!-- Cancel -->
+          <div class="bc-panel" id="bc-cancel" hidden>
+            <h2>Cancel this booking</h2>
+            <p id="bc-cancel-quote" class="bc-quote-inline">Checking…</p>
+            <p class="bc-muted">This cannot be undone. To rebook you would need to make a new booking.</p>
+            <div class="bc-actions">
+              <button class="mw-btn mw-btn-primary" id="bc-cancel-confirm">Yes, cancel it</button>
+              <button class="mw-btn mw-btn-ghost" id="bc-cancel-close">Keep my booking</button>
+            </div>
+          </div>
+
+          <p class="bc-error" id="bc-error" role="alert" hidden></p>
+          <p class="bc-ok" id="bc-ok" role="status" hidden></p>
+
+          <p style="margin-top: var(--space-6);">
+            <a href="/facilities" class="mw-btn mw-btn-secondary">Back to facilities</a>
+          </p>
+        </div>
+      </section>
+
+    </>
+  )}
+
+  <script src={squareSdkUrl} is:inline></script>
+  <script define:vars={{
+    ref, token, canManage, canAmend,
+    currentDurationMins: booking?.durationMins ?? 60,
+    roomSlug: booking?.room ?? null,
+    squareAppId, squareLocationId, billingCountry,
+  }}>
+    // The token has been exchanged for a scoped HttpOnly cookie, so it can leave
+    // the address bar without breaking a refresh. Tokens in URLs end up in browser
+    // history, Referer headers and pasted screenshots.
+    // This script renders on every state of the page, including the "we need your
+    // link" one, so it does nothing unless the manage UI is actually present.
+    if (!document.getElementById('bc-error')) {
+      // Still worth stripping the token from the address bar even on a refusal.
+      // A browser restores your scroll position across a reload, so after amending or
+    // cancelling you would land halfway down the page you were already on rather
+    // than at the confirmation of what just happened. The flag is set immediately
+    // before the reload and cleared on arrival, so an ordinary refresh mid-read
+    // still keeps its place.
+    const SCROLL_FLAG = 'mb.booking.scrollTop';
+    if (sessionStorage.getItem(SCROLL_FLAG)) {
+      sessionStorage.removeItem(SCROLL_FLAG);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    const reloadToTop = () => {
+      try { sessionStorage.setItem(SCROLL_FLAG, '1'); } catch { /* private mode */ }
+      location.reload();
+    };
+
+    if (new URL(location.href).searchParams.has('t')) {
+        const c = new URL(location.href); c.searchParams.delete('t');
+        history.replaceState({}, '', c.toString());
+      }
+      throw new Error('booking: manage UI not present');
+    }
+
+    // A browser restores your scroll position across a reload, so after amending or
+    // cancelling you would land halfway down the page you were already on rather
+    // than at the confirmation of what just happened. The flag is set immediately
+    // before the reload and cleared on arrival, so an ordinary refresh mid-read
+    // still keeps its place.
+    const SCROLL_FLAG = 'mb.booking.scrollTop';
+    if (sessionStorage.getItem(SCROLL_FLAG)) {
+      sessionStorage.removeItem(SCROLL_FLAG);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    const reloadToTop = () => {
+      try { sessionStorage.setItem(SCROLL_FLAG, '1'); } catch { /* private mode */ }
+      location.reload();
+    };
+
+    if (new URL(location.href).searchParams.has('t')) {
+      const clean = new URL(location.href);
+      clean.searchParams.delete('t');
+      history.replaceState({}, '', clean.toString());
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const errEl = $('bc-error'); const okEl = $('bc-ok');
+    const showErr = (m) => { errEl.textContent = m; errEl.hidden = false; okEl.hidden = true; };
+    const showOk = (m) => { okEl.textContent = m; okEl.hidden = false; errEl.hidden = true; };
+    const clear = () => { errEl.hidden = true; okEl.hidden = true; };
+
+    // Related to the booking form's rule, but not identical, because these panels
+    // EXPAND rather than replace. The booking form's steps swap one panel for
+    // another, so it goes to the top of the whole widget and each step reads as
+    // its own page. Here the booking details stay put and a section opens beneath
+    // them, so the right target is that section's own top: its heading -- "Change
+    // the time", "Cancel this booking" -- becomes the first thing read, with the
+    // booking it refers to still just above.
+    const smoothOk = () => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // Opening a panel goes to that panel's own top, so its heading -- "Change the
+    // time", "Cancel this booking" -- is the first thing read.
+    function reveal(el) {
+      if (!el) return;
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'start' });
+      });
+    }
+
+    // Inside a panel, only move if the thing is genuinely off screen.
+    function revealIfHidden(el) {
+      if (!el) return;
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        if (!(r.top >= 96 && r.bottom <= window.innerHeight)) {
+          el.scrollIntoView({ behavior: smoothOk() ? 'smooth' : 'auto', block: 'nearest' });
+        }
+      });
+    }
+    const money = (p) => `£${(p / 100).toFixed(2)}`;
+
+    if (canManage) {
+      const state = { start: null, durationMins: null, chargePence: 0, card: null };
+
+      const post = async (path, body) => {
+        const res = await fetch(path, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref, token, ...body }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Something went wrong.');
+        return data;
+      };
+
+      // --- amend (only when the booking is outside the cancellation window) ---
+      if (canAmend) {
+      $('bc-amend-open').addEventListener('click', () => {
+        clear(); $('bc-cancel').hidden = true; $('bc-amend').hidden = false;
+        if (!$('bc-date').value) $('bc-date').value = new Date().toISOString().slice(0, 10);
+        loadSlots();
+        reveal($('bc-amend'));
+      });
+      $('bc-amend-close').addEventListener('click', () => { $('bc-amend').hidden = true; clear(); });
+      $('bc-date').addEventListener('change', loadSlots);
+
+      async function loadSlots() {
+        const date = $('bc-date').value;
+        const box = $('bc-slots');
+        box.innerHTML = '<p class="bc-muted">Loading…</p>';
+        $('bc-durations').hidden = true; $('bc-amend-quote').hidden = true;
+        $('bc-amend-confirm').hidden = true;
+        try {
+          const res = await fetch(`/api/booking/availability?room=${roomSlug}&from=${date}&to=${date}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          const day = data.days[0];
+          if (!day.open || !day.slots.length) { box.innerHTML = '<p class="bc-muted">Nothing free that day.</p>'; return; }
+          box.innerHTML = day.slots.map((s, i) => `<button class="bc-slot" data-i="${i}">${s.start.slice(11, 16)}</button>`).join('');
+          box.querySelectorAll('.bc-slot').forEach((b) => b.addEventListener('click', () => {
+            box.querySelectorAll('.bc-slot').forEach((x) => x.classList.remove('sel'));
+            b.classList.add('sel');
+            pickDurations(day.slots[Number(b.dataset.i)]);
+          }));
+        } catch (e) { box.innerHTML = `<p class="bc-muted">${e.message}</p>`; }
+      }
+
+      function pickDurations(slot) {
+        state.start = slot.start;
+        const box = $('bc-durations');
+        box.hidden = false;
+        revealIfHidden(box);
+        box.innerHTML = '<p class="bc-label">How long?</p><div class="bc-durs">'
+          + slot.durations.map((d, i) => {
+              const h = Math.floor(d.mins / 60); const m = d.mins % 60;
+              const on = d.mins === currentDurationMins;
+              return `<button class="bc-dur${on ? ' sel' : ''}" data-i="${i}"><b>${h ? h + 'h' : ''}${m ? ' ' + m + 'm' : ''}</b>${money(d.pricePence)}${on ? ' <em>current</em>' : ''}</button>`;
+            }).join('') + '</div>';
+        box.querySelectorAll('.bc-dur').forEach((b) => b.addEventListener('click', () => {
+          box.querySelectorAll('.bc-dur').forEach((x) => x.classList.remove('sel'));
+          b.classList.add('sel');
+          quote(slot.durations[Number(b.dataset.i)].mins);
+        }));
+        // Default to the length they already booked. Most people moving a booking
+        // want the same slot at a different time, so making them re-pick the
+        // duration is a step that exists only to be undone. Every other length is
+        // still one click away.
+        const same = slot.durations.find((d) => d.mins === currentDurationMins);
+        if (same) quote(same.mins);
+      }
+
+      async function quote(mins) {
+        state.durationMins = mins;
+        try {
+          const q = await post('/api/booking/amend', { start: state.start, durationMins: mins });
+          $('bc-amend-quote').textContent = q.message;
+          $('bc-amend-quote').hidden = false;
+          clear();
+          state.chargePence = q.chargePence || 0;
+          $('bc-amend-pay').hidden = state.chargePence === 0;
+          $('bc-amend-confirm').hidden = false;
+          $('bc-amend-confirm').textContent = state.chargePence > 0
+            ? `Pay ${money(state.chargePence)} and change`
+            : 'Confirm change';
+          if (state.chargePence > 0) await mountCard();
+        } catch (e) { showErr(e.message); }
+      }
+
+      // Mounted lazily: most amendments are same-price or cheaper and never need it.
+      async function mountCard() {
+        if (state.card) return;
+        if (typeof Square === 'undefined') { showErr('The payment form could not load.'); return; }
+        const loc = window.location;
+        if (loc.protocol !== 'https:' && !loc.hostname.endsWith('localhost')) {
+          showErr(`Square's payment form only loads over HTTPS or on "localhost" — this page is on ${loc.hostname}.`);
+          return;
+        }
+        try {
+          const payments = await Square.payments(squareAppId, squareLocationId);
+          // Same reasoning as the booking widget: visible labels, site-matching
+          // fields, and the sandbox's US-ZIP postal field prefilled out of the way.
+          // Always shown, matching the booking form. In sandbox it wants a US ZIP.
+          const opts = { includeInputLabels: true };
+          const style = {
+            input: { backgroundColor: '#ffffff', color: '#28201A' },
+            '.input-container': { borderColor: '#D1B08B', borderRadius: '10px', borderWidth: '1.5px' },
+            '.input-container.is-focus': { borderColor: '#74A953', borderWidth: '2px' },
+            '.input-container.is-error': { borderColor: '#C0392B' },
+            '.message-text.is-error': { color: '#8A2C0D' },
+          };
+          try {
+            state.card = await payments.card({ ...opts, style });
+          } catch (styleErr) {
+            console.warn('booking: card style rejected, falling back', styleErr);
+            state.card = await payments.card(opts);
+          }
+          await state.card.attach('#bc-card');
+          revealIfHidden($('bc-amend-pay'));
+        } catch (e) {
+          console.error('booking: amend card form failed', e);
+          showErr(`The payment form could not load (${e.message || e.name}).`);
+        }
+      }
+
+      $('bc-amend-confirm').addEventListener('click', async () => {
+        clear();
+        const btn = $('bc-amend-confirm');
+        btn.disabled = true;
+        try {
+          let sourceId;
+          if (state.chargePence > 0) {
+            if (!state.card) { showErr('The payment form is not ready.'); btn.disabled = false; return; }
+            // Same tokenize call as booking: verificationDetails runs SCA inline.
+            const r = await state.card.tokenize({
+              amount: (state.chargePence / 100).toFixed(2),
+              currencyCode: 'GBP', intent: 'CHARGE',
+              customerInitiated: true, sellerKeyedIn: false,
+              billingContact: { givenName: 'Booking', email: '', countryCode: billingCountry },
+            });
+            if (r.status !== 'OK') {
+              showErr(r.errors?.[0]?.message ?? 'Card details invalid.');
+              btn.disabled = false; return;
+            }
+            sourceId = r.token;
+          }
+          const r = await post('/api/booking/amend', {
+            start: state.start, durationMins: state.durationMins, confirm: true,
+            ...(sourceId ? { sourceId } : {}),
+          });
+          showOk(r.refundPence > 0
+            ? `Changed. ${money(r.refundPence)} is on its way back to your card.`
+            : 'Your booking has been changed.');
+          setTimeout(reloadToTop, 1400);
+        } catch (e) { showErr(e.message); btn.disabled = false; }
+      });
+
+      } // end canAmend
+
+      // --- cancel: still offered inside the window, just not refunded ---
+      $('bc-cancel-open').addEventListener('click', async () => {
+        clear(); $('bc-amend').hidden = true; $('bc-cancel').hidden = false;
+        reveal($('bc-cancel'));
+        try {
+          const q = await post('/api/booking/cancel', {});
+          $('bc-cancel-quote').textContent = q.message;
+        } catch (e) { showErr(e.message); }
+      });
+      $('bc-cancel-close').addEventListener('click', () => { $('bc-cancel').hidden = true; clear(); });
+      $('bc-cancel-confirm').addEventListener('click', async () => {
+        clear();
+        try {
+          const r = await post('/api/booking/cancel', { confirm: true });
+          showOk(r.refundPence > 0
+            ? `Cancelled. ${money(r.refundPence)} is on its way back to your card, usually within 5 to 10 working days.`
+            : 'Cancelled.');
+          $('bc-cancel').hidden = true;
+          setTimeout(reloadToTop, 1800);
+        } catch (e) { showErr(e.message); }
+      });
+    }
+  </script>
+</Layout>
+
+<style>
+  /* Same trap as the booking widget: .mw-btn sets display, which beats the
+     browser's [hidden] rule, so el.hidden on a button does nothing. */
+  .bc-actions [hidden], .bc-panel [hidden] { display: none !important; }
+  /* Sticky nav: keep scroll targets clear of it. */
+  .bc-panel, .bc-actions, #bc-durations, #bc-amend-pay { scroll-margin-top: 96px; }
+  .bc-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
+  .bc-list { margin: 0; display: grid; gap: 14px; }
+  .bc-list > div { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; }
+  .bc-list dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .bc-list dd { margin: 0; font-size: 15px; font-weight: 600; }
+  .bc-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.04em; }
+  .bc-note { margin: 18px 0 0; font-size: 14px; color: var(--fg-soft); line-height: 1.6; }
+  .bc-muted { color: var(--ink-mute); font-size: 14px; }
+  .bc-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+  .bc-panel { margin-top: 22px; background: var(--bone); border-radius: var(--r-lg); padding: 22px; }
+  .bc-panel h2 { font-size: 18px; margin: 0 0 14px; }
+  .bc-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .bc-field span { font-size: 13px; font-weight: 600; }
+  .bc-field input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1.5px solid var(--sand);
+    border-radius: 10px; background: #fff; color: var(--ink); }
+  /* Same trap as the booking widget: these are built with innerHTML, so they never
+     get Astro's data-astro-cid-* attribute and a scoped `.bc-slot` rule matches
+     nothing at all. Anchored to a container that IS in the template. */
+  .bc-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bc-slots :global(.bc-slot) { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums;
+    padding: 10px 14px; border: 0; border-radius: var(--r-pill); background: var(--paper-deep);
+    color: var(--ink); cursor: pointer; }
+  .bc-slots :global(.bc-slot:hover) { box-shadow: inset 0 0 0 2px var(--sand); }
+  .bc-slots :global(.bc-slot.sel) { background: var(--green-dark); color: #fff; font-weight: 700;
+    box-shadow: 0 0 0 3px var(--bone), 0 0 0 5px var(--green-dark); }
+  .bc-panel :global(.bc-label) { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--ink); }
+  .bc-panel :global(.bc-durs) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bc-panel :global(.bc-dur) { display: inline-flex; gap: 8px; align-items: baseline; font: inherit;
+    font-size: 14px; padding: 11px 16px; border: 1.5px solid var(--sand); border-radius: var(--r-pill);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  .bc-panel :global(.bc-dur.sel) { border-color: var(--green-dark); border-width: 2px; background: #EDF5E4;
+    font-weight: 700; }
+  .bc-panel :global(.bc-dur em) { font-style: normal; font-size: 11px; color: var(--green-dark); font-weight: 600; }
+  .bc-panel :global(.bc-muted) { color: var(--ink-mute); font-size: 14px; }
+  .bc-quote, .bc-quote-inline { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px;
+    background: var(--paper-deep); font-size: 14px; font-weight: 600; }
+  .bc-card-mount { margin: 10px 0; min-height: 90px; }
+  .bc-error { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #FCECE7;
+    color: #8A2C0D; font-weight: 600; font-size: 14px; }
+  .bc-ok { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #E8F3DF;
+    color: #33581D; font-weight: 600; font-size: 14px; }
+  @media (max-width: 560px) { .bc-list > div { grid-template-columns: 1fr; gap: 2px; } }
+</style>

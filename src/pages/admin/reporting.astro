@@ -1,0 +1,231 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { listBookings } from '../../lib/booking/store.ts';
+import { freshenPending } from '../../lib/booking/reconcile.ts';
+import { getBookableRooms } from '../../lib/booking/config-reader.ts';
+import { formatPence } from '../../lib/booking/pricing.ts';
+import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers } from '../../lib/booking/reporting.ts';
+
+export const prerender = false;
+for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
+
+const actor = verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value);
+if (!actor) return Astro.redirect('/admin/signin', 302);
+
+const months = Number(Astro.url.searchParams.get('months') ?? 12);
+const to = new Date();
+const from = new Date(to.getTime() - months * 30 * 86400000);
+
+// A database failure here is almost always credentials, and a bare 500 sends
+// whoever is on call looking in the wrong place. Say so instead.
+let rows: Awaited<ReturnType<typeof listBookings>> = [];
+let dataError: string | null = null;
+try {
+  rows = await listBookings(from, to);
+  // Figures the treasurer might act on: settle anything pending before totalling.
+  if ((await freshenPending(rows)).size > 0) rows = await listBookings(from, to);
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error('admin: could not read bookings', message);
+  dataError = /invalid_rapt|invalid_grant|impersonate|UNAUTHENTICATED|PERMISSION_DENIED/i.test(message)
+    ? 'Could not reach the booking database: the credentials have expired. '
+      + 'Locally, run `gcloud auth application-default login`. In production, check the '
+      + 'Cloud Run service account still has roles/datastore.user on meadowbrook-booking.'
+    : `Could not reach the booking database. ${message.slice(0, 200)}`;
+}
+const rooms = await getBookableRooms();
+const roomName = (slug: string) => rooms.find((r) => r.slug === slug)?.shortName ?? slug;
+// 08:00–23:00 every day, per 02-availability-and-rules.
+const OPENING_HOURS_PER_DAY = 15;
+
+const h = headline(rows);
+const revenue = byRoomByMonth(rows);
+const occ = occupancy(rows, OPENING_HOURS_PER_DAY);
+const lead = leadTimes(rows);
+const repeat = repeatBookers(rows);
+
+const monthsList = [...new Set(revenue.map((r) => r.month))].sort();
+const roomsList = [...new Set(revenue.map((r) => r.room))].sort();
+const maxNet = Math.max(1, ...revenue.map((r) => r.netPence));
+const netFor = (m: string, r: string) => revenue.find((x) => x.month === m && x.room === r)?.netPence ?? 0;
+const monthLabel = (m: string) => {
+  const [y, mm] = m.split('-').map(Number);
+  return new Date(Date.UTC(y, mm - 1, 1)).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+};
+// Distinguishable without colour: each room also gets a hatch pattern.
+const ROOM_FILL = ['var(--green)', 'var(--sky)', 'var(--sun)'];
+const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const maxLead = Math.max(1, ...lead.map((l) => l.count));
+---
+
+<Layout title="Booking reporting" description="Income from room bookings." noindex={true}>
+  <section class="mw-sect rp-head">
+    <div class="mw-wrap">
+      <div class="rp-top">
+        <div>
+          <span class="mw-eyebrow">Reporting</span>
+          <h1>What the rooms earned</h1>
+        </div>
+        <div class="rp-who">
+          <a href="/admin/bookings">Bookings</a>
+          <form method="GET">
+            <select name="months" onchange="this.form.submit()">
+              {[3, 6, 12, 24].map((m) => <option value={m} selected={months === m}>Last {m} months</option>)}
+            </select>
+          </form>
+        </div>
+      </div>
+
+      {dataError && <p class="rp-fail">{dataError}</p>}
+      {h.unsettledPence > 0 && (
+        <p class="rp-warn">
+          <strong>{formatPence(h.unsettledPence)} is unsettled.</strong> Square has accepted these
+          payments or refunds but not finalised them, so they are excluded from the figures below.
+          They settle when the payment webhook lands (Phase 5) — until then, treat net as a floor.
+        </p>
+      )}
+
+      <div class="rp-cards">
+        <div class="rp-card"><span>Net</span><strong>{formatPence(h.netPence)}</strong>
+          <small>{formatPence(h.grossPence)} taken · {formatPence(h.refundedPence)} refunded</small></div>
+        <div class="rp-card"><span>Bookings</span><strong>{h.bookingCount}</strong>
+          <small>{h.cancelledCount} cancelled ({pct(h.cancellationRate)})</small></div>
+        <div class="rp-card"><span>Average booking</span><strong>{formatPence(h.averageValuePence)}</strong>
+          <small>{h.averageDurationMins} minutes</small></div>
+        <div class="rp-card"><span>Repeat hirers</span><strong>{repeat.repeatBookers}</strong>
+          <small>of {repeat.uniqueBookers} · {pct(repeat.repeatRevenueShare)} of income</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+
+      <h2 class="rp-h2">Net revenue by room</h2>
+      {monthsList.length === 0 ? <p class="rp-empty">No bookings in this period.</p> : (
+        <>
+          <div class="rp-chart-wrap">
+            <div class="rp-legend">
+              {roomsList.map((r, i) => (
+                <span class="rp-key"><i style={`background:${ROOM_FILL[i % 3]}`}></i>{roomName(r)}</span>
+              ))}
+            </div>
+            <div class="rp-bars" style={`--cols:${monthsList.length}`}>
+              {monthsList.map((m) => (
+                <div class="rp-col">
+                  <div class="rp-stack">
+                    {roomsList.map((r, i) => {
+                      const v = netFor(m, r);
+                      return v > 0 ? (
+                        <div class="rp-bar" style={`height:${(v / maxNet) * 100}%;background:${ROOM_FILL[i % 3]}`}
+                             title={`${roomName(r)} ${monthLabel(m)}: ${formatPence(v)}`}></div>
+                      ) : null;
+                    })}
+                  </div>
+                  <span class="rp-xlabel">{monthLabel(m)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <table class="rp-table">
+            <thead><tr><th>Month</th>{roomsList.map((r) => <th>{roomName(r)}</th>)}<th>Total</th></tr></thead>
+            <tbody>
+              {monthsList.map((m) => {
+                const vals = roomsList.map((r) => netFor(m, r));
+                return <tr><td>{monthLabel(m)}</td>{vals.map((v) => <td>{formatPence(v)}</td>)}
+                  <td><strong>{formatPence(vals.reduce((a, b) => a + b, 0))}</strong></td></tr>;
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      <h2 class="rp-h2">Occupancy</h2>
+      <p class="rp-note">
+        Booked hours as a share of the {OPENING_HOURS_PER_DAY} hours a day each room is open.
+        This is the figure Acuity does not give you — it is what says whether to raise a price
+        or market a room.
+      </p>
+      {occ.length === 0 ? <p class="rp-empty">Nothing booked in this period.</p> : (
+        <table class="rp-table">
+          <thead><tr><th>Month</th><th>Room</th><th>Booked</th><th>Available</th><th>Occupancy</th></tr></thead>
+          <tbody>
+            {occ.map((o) => (
+              <tr>
+                <td>{monthLabel(o.month)}</td><td>{roomName(o.room)}</td>
+                <td>{o.bookedHours.toFixed(1)} h</td><td>{o.availableHours} h</td>
+                <td>
+                  <div class="rp-meter"><div style={`width:${Math.min(100, o.rate * 100)}%`}></div></div>
+                  <span class="rp-meter-label">{pct(o.rate)}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 class="rp-h2">How far ahead people book</h2>
+      <table class="rp-table rp-narrow">
+        <tbody>
+          {lead.map((l) => (
+            <tr>
+              <td>{l.bucket}</td>
+              <td class="rp-barcell"><div class="rp-hbar" style={`width:${(l.count / maxLead) * 100}%`}></div></td>
+              <td class="rp-num">{l.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p class="rp-note">
+        <a href="/api/admin/export?view=past">Download the treasurer's CSV</a> — one row per
+        booking, with charges and refunds flattened.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .rp-head { padding-bottom: var(--space-4); }
+  .rp-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .rp-top h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 8px 0 0; }
+  .rp-who { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+  .rp-who select { font: inherit; font-size: 13px; padding: 7px 11px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--sand); background: #fff; }
+  .rp-warn { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; font-size: 14px; line-height: 1.55;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .rp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 22px; }
+  .rp-card { background: var(--bone); border-radius: var(--r-lg); padding: 18px 20px; display: flex; flex-direction: column; gap: 3px; }
+  .rp-card span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-mute); font-weight: 600; }
+  .rp-card strong { font-size: 26px; line-height: 1.1; }
+  .rp-card small { font-size: 12px; color: var(--ink-mute); }
+  .rp-h2 { font-size: 20px; margin: var(--space-7) 0 6px; }
+  .rp-note { font-size: 14px; color: var(--fg-soft); line-height: 1.6; margin: 0 0 16px; max-width: 62ch; }
+  .rp-chart-wrap { background: var(--bone); border-radius: var(--r-lg); padding: 20px; margin-bottom: 16px; }
+  .rp-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; font-size: 13px; }
+  .rp-key { display: inline-flex; align-items: center; gap: 7px; }
+  .rp-key i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .rp-bars { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 6px; height: 200px; align-items: end; }
+  .rp-col { display: flex; flex-direction: column; height: 100%; justify-content: flex-end; gap: 6px; }
+  .rp-stack { display: flex; flex-direction: column-reverse; height: 100%; justify-content: flex-start; gap: 2px; }
+  .rp-bar { border-radius: 3px 3px 0 0; min-height: 2px; }
+  .rp-xlabel { font-size: 10px; color: var(--ink-mute); text-align: center; white-space: nowrap; }
+  .rp-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--bone);
+    border-radius: var(--r-lg); overflow: hidden; margin-bottom: 12px; }
+  .rp-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-mute); padding: 12px 16px; border-bottom: 1px solid var(--paper-deep); }
+  .rp-table td { padding: 11px 16px; border-bottom: 1px solid var(--paper-deep); }
+  .rp-narrow td:first-child { width: 140px; }
+  .rp-num { text-align: right; font-variant-numeric: tabular-nums; width: 60px; }
+  .rp-barcell { width: auto; }
+  .rp-hbar { height: 12px; background: var(--green); border-radius: 3px; min-width: 2px; }
+  .rp-meter { display: inline-block; width: 110px; height: 10px; background: var(--paper-deep);
+    border-radius: 5px; overflow: hidden; vertical-align: middle; }
+  .rp-meter > div { height: 100%; background: var(--green); }
+  .rp-meter-label { font-size: 12px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+  .rp-empty { color: var(--fg-soft); margin-bottom: 20px; }
+  .rp-fail { margin: 18px 0 0; padding: 14px 16px; border-radius: 10px; font-size: 14px;
+    line-height: 1.6; background: #FCECE7; color: #8A2C0D; border: 1.5px solid #E0A38F; }
+</style>

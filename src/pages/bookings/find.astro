@@ -1,0 +1,80 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { BOOKING_HEADERS } from '../../lib/booking/session.ts';
+export const prerender = false;
+for (const [k, v] of Object.entries(BOOKING_HEADERS)) Astro.response.headers.set(k, v);
+---
+
+<Layout title="Find your booking" description="Get a link to your Meadowbrook bookings." noindex={true}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Lost your link?</span>
+      <h1>We'll email it again.</h1>
+      <p>
+        Enter the email address you booked with and we'll send links to any bookings
+        you have coming up.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+    <div class="mw-wrap" style="max-width: 520px;">
+      <div class="fd-card">
+        <label class="fd-field">
+          <span>Email address</span>
+          <input type="email" id="fd-email" autocomplete="email" placeholder="you@example.com" />
+        </label>
+        <button class="mw-btn mw-btn-primary" id="fd-go">Email me my links</button>
+        <p class="fd-msg" id="fd-msg" role="status" hidden></p>
+      </div>
+      <p class="fd-note">
+        Links are only sent for bookings that haven't happened yet. Sending a new link
+        replaces any previous one for that booking.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const btn = document.getElementById('fd-go');
+  const input = document.getElementById('fd-email') as HTMLInputElement;
+  const msg = document.getElementById('fd-msg')!;
+
+  async function submit() {
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msg.textContent = 'Please enter a valid email address.';
+      msg.hidden = false;
+      return;
+    }
+    btn!.setAttribute('disabled', 'true');
+    btn!.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/booking/find', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      msg.textContent = data.message ?? data.error ?? 'Something went wrong.';
+    } catch {
+      msg.textContent = 'Something went wrong. Please try again.';
+    }
+    msg.hidden = false;
+    btn!.removeAttribute('disabled');
+    btn!.textContent = 'Email me my links';
+  }
+
+  btn!.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+</script>
+
+<style>
+  .fd-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
+  .fd-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .fd-field span { font-size: 13px; font-weight: 600; }
+  .fd-field input { font: inherit; font-size: 15px; padding: 11px 13px; border: 1.5px solid var(--sand);
+    border-radius: 10px; background: #fff; color: var(--ink); }
+  .fd-msg { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--paper-deep);
+    font-size: 14px; line-height: 1.5; }
+  .fd-note { margin: 18px 0 0; font-size: 13px; color: var(--fg-soft); line-height: 1.6; }
+</style>

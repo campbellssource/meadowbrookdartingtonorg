@@ -1,0 +1,321 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { listBookings } from '../../lib/booking/store.ts';
+import { freshenPending } from '../../lib/booking/reconcile.ts';
+import { getBookableRooms } from '../../lib/booking/config-reader.ts';
+import { formatPence } from '../../lib/booking/pricing.ts';
+import { doorCodeFor } from '../../lib/booking/event-format.ts';
+import { instantToLocalTime } from '../../lib/booking/time.ts';
+
+export const prerender = false;
+for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
+
+const actor = verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value);
+if (!actor) return Astro.redirect('/admin/signin', 302);
+
+const p = Astro.url.searchParams;
+const view = p.get('view') ?? 'upcoming';
+const roomFilter = p.get('room') ?? '';
+const statusFilter = p.get('status') ?? '';
+const q = (p.get('q') ?? '').trim().toLowerCase();
+
+const now = new Date();
+const from = view === 'past' ? new Date(now.getTime() - 365 * 86400000) : now;
+const to = view === 'past' ? now : new Date(now.getTime() + 365 * 86400000);
+
+const rooms = await getBookableRooms();
+const roomName = (slug: string) => rooms.find((r) => r.slug === slug)?.shortName ?? slug;
+
+// A database failure here is almost always credentials, and a bare 500 sends
+// whoever is on call looking in the wrong place. Say so instead.
+let all: Awaited<ReturnType<typeof listBookings>> = [];
+let dataError: string | null = null;
+try {
+  all = await listBookings(from, to);
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error('admin: could not read bookings', message);
+  dataError = /invalid_rapt|invalid_grant|impersonate|UNAUTHENTICATED|PERMISSION_DENIED/i.test(message)
+    ? 'Could not reach the booking database: the credentials have expired. '
+      + 'Locally, run `gcloud auth application-default login`. In production, check the '
+      + 'Cloud Run service account still has roles/datastore.user on meadowbrook-booking.'
+    : `Could not reach the booking database. ${message.slice(0, 200)}`;
+}
+// Square reports refunds as PENDING and settles them minutes later. Rather than
+// show a figure that is knowably out of date until the hourly sweep runs, ask
+// Square about anything still pending as the page loads. Costs nothing when
+// nothing is pending, which is the usual case.
+const freshened = await freshenPending(all);
+if (freshened.size > 0) all = await listBookings(from, to);
+if (view === 'past') all = all.reverse();
+const filtered = all.filter(({ ref, booking: b }) => {
+  if (roomFilter && b.room !== roomFilter) return false;
+  if (statusFilter && b.status !== statusFilter) return false;
+  if (q) {
+    const hay = `${ref} ${b.customer.name} ${b.customer.email} ${b.customer.phone ?? ''}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+});
+
+const needsReview = filtered.filter(({ booking: b }) =>
+  b.status === 'confirmed' && !b.calendarEventId);
+const owed = filtered.filter(({ booking: b }) =>
+  b.status === 'cancelled' && b.paidPence > 0);
+
+const fmtDate = (d: Date) => d.toLocaleDateString('en-GB', {
+  timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+});
+---
+
+<Layout title="Bookings admin" description="Meadowbrook bookings." noindex={true}>
+  <section class="mw-sect ad-head">
+    <div class="mw-wrap">
+      <div class="ad-top">
+        <div>
+          <span class="mw-eyebrow">Bookings admin</span>
+          <h1>{filtered.length} booking{filtered.length === 1 ? '' : 's'}</h1>
+        </div>
+        <div class="ad-who">
+          <span>{actor}</span>
+          <a href="/admin/reporting">Reporting</a>
+          <button type="button" id="ad-signout">Sign out</button>
+        </div>
+      </div>
+
+      <form class="ad-filters" method="GET">
+        <select name="view">
+          <option value="upcoming" selected={view === 'upcoming'}>Upcoming</option>
+          <option value="past" selected={view === 'past'}>Past 12 months</option>
+        </select>
+        <select name="room">
+          <option value="">All rooms</option>
+          {rooms.map((r) => <option value={r.slug} selected={roomFilter === r.slug}>{r.shortName}</option>)}
+        </select>
+        <select name="status">
+          <option value="">Any status</option>
+          {['confirmed', 'cancelled', 'orphaned'].map((s) =>
+            <option value={s} selected={statusFilter === s}>{s}</option>)}
+        </select>
+        <input type="search" name="q" value={q} placeholder="name, email or reference" />
+        <button class="mw-btn mw-btn-primary mw-btn-sm" type="submit">Filter</button>
+        <a class="ad-csv" href={`/api/admin/export?${p.toString()}`}>Download CSV</a>
+      </form>
+
+      {dataError && <p class="ad-fail">{dataError}</p>}
+      {needsReview.length > 0 && (
+        <p class="ad-warn">
+          <strong>{needsReview.length} booking{needsReview.length === 1 ? '' : 's'} paid but not on the calendar.</strong>
+          {' '}The room is not blocked and no door code will have been issued.
+        </p>
+      )}
+      {owed.length > 0 && (
+        <p class="ad-warn">
+          <strong>{owed.length} cancelled booking{owed.length === 1 ? '' : 's'} still showing money held.</strong>
+          {' '}Usually a refund Square has not settled yet — it clears when the payment webhook lands.
+        </p>
+      )}
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      {filtered.length === 0 ? (
+        <p class="ad-empty">No bookings match.</p>
+      ) : (
+        <div class="ad-table-wrap">
+          <table class="ad-table">
+            <thead>
+              <tr><th>When</th><th>Room</th><th>Booker</th><th>Length</th><th>Price</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {filtered.map(({ ref, booking: b }) => {
+                const start = b.start.toDate();
+                const settled = b.paidPence === b.pricePence;
+                return (
+                  <>
+                    <tr class={b.status === 'cancelled' ? 'is-cancelled' : ''}>
+                      <td>{fmtDate(start)}<br /><span class="ad-time">{instantToLocalTime(start)}–{instantToLocalTime(b.end.toDate())}</span></td>
+                      <td>{roomName(b.room)}</td>
+                      <td>{b.customer.name}<br /><span class="ad-sub">{b.customer.email}</span></td>
+                      <td>{b.durationMins} min</td>
+                      <td>
+                        {formatPence(b.pricePence)}
+                        {!settled && <><br /><span class="ad-sub">paid {formatPence(b.paidPence)}</span></>}
+                      </td>
+                      <td><span class={`ad-pill ad-${b.status}`}>{b.status}</span></td>
+                      <td><button class="ad-expand" data-ref={ref}>Details</button></td>
+                    </tr>
+                    <tr class="ad-detail" id={`d-${ref}`} hidden>
+                      <td colspan="7">
+                        <div class="ad-detail-grid">
+                          <div>
+                            <h4>Contact</h4>
+                            <p>{b.customer.name}<br />{b.customer.email}<br />{b.customer.phone ?? '—'}</p>
+                            {b.customer.notes && <p class="ad-sub">{b.customer.notes}</p>}
+                            <h4>Reference</h4>
+                            <p class="ad-mono">{ref}</p>
+                            {doorCodeFor(b.customer.phone ?? '') && (
+                              <><h4>Door code</h4><p class="ad-mono">{doorCodeFor(b.customer.phone ?? '')}</p></>
+                            )}
+                          </div>
+                          <div>
+                            <h4>Payments</h4>
+                            {b.payments.length === 0 ? <p class="ad-sub">None</p> : (
+                              <ul class="ad-ledger">
+                                {b.payments.map((pay) => (
+                                  <li>
+                                    <span class={pay.kind === 'refund' ? 'ad-out' : 'ad-in'}>
+                                      {pay.kind === 'refund' ? '−' : '+'}{formatPence(pay.amountPence)}
+                                    </span>
+                                    <span class="ad-sub">{pay.reason} · {pay.status}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            <h4>History</h4>
+                            <ul class="ad-hist">
+                              {b.history.map((h) => (
+                                <li>{h.action} <span class="ad-sub">{h.actor}</span></li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4>Actions</h4>
+                            <div class="ad-actions">
+                              <button class="ad-act" data-act="resend" data-ref={ref}>Resend confirmation</button>
+                              {b.status === 'confirmed' && (
+                                <button class="ad-act ad-danger" data-act="cancel" data-ref={ref}>Cancel &amp; refund</button>
+                              )}
+                              {b.paidPence > 0 && (
+                                <button class="ad-act ad-danger" data-act="refund" data-ref={ref} data-max={b.paidPence}>Refund an amount…</button>
+                              )}
+                              <button class="ad-act" data-act="note" data-ref={ref}>Add a note</button>
+                            </div>
+                            <p class="ad-result" id={`r-${ref}`} hidden></p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<script>
+  document.getElementById('ad-signout')?.addEventListener('click', async () => {
+    await fetch('/api/admin/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    window.location.href = '/admin/signin';
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.ad-expand').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = document.getElementById(`d-${btn.dataset.ref}`)!;
+      row.hidden = !row.hidden;
+      btn.textContent = row.hidden ? 'Details' : 'Hide';
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.ad-act').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const ref = btn.dataset.ref!;
+      const act = btn.dataset.act!;
+      const out = document.getElementById(`r-${ref}`)!;
+      const say = (m: string) => { out.textContent = m; out.hidden = false; };
+
+      // Money actions state the amount in cash and require a deliberate confirm.
+      let body: Record<string, unknown> = { ref, action: act };
+      if (act === 'cancel') {
+        if (!confirm(`Cancel ${ref} and refund per policy? This cannot be undone.`)) return;
+      } else if (act === 'refund') {
+        const max = Number(btn.dataset.max);
+        const input = prompt(`Refund how much, in pounds? (up to £${(max / 100).toFixed(2)})`);
+        if (!input) return;
+        const pence = Math.round(parseFloat(input) * 100);
+        if (!Number.isFinite(pence) || pence <= 0 || pence > max) { say('That amount is not valid.'); return; }
+        const why = prompt('Reason for this refund? (required, stored in the booking history)');
+        if (!why) { say('A reason is required.'); return; }
+        if (!confirm(`Refund £${(pence / 100).toFixed(2)} for ${ref}?`)) return;
+        body = { ...body, amountPence: pence, reason: why };
+      } else if (act === 'note') {
+        const note = prompt('Internal note:');
+        if (!note) return;
+        body = { ...body, note };
+      }
+
+      btn.disabled = true;
+      say('Working…');
+      try {
+        const res = await fetch('/api/admin/action', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed.');
+        say(data.message ?? 'Done.');
+        if (act !== 'note') setTimeout(() => location.reload(), 1500);
+      } catch (e) {
+        say((e as Error).message);
+      }
+      btn.disabled = false;
+    });
+  });
+</script>
+
+<style>
+  .ad-head { padding-bottom: var(--space-4); }
+  .ad-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .ad-top h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 8px 0 0; }
+  .ad-who { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--fg-soft); }
+  .ad-who form { display: inline; }
+  .ad-who button { font: inherit; font-size: 13px; background: none; border: 0; color: var(--green-dark);
+    cursor: pointer; text-decoration: underline; padding: 0; }
+  .ad-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
+  .ad-filters select, .ad-filters input { font: inherit; font-size: 14px; padding: 8px 11px;
+    border: 1.5px solid var(--sand); border-radius: var(--r-pill); background: #fff; color: var(--ink); }
+  .ad-filters input { min-width: 220px; }
+  .ad-csv { font-size: 13px; color: var(--green-dark); margin-left: auto; }
+  .ad-warn { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; font-size: 14px;
+    background: #FDF3E3; color: #7A4B12; border: 1.5px solid #E8C08A; }
+  .ad-table-wrap { overflow-x: auto; background: var(--bone); border-radius: var(--r-lg); }
+  .ad-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 780px; }
+  .ad-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-mute); padding: 14px 16px; border-bottom: 1px solid var(--paper-deep); }
+  .ad-table td { padding: 14px 16px; border-bottom: 1px solid var(--paper-deep); vertical-align: top; }
+  .ad-table tr.is-cancelled td { opacity: 0.55; }
+  .ad-time, .ad-sub { font-size: 12px; color: var(--ink-mute); }
+  .ad-mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .ad-pill { display: inline-block; padding: 3px 10px; border-radius: var(--r-pill); font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ad-confirmed { background: #E8F3DF; color: #33581D; }
+  .ad-cancelled { background: var(--paper-deep); color: var(--ink-soft); }
+  .ad-orphaned { background: #FCECE7; color: #8A2C0D; }
+  .ad-expand { font: inherit; font-size: 13px; background: none; border: 1.5px solid var(--sand);
+    border-radius: var(--r-pill); padding: 5px 12px; cursor: pointer; color: var(--ink); }
+  .ad-detail td { background: var(--bg-elevated); }
+  .ad-detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .ad-detail-grid h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-mute); margin: 0 0 6px; }
+  .ad-detail-grid h4 + p, .ad-detail-grid h4 + ul { margin: 0 0 16px; }
+  .ad-detail-grid p { font-size: 14px; line-height: 1.5; }
+  .ad-ledger, .ad-hist { list-style: none; padding: 0; font-size: 13px; }
+  .ad-ledger li, .ad-hist li { display: flex; gap: 10px; padding: 3px 0; }
+  .ad-in { color: #33581D; font-weight: 600; }
+  .ad-out { color: #8A2C0D; font-weight: 600; }
+  .ad-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .ad-act { font: inherit; font-size: 13px; padding: 7px 14px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--sand); background: #fff; cursor: pointer; color: var(--ink); }
+  .ad-danger { border-color: #E0A38F; color: #8A2C0D; }
+  .ad-result { margin-top: 12px; font-size: 13px; font-weight: 600; }
+  .ad-empty { color: var(--fg-soft); }
+  .ad-fail { margin: 16px 0 0; padding: 14px 16px; border-radius: 10px; font-size: 14px;
+    line-height: 1.6; background: #FCECE7; color: #8A2C0D; border: 1.5px solid #E0A38F; }
+  @media (max-width: 860px) { .ad-detail-grid { grid-template-columns: 1fr; gap: 18px; } }
+</style>

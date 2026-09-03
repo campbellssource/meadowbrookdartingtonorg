@@ -12,3 +12,20 @@ facilityType:
       - Heating
       - Toilet facilities
     bookingCategory: Snooker
+    booking:
+      calendarId: c_7d03780450348bae6a9fbe620e8d8d70254f5da1f058ca9a631e89a820850c71@group.calendar.google.com
+      shortName: Snooker Room
+      hourlyRatePence: 750
+      openingFrom: '08:00'
+      openingTo: '23:00'
+      minDurationMins: 60
+      durationIncrementMins: 30
+      maxDurationMins: 900
+      slotGranularityMins: 15
+      bufferMins: 0
+      minNoticeHours: 0
+      maxAdvanceDays: 90
+      capacityNote: >-
+        Cues and equipment are provided. The bar downstairs keeps its own hours and is not part of your booking.
+      intakeQuestions: []
+      active: true

@@ -715,7 +715,8 @@ import KeepInTouch from '../components/KeepInTouch.astro';
     background: var(--bone);
     overflow: hidden;
   }
-  .zones-loading { padding: var(--space-5); margin: 0; color: var(--fg-mute); font-size: 0.9rem; }
+  /* Also rendered from JS on error, where a scoped selector would not match. */
+  .zones-loading, .mw-wrap :global(.zones-loading) { padding: var(--space-5); margin: 0; color: var(--fg-mute); font-size: 0.9rem; }
 
   /* Mini map preview */
   .mini-map-wrap {

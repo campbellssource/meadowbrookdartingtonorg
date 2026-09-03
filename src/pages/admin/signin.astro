@@ -1,0 +1,113 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { ADMIN_HEADERS, devLoginAllowed, adminEmails, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { randomUUID } from 'node:crypto';
+import { env } from '../../lib/booking/env.ts';
+import { OAUTH_STATE_COOKIE } from '../../lib/booking/admin-auth.ts';
+
+export const prerender = false;
+for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
+
+if (verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value)) return Astro.redirect('/admin/bookings', 302);
+
+const clientId = env('BOOKING_ADMIN_OAUTH_CLIENT_ID');
+const redirectUri = new URL('/admin/auth/callback', Astro.url.origin).toString();
+
+// A `state` value, stored in a short cookie and required to match on the way back.
+// Without it, an attacker can complete their own authorisation and hand the victim
+// the resulting callback URL, silently signing them into the attacker's account --
+// login CSRF. The allowlist limits who can be signed in as, but that bounds the
+// damage rather than preventing it, and the parameter costs nothing.
+const state = clientId ? randomUUID() : null;
+if (state) {
+  Astro.cookies.set(OAUTH_STATE_COOKIE, state, {
+    httpOnly: true, sameSite: 'lax', path: '/admin',
+    secure: Astro.url.protocol === 'https:', maxAge: 600,
+  });
+}
+
+const googleUrl = clientId
+  ? 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+      client_id: clientId, redirect_uri: redirectUri, response_type: 'code',
+      scope: 'openid email', hd: 'meadowbrookdartington.org', prompt: 'select_account',
+      state: state!,
+    }).toString()
+  : null;
+
+const denied = Astro.url.searchParams.get('denied');
+const dev = devLoginAllowed();
+---
+
+<Layout title="Admin sign in" description="Meadowbrook booking admin." noindex={true}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-5);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Bookings admin</span>
+      <h1>Sign in.</h1>
+    </div>
+  </section>
+  <section class="mw-sect" style="background: var(--bg-elevated); padding-top: var(--space-5);">
+    <div class="mw-wrap" style="max-width: 460px;">
+      {denied && (
+        <p class="ad-deny">
+          {denied === 'not-allowed'
+            ? 'That Google account is not on the admin list.'
+            : denied === 'state'
+              ? 'That sign-in link did not come from this browser, or it expired. Please start again.'
+              : 'Sign-in failed. Please try again.'}
+        </p>
+      )}
+      <div class="ad-card">
+        {googleUrl ? (
+          <a href={googleUrl} class="mw-btn mw-btn-primary mw-btn-lg">Sign in with Google</a>
+        ) : (
+          <p class="ad-note">
+            Google sign-in is not configured yet — the OAuth client still needs creating.
+            See <code>spec/booking/08-infrastructure.md</code>.
+          </p>
+        )}
+        {dev && (
+          <div class="ad-dev">
+            <p class="ad-note"><strong>Local development.</strong> Signs in without Google.</p>
+            <select id="ad-dev-email">
+              {adminEmails().map((e) => <option value={e}>{e}</option>)}
+            </select>
+            <button class="mw-btn mw-btn-secondary" id="ad-dev-go" type="button">Sign in locally</button>
+            <p class="ad-deny" id="ad-dev-err" hidden></p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Posted as JSON rather than as a form. Astro's cross-site check applies to
+  // form-encoded POSTs, and some browsers omit the Origin header on a same-origin
+  // form submission -- which Astro then reads as cross-site and refuses. JSON is
+  // exempt because it cannot be sent cross-origin without a CORS preflight.
+  const go = document.getElementById('ad-dev-go');
+  go?.addEventListener('click', async () => {
+    const email = (document.getElementById('ad-dev-email') as HTMLSelectElement).value;
+    const err = document.getElementById('ad-dev-err')!;
+    err.hidden = true;
+    const res = await fetch('/api/admin/dev-login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) { window.location.href = '/admin/bookings'; return; }
+    err.textContent = await res.text();
+    err.hidden = false;
+  });
+</script>
+
+<style>
+  .ad-card { background: var(--bone); border-radius: var(--r-lg); padding: 24px; }
+  .ad-note { font-size: 14px; color: var(--fg-soft); line-height: 1.6; margin: 0 0 12px; }
+  .ad-dev { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--paper-deep);
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .ad-dev select { font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 10px;
+    border: 1.5px solid var(--sand); background: #fff; width: 100%; }
+  .ad-deny { margin: 0 0 18px; padding: 12px 14px; border-radius: 10px;
+    background: #FCECE7; color: #8A2C0D; font-weight: 600; font-size: 14px; }
+  code { font-size: 13px; background: var(--paper-deep); padding: 2px 6px; border-radius: 4px; }
+</style>

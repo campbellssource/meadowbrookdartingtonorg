@@ -11,12 +11,18 @@
     "crawl:dry": "node scripts/crawl-site.mjs --dry-run --verbose",
     "og:facilities": "node scripts/generate-facility-og-images.mjs",
     "og:events": "node scripts/generate-social-image.mjs",
-    "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon–5pm\""
+    "og:extravaganza": "node scripts/generate-social-image.mjs --slug extravaganza --title Extravaganza --date 2026-07-11 --time \"Noon\u20135pm\"",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:watch": "node --experimental-strip-types --test --watch test/*.test.ts",
+    "booking:check": "node --experimental-strip-types scripts/booking-test-events.ts",
+    "booking:cleanup": "node --experimental-strip-types scripts/booking-test-events.ts --cleanup",
+    "booking:concurrency": "node --experimental-strip-types scripts/booking-test-events.ts --concurrency"
   },
   "dependencies": {
     "@astrojs/markdoc": "^1.0.5",
     "@astrojs/node": "^10.1.1",
     "@astrojs/react": "^5.0.5",
+    "@google-cloud/firestore": "^9.0.1",
     "@keystatic/astro": "^5.1.0",
     "@keystatic/core": "^0.5.50",
     "@types/leaflet": "^1.9.21",
