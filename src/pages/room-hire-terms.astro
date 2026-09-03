@@ -1,0 +1,127 @@
+---
+// The terms a hirer agrees to at the point of booking. Linked from the booking
+// form's required tickbox and from every confirmation email, so it must exist:
+// it was a 404 for the first day the booking system was live, while real bookings
+// recorded a termsVersion for terms nobody could read.
+//
+// Prerendered deliberately -- everything on it comes from Keystatic and room config
+// at build time, and no runtime environment variable is read. See
+// test/astro-prerender-env.test.ts for why that distinction matters here.
+export const prerender = true;
+
+import Layout from '../layouts/Layout.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+import { getBookableRooms } from '../lib/booking/config-reader.ts';
+import { formatPence } from '../lib/booking/pricing.ts';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.miscPages.read('room-hire-terms');
+
+if (!entry) {
+  return Astro.redirect('/404');
+}
+
+const introNodes = await entry.intro();
+const bodyNodes = await entry.body();
+
+// Generated, never typed twice. A rate edited in Keystatic changes the booking
+// form and this page together; a hand-written table would drift silently and the
+// drift would only surface in a dispute.
+const rooms = await getBookableRooms();
+const cancellationHours = 1;
+---
+
+<Layout
+  title={entry.title}
+  description="The terms that apply when you hire a room at Meadowbrook: payment, changes, cancellations and use of the building."
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Meadowbrook</span>
+      <h1>{entry.title}</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article">
+        {introNodes && introNodes.length > 0 && (
+          <div class="lead">
+            <DocumentRenderer document={introNodes} />
+          </div>
+        )}
+
+        {rooms.length > 0 && (
+          <div class="rht-rates">
+            <h2 id="rates">Current rates</h2>
+            <table>
+              <thead>
+                <tr><th scope="col">Room</th><th scope="col">Rate</th></tr>
+              </thead>
+              <tbody>
+                {rooms.map((room) => (
+                  <tr>
+                    <th scope="row">{room.shortName}</th>
+                    <td>{formatPence(room.hourlyRatePence)} per hour</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p class="rht-note">
+              Bookings start on the hour, quarter past, half past or quarter to, and run for a
+              minimum of one hour. You can cancel free of charge up to {cancellationHours} hour
+              before your booking starts.
+            </p>
+          </div>
+        )}
+
+        {bodyNodes && bodyNodes.length > 0 && (
+          <DocumentRenderer document={bodyNodes} />
+        )}
+
+        {entry.version && (
+          <p class="rht-version">
+            Version {entry.version}. The version in force when you booked is the one recorded
+            against your booking.
+          </p>
+        )}
+      </article>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Scoped to elements this file renders directly, so no :global() is needed --
+     unlike the booking widget, nothing here is built from innerHTML. */
+  .rht-rates {
+    margin: var(--space-6) 0;
+    padding: var(--space-5);
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: var(--radius-md, 8px);
+  }
+  .rht-rates h2 { margin-top: 0; }
+  .rht-rates table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+  }
+  .rht-rates th, .rht-rates td {
+    text-align: left;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  }
+  .rht-rates tbody tr:last-child th,
+  .rht-rates tbody tr:last-child td { border-bottom: 0; }
+  .rht-rates td { text-align: right; white-space: nowrap; }
+  .rht-note {
+    margin: var(--space-4) 0 0;
+    font-size: 0.9375em;
+  }
+  .rht-version {
+    margin-top: var(--space-7);
+    font-size: 0.875em;
+    opacity: 0.75;
+  }
+</style>
