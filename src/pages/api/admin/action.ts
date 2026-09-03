@@ -15,7 +15,7 @@ import { issueRefund } from '../../../lib/booking/refunds.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
-import { doorCodeFor } from '../../../lib/booking/event-format.ts';
+import { doorCodeOf } from '../../../lib/booking/door-code.ts';
 import { issue } from '../../../lib/booking/token.ts';
 import { confirmationEmail, cancellationEmail, send } from '../../../lib/booking/email.ts';
 
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     customerName: booking.customer.name, customerEmail: booking.customer.email,
     manageUrl: new URL(`/bookings/${ref}`, canonicalOrigin(url.origin)).toString(),
     capacityNote: room?.capacityNote,
-    doorCode: doorCodeFor(booking.customer.phone ?? ''),
+    doorCode: doorCodeOf(booking),
   };
 
   if (action === 'note') {

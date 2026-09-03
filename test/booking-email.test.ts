@@ -165,14 +165,30 @@ describe('user text is escaped in HTML bodies', () => {
 });
 
 describe('door code and the leaving-the-room note', () => {
-  test('the door code appears when known', () => {
-    const e = confirmationEmail({ ...b, doorCode: '2868' });
+  test('a phone-derived code is shown and described as the phone number', () => {
+    const e = confirmationEmail({ ...b, doorCode: { code: '2868', source: 'phone' } });
     assert.ok(e.text.includes('Door code: 2868'));
-    assert.ok(e.html.includes('2868'));
-    assert.ok(e.html.includes('last four digits'), 'and says where it comes from');
+    assert.ok(e.html.includes('>2868<'));
+    assert.ok(e.text.includes('last four digits'), 'and says where it comes from');
+    assert.ok(e.html.includes('last four digits'));
   });
 
-  test('no door code row when there is no phone number', () => {
+  test('a generated code is shown and NOT described as the phone number', () => {
+    const e = confirmationEmail({ ...b, doorCode: { code: '48213', source: 'generated' } });
+    assert.ok(e.text.includes('Door code: 48213'));
+    assert.ok(e.html.includes('>48213<'));
+    assert.ok(!e.text.includes('last four digits'), 'it is not their number, so must not say so');
+    assert.ok(!e.html.includes('last four digits'));
+    assert.ok(e.html.includes('works for the length of your booking'), 'but still says how long it works');
+  });
+
+  test('a leading zero is kept', () => {
+    const e = confirmationEmail({ ...b, doorCode: { code: '0044', source: 'phone' } });
+    assert.ok(e.text.includes('Door code: 0044'));
+    assert.ok(e.html.includes('>0044<'));
+  });
+
+  test('no door code row when there is none', () => {
     const e = confirmationEmail({ ...b, doorCode: null });
     assert.ok(!e.text.includes('Door code'));
     assert.ok(!e.html.includes('Door code'));

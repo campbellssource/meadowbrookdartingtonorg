@@ -11,6 +11,8 @@
 import { Firestore, Timestamp, type Settings } from '@google-cloud/firestore';
 import { GoogleAuth, Impersonated } from 'google-auth-library';
 import { generateReference } from './reference.ts';
+import { allocateDoorCode, doorCodeReleaseAt } from './door-code.ts';
+import type { AllocatedDoorCode } from './door-code.ts';
 import { inflate } from './availability.ts';
 import { instantToLocalDate, MINUTE } from './time.ts';
 import type { Interval, LocalDate } from './time.ts';
@@ -42,6 +44,28 @@ export interface Customer {
   name: string; email: string; phone?: string; organisation?: string; notes?: string;
 }
 
+/** The code on the booking record. Always a string: "0044" is a code, 44 is not. */
+export interface DoorCode extends AllocatedDoorCode { allocatedAt: Timestamp }
+
+/**
+ * `doorCodes/{code}`: which booking holds a code, and until when.
+ *
+ * Every booking uses the Entrance lock, and TTLock refuses to add a code value
+ * that is already on a lock (-3007) whatever the times. So a code is reserved
+ * across all rooms from allocation until a day after the booking ends, whether
+ * or not it is cancelled in between -- it may still be on the lock until the door
+ * system's sweep removes it. `expiresAt` is that release instant: the allocator
+ * treats a record past it as free, and a TTL policy on it deletes the record.
+ */
+export interface DoorCodeReservation {
+  code: string;
+  bookingRef: string;
+  room: string;
+  start: Timestamp;
+  end: Timestamp;
+  expiresAt: Timestamp;
+}
+
 export interface Booking {
   room: string;
   /**
@@ -68,6 +92,12 @@ export interface Booking {
   paidPence: number;
   customer: Customer;
   calendarEventId: string | null;
+  /**
+   * The door code allocated to this booking (`door-code.ts`), written onto the
+   * calendar event as `Pass Code:`. Absent on bookings made before allocation
+   * moved here, whose code the door system derived from the phone number.
+   */
+  doorCode?: DoorCode;
   payments: Payment[];
   seriesId: string | null;
   termsVersion: string;
@@ -272,49 +302,129 @@ export interface ConfirmInput {
   newsletterWording?: string;
 }
 
-/** Turns a paid hold into a booking, and releases the hold, in one write. */
+// --- Door code reservations ----------------------------------------------
+
+const reservationRef = (database: Firestore, code: string) =>
+  database.collection('doorCodes').doc(code);
+
+/** Free if nobody holds it, the hold has lapsed, or this booking is the holder. */
+function reservationIsFree(
+  snap: FirebaseFirestore.DocumentSnapshot, now: Date, forRef: string,
+): boolean {
+  if (!snap.exists) return true;
+  const r = snap.data() as DoorCodeReservation;
+  return r.bookingRef === forRef || r.expiresAt.toDate().getTime() <= now.getTime();
+}
+
+const reservationFor = (
+  code: string, bookingRef: string, b: Pick<Booking, 'room' | 'start' | 'end'>,
+): DoorCodeReservation => ({
+  code, bookingRef, room: b.room, start: b.start, end: b.end,
+  expiresAt: Timestamp.fromDate(doorCodeReleaseAt(b.end.toDate())),
+});
+
+/**
+ * Turns a paid hold into a booking, allocates its door code, and releases the
+ * hold -- atomically.
+ *
+ * A transaction rather than a batch because allocation has to read: the phone
+ * fragment is only usable if no live booking holds it, and a generated code has
+ * to be checked the same way. Two bookings confirming at the same moment cannot
+ * both read a code as free and both take it; Firestore retries the loser, which
+ * then sees the winner's reservation.
+ */
 export async function confirmBooking(input: ConfirmInput): Promise<Booking> {
   const database = await getDb();
-  const now = Timestamp.now();
-  const booking: Booking = {
-    room: input.room.slug,
-    source: 'meadowbrook',
-    status: 'confirmed',
-    start: Timestamp.fromDate(input.start),
-    end: Timestamp.fromDate(input.end),
-    localDate: instantToLocalDate(input.start),
-    durationMins: Math.round((input.end.getTime() - input.start.getTime()) / MINUTE),
-    pricePence: input.pricePence,
-    paidPence: input.payment.status === 'completed' ? input.payment.amountPence : 0,
-    customer: input.customer,
-    calendarEventId: input.calendarEventId,
-    payments: [{ ...input.payment, at: now }],
-    seriesId: null,
-    termsVersion: input.termsVersion,
-    ...(input.newsletterOptIn === undefined ? {} : {
-      newsletter: {
-        optIn: input.newsletterOptIn,
-        at: now,
-        wording: input.newsletterWording ?? '',
-      },
-    }),
-    createdAt: now,
-    updatedAt: now,
-    history: [{ at: now, action: 'created', actor: 'booker' }],
-    ...(process.env.NODE_ENV !== 'production' ? { isTest: true } : {}),
-  };
+  const bookingRef = database.collection('bookings').doc(input.bookingRef);
+  const holdRef = database.collection('holds').doc(input.holdId);
 
-  const batch = database.batch();
-  batch.create(database.collection('bookings').doc(input.bookingRef), booking);
-  batch.delete(database.collection('holds').doc(input.holdId));
-  await batch.commit();
-  return booking;
+  return database.runTransaction(async (tx) => {
+    const now = Timestamp.now();
+    // Reads first: a Firestore transaction must finish reading before it writes.
+    const allocated = await allocateDoorCode({
+      phone: input.customer.phone ?? '',
+      isFree: async (code) =>
+        reservationIsFree(await tx.get(reservationRef(database, code)), now.toDate(), input.bookingRef),
+    });
+
+    const booking: Booking = {
+      room: input.room.slug,
+      source: 'meadowbrook',
+      status: 'confirmed',
+      start: Timestamp.fromDate(input.start),
+      end: Timestamp.fromDate(input.end),
+      localDate: instantToLocalDate(input.start),
+      durationMins: Math.round((input.end.getTime() - input.start.getTime()) / MINUTE),
+      pricePence: input.pricePence,
+      paidPence: input.payment.status === 'completed' ? input.payment.amountPence : 0,
+      customer: input.customer,
+      calendarEventId: input.calendarEventId,
+      doorCode: { ...allocated, allocatedAt: now },
+      payments: [{ ...input.payment, at: now }],
+      seriesId: null,
+      termsVersion: input.termsVersion,
+      ...(input.newsletterOptIn === undefined ? {} : {
+        newsletter: {
+          optIn: input.newsletterOptIn,
+          at: now,
+          wording: input.newsletterWording ?? '',
+        },
+      }),
+      createdAt: now,
+      updatedAt: now,
+      history: [
+        { at: now, action: 'created', actor: 'booker' },
+        // The source, never the code: history is shown on the admin page and the
+        // code has its own place there.
+        { at: now, action: `door code allocated (${allocated.source})`, actor: 'system' },
+      ],
+      ...(process.env.NODE_ENV !== 'production' ? { isTest: true } : {}),
+    };
+
+    tx.create(bookingRef, booking);
+    tx.set(reservationRef(database, allocated.code), reservationFor(allocated.code, input.bookingRef, booking));
+    tx.delete(holdRef);
+    return booking;
+  });
 }
 
 export async function getBooking(ref: string): Promise<Booking | null> {
   const database = await getDb();
   const doc = await database.collection('bookings').doc(ref).get();
   return doc.exists ? (doc.data() as Booking) : null;
+}
+
+/**
+ * The booking's door code, allocating one if it has none.
+ *
+ * Idempotent: a booking that has a code gets it back untouched, so amending or
+ * rescheduling never changes a code. Allocation only actually happens for a
+ * booking made before codes were allocated here, at the moment something is
+ * about to rewrite its calendar event anyway -- an amendment, or the reconcile
+ * sweep restoring a deleted event.
+ */
+export async function ensureDoorCode(ref: string, now = new Date()): Promise<DoorCode> {
+  const database = await getDb();
+  const docRef = database.collection('bookings').doc(ref);
+  return database.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    if (!snap.exists) throw new Error(`No booking ${ref}`);
+    const b = snap.data() as Booking;
+    if (b.doorCode) return b.doorCode;
+
+    const allocated = await allocateDoorCode({
+      phone: b.customer.phone ?? '',
+      isFree: async (code) => reservationIsFree(await tx.get(reservationRef(database, code)), now, ref),
+    });
+    const at = Timestamp.now();
+    const doorCode: DoorCode = { ...allocated, allocatedAt: at };
+    tx.update(docRef, {
+      doorCode, updatedAt: at,
+      history: [...b.history, { at, action: `door code allocated (${allocated.source})`, actor: 'system' }],
+    });
+    tx.set(reservationRef(database, allocated.code), reservationFor(allocated.code, ref, b));
+    return doorCode;
+  });
 }
 
 /**
@@ -472,6 +582,17 @@ export async function applyChange(input: ApplyChangeInput): Promise<Booking> {
     const b = snap.data() as Booking;
     const now = Timestamp.now();
 
+    // A code is reserved until a day after the booking ends, so a move takes the
+    // reservation with it. Read here, before any write, as transactions require.
+    let reservation: FirebaseFirestore.DocumentReference | null = null;
+    if (input.end && b.doorCode) {
+      const rRef = reservationRef(database, b.doorCode.code);
+      const rSnap = await tx.get(rRef);
+      const holder = rSnap.exists ? (rSnap.data() as DoorCodeReservation).bookingRef : null;
+      if (holder === null || holder === input.ref) reservation = rRef;
+      else console.warn('applyChange: door code reservation held by another booking', { ref: input.ref, holder });
+    }
+
     const payments = input.payments?.length
       ? [...b.payments, ...input.payments.map((entry) => ({ ...entry, at: now }))]
       : b.payments;
@@ -492,6 +613,9 @@ export async function applyChange(input: ApplyChangeInput): Promise<Booking> {
       ...(input.calendarEventId !== undefined ? { calendarEventId: input.calendarEventId } : {}),
     };
     tx.update(docRef, next);
+    if (reservation && b.doorCode) {
+      tx.set(reservation, reservationFor(b.doorCode.code, input.ref, { ...b, ...next } as Booking));
+    }
     return { ...b, ...next } as Booking;
   });
 }

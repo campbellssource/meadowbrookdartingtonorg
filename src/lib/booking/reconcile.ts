@@ -10,12 +10,12 @@
 // covers exactly the same ground the webhook does. If the webhook never fired at
 // all, the books would still come right within the hour.
 
-import { Timestamp } from '@google-cloud/firestore';
-import { getDb, eligibleForCalendarRestore } from './store.ts';
+import { Timestamp, FieldValue } from '@google-cloud/firestore';
+import { getDb, eligibleForCalendarRestore, ensureDoorCode } from './store.ts';
 import type { Booking, Payment } from './store.ts';
 import { squareConfig } from './square.ts';
-import { getEvent, createEvent } from './calendar.ts';
-import { buildEvent } from './event-format.ts';
+import { lookupEvent, createEvent, updateEvent } from './calendar.ts';
+import { buildEvent, readPassCode, setPassCodeLine } from './event-format.ts';
 import { getRoomConfig } from './config-reader.ts';
 import { alertEmail, send } from './email.ts';
 
@@ -177,6 +177,13 @@ export interface ReconcileReport {
   settled: number;
   calendarRepaired: number;
   calendarFailed: number;
+  /**
+   * Bookings whose calendar event could not be read this run. Left alone, on
+   * purpose: an unreadable event is not a missing one.
+   */
+  calendarUnread: number;
+  /** Events whose `Pass Code:` line disagreed with the booking and were rewritten. */
+  passCodeRepaired: number;
   abandoned: number;
   needsReview: string[];
 }
@@ -191,7 +198,8 @@ export interface ReconcileReport {
 export async function reconcile(now = new Date()): Promise<ReconcileReport> {
   const db = await getDb();
   const report: ReconcileReport = {
-    settled: 0, calendarRepaired: 0, calendarFailed: 0, abandoned: 0, needsReview: [],
+    settled: 0, calendarRepaired: 0, calendarFailed: 0, calendarUnread: 0, passCodeRepaired: 0,
+    abandoned: 0, needsReview: [],
   };
 
   // 1 — pending money, whether or not a webhook ever arrived.
@@ -205,6 +213,7 @@ export async function reconcile(now = new Date()): Promise<ReconcileReport> {
 
   // 2 — confirmed bookings with no calendar event. The hirer has paid and the room
   // is not blocked, so this is the most urgent thing the sweep does.
+  const unread: string[] = [];
   for (const doc of all.docs) {
     const b = doc.data() as Booking;
     if (!eligibleForCalendarRestore(b, now)) continue;
@@ -214,21 +223,57 @@ export async function reconcile(now = new Date()): Promise<ReconcileReport> {
     if (!room) { report.needsReview.push(`${doc.id}: room ${b.room} no longer configured`); continue; }
 
     if (b.calendarEventId) {
-      // Deleted from the calendar by hand: the room is free but the booking is not.
-      const existing = await getEvent(room.calendarId, b.calendarEventId).catch(() => null);
-      if (existing === null) needsEvent = true;
+      const lookup = await lookupEvent(room.calendarId, b.calendarEventId);
+      if (lookup.status === 'unknown') {
+        // Could not tell, so do nothing. Until 3 Sep 2026 a failed read was
+        // treated as "gone" and the event was recreated: duplicate events were
+        // seen on the calendars. Reported once per run, below, not per booking.
+        report.calendarUnread += 1;
+        unread.push(doc.id);
+        console.warn('reconcile: could not read calendar event', { ref: doc.id, err: String(lookup.error) });
+        continue;
+      }
+      if (lookup.status === 'gone') {
+        // Deleted from the calendar by hand: the room is free but the booking is not.
+        needsEvent = true;
+      } else if (b.doorCode && readPassCode(lookup.event.description) !== b.doorCode.code) {
+        const existing = lookup.event;
+        // The event's Pass Code line is missing or disagrees with the record. The
+        // record is what the booker was told, so the line is rewritten -- only that
+        // line, so Phone: and everything else stay exactly as they were.
+        //
+        // Bookings with no stored code are left alone on purpose: their events
+        // predate the line, and rewriting every one of them at once would ask the
+        // door system to re-provision every live booking in the same hour.
+        try {
+          await updateEvent(room.calendarId, b.calendarEventId, {
+            summary: existing.summary, start: existing.start, end: existing.end,
+            description: setPassCodeLine(existing.description, b.doorCode.code),
+          });
+          report.passCodeRepaired += 1;
+          console.log('reconcile: rewrote pass code line', { ref: doc.id });
+        } catch (err) {
+          report.needsReview.push(`${doc.id}: calendar event does not carry the booking's door code`);
+          console.error('reconcile: pass code rewrite failed', { ref: doc.id, err: String(err) });
+        }
+      }
     }
     if (!needsEvent) continue;
 
     try {
+      // Idempotent: a booking that has a code keeps it. Only a booking from before
+      // codes were allocated here gets one now, as its event is being written.
+      const doorCode = await ensureDoorCode(doc.id, now);
       const event = await createEvent(room.calendarId, buildEvent({
         room, name: b.customer.name, phone: b.customer.phone ?? '', email: b.customer.email,
         start: b.start.toDate(), end: b.end.toDate(), pricePence: b.pricePence,
-        reference: doc.id, isTest: process.env.NODE_ENV !== 'production',
+        reference: doc.id, passCode: doorCode.code, isTest: process.env.NODE_ENV !== 'production',
       }));
+      // arrayUnion rather than a rewrite of `b.history`: ensureDoorCode may just
+      // have appended to it, and `b` is the copy read before that.
       await doc.ref.update({
         calendarEventId: event.id, updatedAt: Timestamp.now(),
-        history: [...b.history, { at: Timestamp.now(), action: 'calendar event restored', actor: 'system' }],
+        history: FieldValue.arrayUnion({ at: Timestamp.now(), action: 'calendar event restored', actor: 'system' }),
       });
       report.calendarRepaired += 1;
       console.log('reconcile: restored calendar event', { ref: doc.id });
@@ -237,6 +282,15 @@ export async function reconcile(now = new Date()): Promise<ReconcileReport> {
       report.needsReview.push(`${doc.id}: could not restore calendar event`);
       console.error('reconcile: calendar restore failed', { ref: doc.id, err: String(err) });
     }
+  }
+
+  // One line for the whole run: during a Google outage every future booking is
+  // unreadable at once, and that is one fact, not a hundred.
+  if (unread.length > 0) {
+    report.needsReview.push(
+      `${unread.length} booking(s) could not be checked against the calendar and were left `
+      + `alone (nothing was recreated): ${unread.join(', ')}`,
+    );
   }
 
   // 3 — abandoned checkouts. The hold has lapsed, nothing was paid, and the record

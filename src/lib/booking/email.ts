@@ -11,6 +11,7 @@
 // mattering more.
 
 import { formatPence } from './pricing.ts';
+import type { AllocatedDoorCode } from './door-code.ts';
 import { env } from './env.ts';
 import { instantToLocalTime, toLondonISO } from './time.ts';
 
@@ -118,8 +119,11 @@ export interface BookingSummary {
   customerEmail: string;
   manageUrl: string;
   capacityNote?: string;
-  /** Last four digits of the booker's phone; the code the locks are given. */
-  doorCode?: string | null;
+  /**
+   * The allocated door code and where it came from. `source` decides whether an
+   * email may say "the last four digits of your mobile number": only when it is.
+   */
+  doorCode?: AllocatedDoorCode | null;
   /** True when cancelling now would refund nothing -- booked inside the window. */
   nonRefundable?: boolean;
 }
@@ -140,6 +144,17 @@ const durationWords = (mins: number): string => {
 const esc = (s: string): string => s
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/**
+ * What to tell a booker about their code. The phone-number explanation is only
+ * offered when the code really is their number -- a generated code described
+ * that way would send someone to the door with the wrong four digits.
+ */
+export function doorCodeNote(d: AllocatedDoorCode): string {
+  return d.source === 'phone'
+    ? 'Your door code is the last four digits of your mobile number. It works for the length of your booking.'
+    : 'Your door code works for the length of your booking.';
+}
 
 /**
  * The leaving-the-room note. Small, at the foot of the email, and worded as a
@@ -174,7 +189,7 @@ export function confirmationEmail(b: BookingSummary): Email {
     `${b.roomName}`, `${when}`, `${durationWords(b.durationMins)}`,
     `Paid: ${formatPence(b.pricePence)}`,
     `Reference: ${b.reference}`,
-    b.doorCode ? `Door code: ${b.doorCode}` : '', '',
+    ...(b.doorCode ? [`Door code: ${b.doorCode.code}`, doorCodeNote(b.doorCode)] : []), '',
     b.capacityNote ? `${b.capacityNote}\n` : '',
     `Change or cancel your booking:`, b.manageUrl, '',
     policy, '',
@@ -190,9 +205,9 @@ export function confirmationEmail(b: BookingSummary): Email {
       <tr><td style="padding:6px 0;color:#5B4E42;">Length</td><td style="padding:6px 0;">${durationWords(b.durationMins)}</td></tr>
       <tr><td style="padding:6px 0;color:#5B4E42;">Paid</td><td style="padding:6px 0;font-weight:600;">${formatPence(b.pricePence)}</td></tr>
       <tr><td style="padding:6px 0;color:#5B4E42;">Reference</td><td style="padding:6px 0;font-family:ui-monospace,monospace;">${b.reference}</td></tr>
-      ${b.doorCode ? `<tr><td style="padding:6px 0;color:#5B4E42;">Door code</td><td style="padding:6px 0;font-family:ui-monospace,monospace;font-size:18px;font-weight:700;letter-spacing:0.08em;">${esc(b.doorCode)}</td></tr>` : ''}
+      ${b.doorCode ? `<tr><td style="padding:6px 0;color:#5B4E42;">Door code</td><td style="padding:6px 0;font-family:ui-monospace,monospace;font-size:18px;font-weight:700;letter-spacing:0.08em;">${esc(b.doorCode.code)}</td></tr>` : ''}
     </table>
-    ${b.doorCode ? `<p style="margin:14px 0 0;font-size:14px;color:#5B4E42;">Your door code is the last four digits of your mobile number. It works for the length of your booking.</p>` : ''}
+    ${b.doorCode ? `<p style="margin:14px 0 0;font-size:14px;color:#5B4E42;">${doorCodeNote(b.doorCode)}</p>` : ''}
     ${b.capacityNote ? `<p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${esc(b.capacityNote)}</p>` : ''}
     <p style="margin:24px 0 0;">
       <a href="${b.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:600;">Change or cancel</a>
