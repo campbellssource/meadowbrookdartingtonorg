@@ -194,6 +194,36 @@ Two levels, and the first is worth doing on its own:
   numbers end in the same four digits stops being unsolvable: the lock system picks
   an alternative and tells us what it chose.
 
+### The DRA's objection to verify-before-arrival, 3 Sep 2026, and it is a good one
+
+> "I fear the validation will also be flaky."
+
+Correct, and worth designing around rather than discovering. A check that asks the
+same unreliable system whether a code exists will sometimes fail to answer, and if
+that is treated as "no code", it pages someone about a booking that is fine. A few
+false alarms and the alert gets ignored — at which point the real one is missed too,
+and the check has made things worse than no check at all.
+
+Two things follow.
+
+**Separate "confirmed missing" from "could not tell."** They are different states and
+only the first deserves an alert. The second is a retry, and if it is still unresolved
+close to the booking it becomes a quieter, differently-worded warning: *we could not
+confirm this code*, not *this code is missing*.
+
+**Check whether reading is actually as fragile as writing — this is the question to
+answer first, before building anything.** Creating a passcode has to reach the
+physical lock through the gateway, which is where wifi and power problems live.
+Listing the passcodes on a lock may well be a read from TTLock's cloud, which is a
+different reliability domain entirely. If it is, validation is substantially more
+reliable than the thing it is validating, and the DRA's fear does not apply. If
+reading also requires the gateway, then verification is worth little and the effort
+belongs in the reconciler (step 3) instead — where a failed read is simply a pass
+that changed nothing, rather than an alert.
+
+Not yet investigated. **Deferred at the DRA's direction on 3 Sep 2026** along with
+the rest of this section; the system stays as it is for now.
+
 ### Sequence, smallest first
 
 1. Verify-before-arrival alert. Ours alone, no coordination.
