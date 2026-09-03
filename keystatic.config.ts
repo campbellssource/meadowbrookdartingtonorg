@@ -240,6 +240,15 @@ export default config({
       format: { data: 'yaml' },
       schema: {
         title: fields.slug({ name: { label: 'Title' } }),
+        intro: richText('Intro'),
+        version: fields.text({
+          label: 'Version',
+          description:
+            'Room hire terms only. Recorded against every booking made while this version is '
+            + 'live, so a dispute can be settled against the terms as they stood that day. Bump '
+            + 'it by hand when a change is material -- and change TERMS_VERSION in '
+            + 'src/pages/api/booking/create.ts to match, which a test enforces.',
+        }),
         body: richText('Content'),
       },
     }),

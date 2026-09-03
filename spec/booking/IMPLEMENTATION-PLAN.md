@@ -256,6 +256,21 @@ values and return values. Everything that can be tested without a network should
 1. The calendar decides whether a room is free. Never compute availability from Firestore alone.
 2. The server prices. A price from a client is a log line, never an input.
 
+## Phase 9 — Newsletter opt-in (planned, 3 Sep 2026)
+
+Requested by the DRA. An unticked checkbox on the details step adding the hirer to a
+Brevo marketing list. Design and the consent rules that make it lawful are in `16`.
+Small, and independent of everything else — it touches the details step, the booking
+document and one Brevo call.
+
+## Phase 10 — Acuity history backfill (planned, 3 Sep 2026)
+
+Requested by the DRA so reporting has more than a fortnight of history. Imports
+Acuity's booking records into Firestore **without** creating calendar events — they
+already exist, and writing them would duplicate years of events and attempt a door
+passcode for each. Design, and the `source: 'acuity'` guard that stops the live
+system treating historical records as actionable, are in `17`.
+
 ## Phase 8 — Calendar PII purge (deferred)
 
 Deferred by the DRA on 31 Aug 2026, and not a launch blocker. Nothing currently removes personal
