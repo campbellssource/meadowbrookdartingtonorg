@@ -7,9 +7,11 @@ import type { APIRoute } from 'astro';
 import { canonicalOrigin } from '../../../lib/booking/env.ts';
 import { verifySession, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
 import { getBooking, applyChange, revokeTokensFor, recordToken } from '../../../lib/booking/store.ts';
+import type { Payment } from '../../../lib/booking/store.ts';
 import { getRoomConfig } from '../../../lib/booking/config-reader.ts';
 import { deleteEvent } from '../../../lib/booking/calendar.ts';
-import { squareConfig, refund as squareRefund, PaymentError } from '../../../lib/booking/square.ts';
+import { squareConfig, PaymentError } from '../../../lib/booking/square.ts';
+import { issueRefund } from '../../../lib/booking/refunds.ts';
 import { refundFor } from '../../../lib/booking/policy.ts';
 import { freshenOne } from '../../../lib/booking/reconcile.ts';
 import { formatPence } from '../../../lib/booking/pricing.ts';
@@ -70,7 +72,6 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
 
   const cfg = squareConfig();
   if (!cfg) return json({ error: 'Square is not configured.' }, 500);
-  const charged = booking.payments.find((p) => p.kind === 'charge' && p.status === 'completed');
 
   if (action === 'refund') {
     const amountPence = Math.round(Number(body.amountPence));
@@ -78,29 +79,32 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     if (!Number.isFinite(amountPence) || amountPence <= 0) return json({ error: 'Invalid amount.' }, 400);
     if (amountPence > booking.paidPence) return json({ error: 'That is more than is held.' }, 400);
     if (!reason) return json({ error: 'A reason is required.' }, 400);
-    if (!charged) return json({ error: 'No completed charge to refund against.' }, 400);
+    const outcome = await issueRefund(cfg, {
+      ref, payments: booking.payments, amountPence,
+      historyLength: booking.history.length, keyPrefix: `${ref}:admin`,
+      reason: `Admin refund: ${reason}`, ledgerReason: 'admin',
+    });
 
-    try {
-      const result = await squareRefund(cfg, {
-        squarePaymentId: charged.squarePaymentId, amountPence,
-        idempotencyKey: `${ref}:admin:${booking.history.length}`,
-        reason: `Admin refund: ${reason}`,
-      });
+    // Record what went through even on failure -- the money has left Square.
+    if (outcome.entries.length) {
       await applyChange({
-        ref,
-        payment: {
-          kind: 'refund', amountPence, squarePaymentId: charged.squarePaymentId,
-          squareRefundId: result.squareRefundId,
-          idempotencyKey: `${ref}:admin:${booking.history.length}`,
-          status: result.status, reason: 'admin',
-        },
-        history: { action: `refunded ${formatPence(amountPence)}: ${reason}`, actor: 'admin', from: actor },
+        ref, payments: outcome.entries,
+        history: { action: `refunded ${formatPence(outcome.ok ? amountPence : outcome.refundedPence)}: ${reason}`, actor: 'admin', from: actor },
       });
-      return json({ message: `Refunded ${formatPence(amountPence)}. Square shows it as ${result.status}.` });
-    } catch (err) {
-      console.error('admin: refund failed', { ref, actor });
-      return json({ error: err instanceof PaymentError ? err.message : 'Refund failed.' }, 502);
     }
+    if (!outcome.ok) {
+      console.error('admin: refund failed', { ref, actor, error: String(outcome.error) });
+      const err = outcome.error;
+      return json({
+        error: outcome.refundedPence > 0
+          ? `Only ${formatPence(outcome.refundedPence)} could be refunded; it is recorded on the booking.`
+          : err instanceof PaymentError ? err.message : 'Refund failed.',
+      }, 502);
+    }
+    return json({
+      message: `Refunded ${formatPence(amountPence)} across `
+        + `${outcome.entries.length} payment${outcome.entries.length === 1 ? '' : 's'}.`,
+    });
   }
 
   if (action === 'cancel') {
@@ -109,25 +113,34 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       paidPence: booking.paidPence, currentPence: booking.pricePence, start, change: 'cancel',
     }, new Date());
 
-    let refundEntry;
-    if (decision.refundPence > 0 && charged) {
-      try {
-        const result = await squareRefund(cfg, {
-          squarePaymentId: charged.squarePaymentId, amountPence: decision.refundPence,
-          idempotencyKey: `${ref}:admin-cancel:${booking.history.length}`,
-          reason: 'Cancelled by Meadowbrook',
-        });
-        refundEntry = {
-          kind: 'refund' as const, amountPence: decision.refundPence,
-          squarePaymentId: charged.squarePaymentId, squareRefundId: result.squareRefundId,
-          idempotencyKey: `${ref}:admin-cancel:${booking.history.length}`,
-          status: result.status, reason: 'cancel' as const,
-        };
-      } catch (err) {
+    let refundEntries: Omit<Payment, 'at'>[] = [];
+    if (decision.refundPence > 0) {
+      const outcome = await issueRefund(cfg, {
+        ref, payments: booking.payments, amountPence: decision.refundPence,
+        historyLength: booking.history.length, keyPrefix: `${ref}:admin-cancel`,
+        reason: 'Cancelled by Meadowbrook', ledgerReason: 'cancel',
+      });
+      refundEntries = outcome.entries;
+      if (!outcome.ok) {
         // Same rule as the booker-facing path: never release a slot we have not
         // refunded, because a rebooked slot makes the failure unrecoverable.
-        console.error('admin: cancel refund failed', { ref, actor });
-        return json({ error: 'The refund failed, so the booking has not been cancelled.' }, 502);
+        console.error('admin: cancel refund failed', { ref, actor, error: String(outcome.error) });
+        if (outcome.entries.length) {
+          await applyChange({
+            ref, payments: outcome.entries,
+            history: {
+              action: `partial refund ${outcome.refundedPence}p on failed cancellation`,
+              actor: 'admin', from: actor,
+            },
+          }).catch((e) => console.error('admin: could not record partial refund', e));
+        }
+        return json({
+          error: outcome.refundedPence > 0
+            ? `Only ${formatPence(outcome.refundedPence)} of ${formatPence(decision.refundPence)} `
+              + 'could be refunded, so the booking has not been cancelled. The part that went '
+              + 'through is recorded on the booking.'
+            : 'The refund failed, so the booking has not been cancelled.',
+        }, 502);
       }
     }
 
@@ -137,7 +150,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     }
     await applyChange({
       ref, status: 'cancelled', calendarEventId: null,
-      ...(refundEntry ? { payment: refundEntry } : {}),
+      ...(refundEntries.length ? { payments: refundEntries } : {}),
       history: { action: 'cancelled by admin', actor: 'admin', from: actor },
     });
     await revokeTokensFor(ref).catch(() => undefined);
