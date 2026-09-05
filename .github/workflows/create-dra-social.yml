@@ -53,7 +53,10 @@ jobs:
         run: |
           git config user.name  "Meadowbrook Bot"
           git config user.email "bot@meadowbrookdartington.org"
-          git add src/content/events/
+          # The generator writes each event's image to public/images/events/<slug>/.
+          # Stage it too, or the yaml lands on main pointing at a file that only
+          # ever existed on this runner.
+          git add src/content/events/ public/images/events/
           if git diff --staged --quiet; then
             echo "Nothing to commit - event already existed."
           else
