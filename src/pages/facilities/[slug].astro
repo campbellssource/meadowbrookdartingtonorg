@@ -197,6 +197,10 @@ const structuredData = structuredDataMap[slug] ?? undefined;
 </Layout>
 
 <style>
+  /* Three places now link straight to #book, so the anchor has to clear the sticky
+     nav rather than land underneath it. */
+  #book { scroll-margin-top: 88px; }
+
   .mw-article--facility-body img {
     width: 100%;
     border-radius: var(--r-lg);
