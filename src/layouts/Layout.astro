@@ -32,10 +32,35 @@ const ogImageUrl = ogImage
 const pathname = Astro.url.pathname;
 const isActive = (href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);
+// A plain startsWith would light "Book a room" up on /bookings/find and
+// /booking-preview, which are not it.
+const isBookActive = pathname === "/book" || pathname.startsWith("/book/");
 
 const reader = createReader(process.cwd(), keystaticConfig);
 const navFacilities = (await reader.collections.facilities.all())
   .sort((a, b) => (a.entry.order ?? 99) - (b.entry.order ?? 99));
+
+// The three hireable rooms get their own nav item. A hirer told us they could not
+// find how to book at all -- "Facilities" is where we file the rooms, but it is not
+// the word anyone types. Derived from the facilities already read above rather than
+// from getBookableRooms(), so this costs no extra I/O and stays safe to prerender.
+const navRooms = navFacilities
+  .filter(({ entry }) => {
+    if (entry.facilityType.discriminant !== 'bookable') return false;
+    const booking = (entry.facilityType.value as any).booking;
+    return Boolean(booking?.calendarId) && booking?.active !== false;
+  })
+  .map(({ slug, entry }) => {
+    const booking = (entry.facilityType.value as any).booking;
+    return {
+      slug,
+      name: entry.name,
+      shortName: booking?.shortName || entry.name,
+      rate: typeof booking?.hourlyRatePence === 'number'
+        ? `£${(booking.hourlyRatePence / 100).toFixed(2)}/hour`
+        : null,
+    };
+  });
 ---
 
 <!doctype html>
@@ -92,7 +117,7 @@ const navFacilities = (await reader.collections.facilities.all())
                         role="menuitem"
                         {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                       >
-                        <span class="eyebrow">{label}</span>
+                        <span class={`eyebrow ${isBookable ? 'eyebrow--cta' : ''}`}>{label}</span>
                         <span class="name">{entry.name}</span>
                       </a>
                     );
@@ -100,9 +125,37 @@ const navFacilities = (await reader.collections.facilities.all())
                 </div>
               </div>
             </li>
+            {navRooms.length > 0 && (
+              <li class="has-mega">
+                <a href="/book" class={`mw-nav-link mw-nav-link--cta ${isBookActive ? "active" : ""}`}>
+                  Book a room<span class="caret" aria-hidden="true"></span>
+                </a>
+                <div class="mw-mega mw-mega--rooms" role="menu" aria-label="Book a room">
+                  <div class="mw-wrap">
+                    <p class="mw-mega-lead">
+                      {navRooms.length} rooms at Meadowbrook, bookable online by the hour.
+                    </p>
+                    <div class="mw-mega-inner">
+                      {navRooms.map((room) => (
+                        <a href={`/facilities/${room.slug}#book`} class={`mw-mega-tile ${zoneFor(room.slug)}`} role="menuitem">
+                          <span class="eyebrow eyebrow--cta">Book now</span>
+                          <span class="name">{room.name}</span>
+                          {room.rate && <span class="meta">{room.rate}</span>}
+                        </a>
+                      ))}
+                      <a href="/book" class="mw-mega-tile mw-mega-tile--all" role="menuitem">
+                        <span class="eyebrow">Room hire</span>
+                        <span class="name">Compare the rooms</span>
+                        <span class="meta">Rates, sizes and how booking works</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            )}
             <li><a href="/calendar" class={`mw-nav-link ${isActive("/calendar") ? "active" : ""}`}>Events</a></li>
             <li><a href="/about" class={`mw-nav-link ${isActive("/about") ? "active" : ""}`}>About</a></li>
-            <li><a href="/energy-hub" class={`mw-nav-link ${isActive("/energy-hub") ? "active" : ""}`}>Energy Hub</a></li>
+            <li><a href="/energy-hub" class={`mw-nav-link hide-narrow ${isActive("/energy-hub") ? "active" : ""}`}>Energy Hub</a></li>
             <li><a href="/contact" class={`mw-nav-link hide-mobile ${isActive("/contact") ? "active" : ""}`}>Contact</a></li>
             <li><a href="/donate" class="mw-btn mw-btn-primary mw-btn-sm">Donate</a></li>
           </ul>
@@ -113,6 +166,10 @@ const navFacilities = (await reader.collections.facilities.all())
           <ul>
             <li><a href="/" class={isActive("/") ? "active" : ""}>Home</a></li>
             <li><a href="/facilities" class={isActive("/facilities") ? "active" : ""}>Facilities</a></li>
+            <li><a href="/book" class={`is-cta ${isBookActive ? "active" : ""}`}>Book a room</a></li>
+            {navRooms.map((room) => (
+              <li class="is-sub"><a href={`/facilities/${room.slug}#book`}>{room.name}{room.rate ? ` · ${room.rate}` : ''}</a></li>
+            ))}
             <li><a href="/calendar" class={isActive("/calendar") ? "active" : ""}>Events</a></li>
             <li><a href="/about" class={isActive("/about") ? "active" : ""}>About</a></li>
             <li><a href="/energy-hub" class={isActive("/energy-hub") ? "active" : ""}>Energy Hub</a></li>
@@ -162,6 +219,7 @@ const navFacilities = (await reader.collections.facilities.all())
             <h4>Explore</h4>
             <a href="/">Home</a>
             <a href="/facilities">Facilities</a>
+            <a href="/book">Book a room</a>
             <a href="/calendar">Events</a>
             <a href="/about">About the DRA</a>
             <a href="/energy-hub">Energy Hub</a>
@@ -170,6 +228,7 @@ const navFacilities = (await reader.collections.facilities.all())
           <div>
             <h4>Get in touch</h4>
             <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a>
+            <a href="/bookings/find">Find a booking</a>
             <a href="/subscribe-to-updates">Subscribe to updates</a>
             <a href="/donate">Donate</a>
             <a href="/privacy">Privacy policy</a>

@@ -72,8 +72,8 @@ const energyHubImageSrc = homepage?.energyHubImage
       <h1>{homepage?.heroHeading || 'Come as you are.'}</h1>
       <p class="hero-sub">{homepage?.heroSubtitle || 'The recreational heart of Dartington'}</p>
       <div class="actions">
-        <a href={homepage?.heroCtaPrimaryUrl || '/facilities'} class="mw-btn mw-btn-sun">{homepage?.heroCtaPrimaryLabel || 'Explore facilities'}</a>
-        <a href={homepage?.heroCtaSecondaryUrl || '/about'} class="mw-btn mw-btn-ghost">{homepage?.heroCtaSecondaryLabel || 'About the DRA'}</a>
+        <a href={homepage?.heroCtaPrimaryUrl || '/book'} class="mw-btn mw-btn-sun">{homepage?.heroCtaPrimaryLabel || 'Book a room'}</a>
+        <a href={homepage?.heroCtaSecondaryUrl || '/facilities'} class="mw-btn mw-btn-ghost">{homepage?.heroCtaSecondaryLabel || 'Explore facilities'}</a>
       </div>
     </div>
   </section>
@@ -163,8 +163,10 @@ const energyHubImageSrc = homepage?.energyHubImage
           return (
             <a href={href} class={`mw-zone-tile ${zoneFor(slug)} ${slug}${imageSrc ? ' has-photo' : ''}`} {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
               {imageSrc && <div class="tile-photo" style={`background-image: url('${imageSrc}')`}></div>}
-              {isBookable && <span class="tile-pill">Book now</span>}
-              <h3>{entry.name}</h3>
+              {isBookable
+                ? <div class="tile-foot"><h3>{entry.name}</h3><span class="tile-cta">Book now</span></div>
+                : <h3>{entry.name}</h3>
+              }
             </a>
           );
         })}

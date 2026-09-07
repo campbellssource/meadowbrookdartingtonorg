@@ -37,8 +37,10 @@ const sorted = [...allFacilities].sort((a, b) => (a.entry.order ?? 99) - (b.entr
               {...(isLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             >
               {imageSrc && <div class="tile-photo" style={`background-image: url('${imageSrc}')`}></div>}
-              {isBookable && <span class="tile-pill">Book now</span>}
-              <h3>{entry.name}</h3>
+              {isBookable
+                ? <div class="tile-foot"><h3>{entry.name}</h3><span class="tile-cta">Book now</span></div>
+                : <h3>{entry.name}</h3>
+              }
             </a>
           );
         })}
