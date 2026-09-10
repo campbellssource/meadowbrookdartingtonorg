@@ -1,14 +1,15 @@
-title: Fix the sauna-side fire exit step
-category: job
+title: Rebuild the sauna-side fire exit steps
+category: project
 status: open
-order: 13
-scope: quick
+order: 10
+scope: major
 summary: >-
-  At least one of the steps on the sauna-side fire exit is partly broken - a
-  quick but important safety fix.
+  The sauna-side fire exit steps need more than a patch - they need rebuilding
+  properly. A priority safety job on an escape route.
 helpNeeded:
-  - Someone handy for a morning
-  - Materials to repair or rebuild the step
+  - A general builder (paid or volunteer)
+  - Materials to rebuild the steps
+  - Funding towards the works
 lead:
   name: ''
   contact: ''
