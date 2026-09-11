@@ -32,3 +32,6 @@ pnpm-debug.log*
 # The README is tracked so the location is discoverable; nothing else ever is.
 /private/*
 !/private/README.md
+
+# full-size image originals (optimised copies live in public/images)
+image-originals/

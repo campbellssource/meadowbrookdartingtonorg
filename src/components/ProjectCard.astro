@@ -1,0 +1,49 @@
+---
+import ProjectGallery from './ProjectGallery.astro';
+
+interface Props {
+  slug: string;
+  entry: any;
+}
+const { slug, entry } = Astro.props;
+
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Open',
+  lead: 'Lead found',
+  progress: 'In progress',
+  done: 'Done',
+};
+const SCOPE_LABEL: Record<string, string> = {
+  quick: 'Quick win',
+  'half-day': 'Half a day',
+  day: 'A full workday',
+  major: 'Multi-day',
+  unknown: '',
+};
+
+const resolve = (img: string) => (img.startsWith('/') ? img : `/images/projects/${img}`);
+const images: string[] = [entry.image, ...(entry.gallery ?? [])]
+  .filter(Boolean)
+  .map(resolve);
+
+const isIdea = entry.category === 'idea';
+---
+
+<div class="mw-proj">
+  {images.length > 0 && <ProjectGallery images={images} alt={entry.title} variant="card" />}
+  <div class="mw-proj-body">
+    <div class="mw-proj-tags">
+      {isIdea ? (
+        <span class="mw-chip mw-chip--idea">Idea</span>
+      ) : (
+        <>
+          <span class={`mw-status mw-status--${entry.status}`}>{STATUS_LABEL[entry.status]}</span>
+          {SCOPE_LABEL[entry.scope] && <span class="mw-chip">{SCOPE_LABEL[entry.scope]}</span>}
+        </>
+      )}
+    </div>
+    <h3><a href={`/projects/${slug}`} class="mw-proj-link">{entry.title}</a></h3>
+    {entry.summary && <p>{entry.summary}</p>}
+    {!isIdea && entry.lead?.name && <span class="mw-proj-lead">Lead: {entry.lead.name}</span>}
+  </div>
+</div>
