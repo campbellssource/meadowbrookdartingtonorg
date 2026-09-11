@@ -59,7 +59,7 @@ const helpMailto = `mailto:${helpAddress}?subject=${encodeURIComponent(`I'd like
 const eyebrowText = isDone ? 'Done — with thanks' : CATEGORY_LABEL[entry.category];
 ---
 
-<Layout title={entry.title} description={entry.summary ?? undefined} ogImage={imageSrc ?? undefined} noindex={true}>
+<Layout title={entry.title} description={entry.summary ?? undefined} ogImage={imageSrc ?? undefined}>
   {images.length > 0 ? (
     <section class="mw-event-hero mw-proj-hero">
       <ProjectGallery images={images} alt={entry.title} variant="hero" />

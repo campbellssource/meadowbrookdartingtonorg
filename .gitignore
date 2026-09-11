@@ -28,3 +28,5 @@ pnpm-debug.log*
 
 # playwrite-outputs
 .playwright-mcp
+# full-size image originals (optimised copies live in public/images)
+image-originals/

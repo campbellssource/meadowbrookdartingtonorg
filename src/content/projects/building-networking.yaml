@@ -6,6 +6,8 @@ scope: day
 summary: >-
   Tidy up the wifi, network and CCTV across the site so coverage is reliable and
   the cameras all work together.
+image: /images/projects/building-networking/building-networking-1.jpg
+gallery: []
 helpNeeded:
   - Someone with networking / IT experience
   - Cabling and networking kit
