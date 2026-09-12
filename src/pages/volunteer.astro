@@ -1,0 +1,84 @@
+---
+// Volunteer sign-up. The words are edited in Keystatic like any other content
+// page; this page exists so the sign-up form can sit under them, which the
+// generic /content/[slug] route cannot do. Same arrangement as /energy-hub, and
+// volunteer is excluded from that route's paths to avoid two URLs for one page.
+import Layout from '../layouts/Layout.astro';
+import MailingListForm from '../components/MailingListForm.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+import { DocumentRenderer } from '@keystatic/core/renderer';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+const entry = await reader.collections.pages.read('volunteer');
+
+if (!entry) return Astro.redirect('/404');
+
+const introNodes = await entry.intro();
+const bodyNodes = await entry.body();
+---
+
+<Layout title={entry.title} description={entry.seoDescription ?? undefined}>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Lend a hand</span>
+      <h1>{entry.title}</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0; padding-bottom: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article">
+        {introNodes && introNodes.length > 0 && (
+          <div class="lead">
+            <DocumentRenderer document={introNodes} />
+          </div>
+        )}
+        {bodyNodes && bodyNodes.length > 0 && (
+          <DocumentRenderer document={bodyNodes} />
+        )}
+      </article>
+    </div>
+  </section>
+
+  <section class="mw-sect">
+    <div class="mw-wrap">
+      <div class="volunteer-signup">
+        <span class="mw-eyebrow">Sign up</span>
+        <h2>Join the volunteer mailing list</h2>
+        <p class="volunteer-signup-lead">
+          Leave your details and we'll email you when there's something to help
+          with — events, working parties, and the odd job that needs a spare pair
+          of hands. No obligation to say yes to anything.
+        </p>
+
+        <MailingListForm
+          volunteer
+          askLastName
+          consentText="Yes, add me to the volunteer mailing list. I'd like to hear about volunteering at Meadowbrook and with the DRA. You can unsubscribe at any time."
+          submitLabel="Sign me up"
+          successHeading="You're on the list!"
+          successText="Thanks for signing up. We'll be in touch about what's coming up and where a hand is needed. Questions in the meantime? Email volunteer@meadowbrookdartington.org."
+        />
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .volunteer-signup {
+    max-width: 560px;
+    padding-top: var(--space-7);
+    border-top: 1px solid var(--paper-deep);
+  }
+
+  .volunteer-signup h2 {
+    margin: var(--space-2) 0 var(--space-3);
+  }
+
+  .volunteer-signup-lead {
+    color: var(--fg-soft);
+    margin: 0 0 var(--space-6);
+    max-width: 46ch;
+  }
+</style>

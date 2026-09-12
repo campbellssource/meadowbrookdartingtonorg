@@ -42,9 +42,12 @@ export default defineConfig({
     '/woodland-and-brook':   '/facilities/woodland-and-brook',
 
     // Content pages - old top-level URLs → /content/ prefix
-    '/volunteer':    '/content/volunteer',
     '/be-a-trustee': '/content/be-a-trustee',
     '/meadowchat':   '/content/meadowchat',
+
+    // Volunteer went the other way: it has its own page at /volunteer so it can
+    // carry the sign-up form, so the /content/ URL redirects back to it.
+    '/content/volunteer': '/volunteer',
 
     // Events - old slug → year-stamped slug
     '/calendar/extravaganza': '/calendar/extravaganza2026',

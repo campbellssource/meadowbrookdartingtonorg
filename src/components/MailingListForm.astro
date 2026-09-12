@@ -1,0 +1,290 @@
+---
+// The mailing-list sign-up form, shared by /subscribe-to-updates and /volunteer.
+//
+// One form, two jobs. The volunteer variant posts `volunteer: true`, which the
+// API turns into a VOLUNTEER attribute on the Brevo contact -- everyone lands on
+// the same list, and the attribute is what tells the volunteer sign-ups apart.
+//
+// Everything is wired through data attributes rather than ids, so a page can hold
+// more than one of these without the two forms fighting over the same element.
+interface Props {
+  /** Mark the contact as a volunteer sign-up in Brevo. */
+  volunteer?: boolean;
+  /** Volunteers get chased by a human, so their surname is worth asking for. */
+  askLastName?: boolean;
+  /** Consent wording. The privacy-policy link is appended to whatever is passed. */
+  consentText?: string;
+  submitLabel?: string;
+  successHeading?: string;
+  successText?: string;
+  class?: string;
+}
+
+const {
+  volunteer = false,
+  askLastName = false,
+  consentText =
+    'I agree to receive occasional updates from Meadowbrook and the DRA. '
+    + 'You can unsubscribe at any time.',
+  submitLabel = 'Subscribe',
+  successHeading = "You're subscribed!",
+  successText = "Thanks for signing up. We'll be in touch when there's something worth sharing.",
+  class: className = '',
+} = Astro.props;
+---
+
+<div
+  class:list={['ml-form', className]}
+  data-mailing-list-form
+  data-volunteer={volunteer ? 'true' : 'false'}
+>
+  <form novalidate data-ml-form>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">First name <span class="optional">(optional)</span></span>
+        <input type="text" name="firstName" autocomplete="given-name" placeholder="Your first name" />
+      </label>
+    </div>
+
+    {askLastName && (
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label">Last name <span class="optional">(optional)</span></span>
+          <input type="text" name="lastName" autocomplete="family-name" placeholder="Your last name" />
+        </label>
+      </div>
+    )}
+
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Email address <span class="required">*</span></span>
+        <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="checkbox-label">
+        <input type="checkbox" name="consent" required />
+        <span>
+          {consentText} Read our
+          <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+        </span>
+      </label>
+    </div>
+
+    <div class="form-message form-message--error" data-ml-error hidden></div>
+
+    <button type="submit" class="mw-btn mw-btn-primary" data-ml-submit>{submitLabel}</button>
+  </form>
+
+  <div class="success-wrap" data-ml-success hidden>
+    <div class="success-icon">✓</div>
+    <h2>{successHeading}</h2>
+    <p>{successText}</p>
+  </div>
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-mailing-list-form]')) {
+    const form = root.querySelector('[data-ml-form]') as HTMLFormElement | null;
+    const errorEl = root.querySelector('[data-ml-error]') as HTMLElement | null;
+    const successEl = root.querySelector('[data-ml-success]') as HTMLElement | null;
+    const submitBtn = root.querySelector('[data-ml-submit]') as HTMLButtonElement | null;
+    if (!form || !errorEl || !successEl || !submitBtn) continue;
+
+    const volunteer = root.dataset.volunteer === 'true';
+    const idleLabel = submitBtn.textContent ?? 'Subscribe';
+
+    const value = (name: string) =>
+      (form.querySelector(`[name="${name}"]`) as HTMLInputElement | null)?.value.trim() ?? '';
+
+    function showError(msg: string) {
+      errorEl!.textContent = msg;
+      errorEl!.hidden = false;
+    }
+
+    function reset() {
+      submitBtn!.disabled = false;
+      submitBtn!.textContent = idleLabel;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+      errorEl.hidden = true;
+
+      const email = value('email');
+      const consent = (form.querySelector('[name="consent"]') as HTMLInputElement | null)?.checked;
+
+      if (!email) {
+        showError('Please enter your email address.');
+        return;
+      }
+      if (!consent) {
+        showError("Please tick the box to confirm you'd like to receive emails.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing you up…';
+
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            firstName: value('firstName'),
+            lastName: value('lastName'),
+            volunteer,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          form.hidden = true;
+          successEl.hidden = false;
+        } else {
+          showError(data.error ?? 'Something went wrong. Please try again.');
+          reset();
+        }
+      } catch {
+        showError('Could not connect. Please check your connection and try again.');
+        reset();
+      }
+    });
+  }
+</script>
+
+<style>
+  .ml-form {
+    max-width: 480px;
+  }
+
+  .field-row {
+    margin-bottom: var(--space-5);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .field-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--fg-mute);
+  }
+
+  .required {
+    color: #c0392b;
+  }
+
+  input[type="email"],
+  input[type="text"] {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--fg);
+    background: var(--bone);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+    outline: none;
+  }
+
+  input[type="email"]:focus,
+  input[type="text"]:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18);
+  }
+
+  input[type="email"]::placeholder,
+  input[type="text"]::placeholder {
+    color: var(--ink-mute);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: var(--fg-soft);
+    cursor: pointer;
+    line-height: 1.5;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+
+  .checkbox-label a {
+    color: var(--green-dark);
+  }
+
+  .form-message {
+    font-size: 0.875rem;
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: var(--space-5);
+  }
+
+  .form-message--error {
+    background: #fdf0ee;
+    color: #a93226;
+    border: 1px solid #f0b8b2;
+  }
+
+  [data-ml-submit] {
+    margin-top: var(--space-5);
+  }
+
+  [data-ml-submit]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .success-wrap {
+    padding: var(--space-6) 0;
+  }
+
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: var(--space-5);
+  }
+
+  .success-wrap h2 {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .success-wrap p {
+    color: var(--fg-soft);
+    margin: 0;
+  }
+</style>
