@@ -10,7 +10,9 @@ export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
   const allPages = await reader.collections.pages.all();
   return allPages
-    .filter(({ slug }) => slug !== 'energy-hub')
+    // Both have a page of their own: energy-hub for its imagery, volunteer for
+    // its sign-up form. Left in here they would be reachable at two URLs.
+    .filter(({ slug }) => slug !== 'energy-hub' && slug !== 'volunteer')
     .map(({ slug }) => ({ params: { slug } }));
 }
 

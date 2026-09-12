@@ -8,7 +8,7 @@ Astro-based website for Meadowbrook and the Dartington Recreation Association.
 - **[Keystatic](https://keystatic.com/)** — git-based CMS; local mode in development, GitHub mode in production
 - **[Square Web Payments SDK](https://developer.squareup.com/docs/web-payments/overview)** — donation payments on `/donate`
 - **[Acuity Scheduling](https://acuityscheduling.com/)** — embedded booking widget for bookable facilities
-- **[Brevo](https://www.brevo.com/)** — mailing list subscription (newsletter sign-up)
+- **[Brevo](https://www.brevo.com/)** — mailing list subscription (newsletter and volunteer sign-up)
 - **Docker + [Google Cloud Run](https://cloud.google.com/run)** — containerised hosting on `europe-west2`
 - **[Google Artifact Registry](https://cloud.google.com/artifact-registry)** — Docker image storage
 
@@ -115,11 +115,19 @@ Environment variables are set on Cloud Run at deploy time via `--update-env-vars
 | `PUBLIC_SQUARE_LOCATION_ID` | Cloud Run env var (deploy workflow) | Square location for payments |
 | `PUBLIC_SQUARE_ENVIRONMENT` | Cloud Run env var (deploy workflow) | `production` or `sandbox` |
 | `BREVO_API_KEY` | Secret Manager | Brevo mailing list API key |
-| `BREVO_LIST_ID` | Cloud Run env var | Brevo list to subscribe contacts to |
+| `BREVO_LIST_ID` | Cloud Run env var (deploy workflow) | Brevo list the newsletter and volunteer forms subscribe to (2) |
 | `KEYSTATIC_GITHUB_CLIENT_ID` | Secret Manager | Keystatic GitHub OAuth app |
 | `KEYSTATIC_GITHUB_CLIENT_SECRET` | Secret Manager | Keystatic GitHub OAuth app |
 | `KEYSTATIC_SECRET` | Secret Manager | Keystatic session signing secret |
 | `SQUARE_ACCESS_TOKEN` | Secret Manager | Square server-side payments token |
+
+> **Brevo contact attribute:** the volunteer form at `/volunteer` posts to the same
+> endpoint and the same list as the newsletter form; what marks a volunteer is a
+> boolean contact attribute named `VOLUNTEER`, set on the contact. It has to exist
+> in Brevo (Contacts → Settings → Contact attributes) — segment on it to email the
+> volunteers. If it is missing, Brevo rejects the attribute and the person is
+> subscribed without the flag rather than losing the sign-up; the rejection is
+> logged.
 
 > **Note:** `cloudbuild.yaml` exists in the repo but the associated Cloud Build trigger has been deleted — GitHub Actions is the sole deployment pipeline. Do not recreate the Cloud Build trigger; it would overwrite environment variables set by the workflow.
 
