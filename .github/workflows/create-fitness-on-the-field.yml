@@ -1,0 +1,59 @@
+name: Create Fitness on the Field events
+
+# Runs every Monday at 9am UTC. Ensures the next few Thursday Fitness on the
+# Field sessions exist, then commits and pushes any new ones.
+#
+# Can also be triggered manually from the Actions tab (useful for backfilling
+# more weeks or testing).
+#
+# To SKIP a week, do NOT delete the event in the CMS — this job would just
+# recreate it. Instead set that event's Status to "Cancelled" or "Hidden".
+#
+# The schedule is offset ten minutes from the Coffee Club job so the two don't
+# try to push to main at the same moment. Unlike that job this one needs no
+# npm install: every session reuses the committed poster hero, so there's no
+# image to render.
+
+on:
+  schedule:
+    - cron: '10 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      weeks:
+        description: 'How many upcoming Thursdays to ensure exist (default 3)'
+        required: false
+
+jobs:
+  create-event:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create Fitness on the Field event files
+        run: |
+          EXTRA_ARGS=""
+          if [ -n "${{ github.event.inputs.weeks }}" ]; then
+            EXTRA_ARGS="--weeks ${{ github.event.inputs.weeks }}"
+          fi
+          node scripts/create-fitness-on-the-field.mjs $EXTRA_ARGS
+
+      - name: Commit and push if new events were created
+        run: |
+          git config user.name  "Meadowbrook Bot"
+          git config user.email "bot@meadowbrookdartington.org"
+          git add src/content/events/
+          if git diff --staged --quiet; then
+            echo "Nothing to commit - events already existed."
+          else
+            git commit -m "chore: add upcoming Fitness on the Field events"
+            git push
+          fi

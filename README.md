@@ -146,9 +146,30 @@ gcloud run deploy meadowbrook-site \
 
 **Always use `--update-env-vars` (not `--set-env-vars`) for manual deploys.** Using `--set-env-vars` replaces the entire env var list and will silently remove anything not specified.
 
-### Automated content workflow
+### Automated content workflows
 
-`.github/workflows/create-dra-social.yml` runs on the 1st of each month and creates the DRA Social event file for that month if it doesn't exist, then commits and pushes — which triggers a normal deploy.
+Regular events are generated rather than hand-written. Each job creates any
+missing event files, then commits and pushes — which triggers a normal deploy.
+
+| Event | Workflow | Script | When it runs |
+|---|---|---|---|
+| DRA Social — last Thursday monthly | `create-dra-social.yml` | `scripts/create-social.mjs` | 1st of each month |
+| Coffee Club — Wednesdays 10:30am | `create-coffee-club.yml` | `scripts/create-coffee-club.mjs` | Mondays, keeps 3 weeks ahead |
+| Fitness on the Field — Thursdays 9:15am | `create-fitness-on-the-field.yml` | `scripts/create-fitness-on-the-field.mjs` | Mondays, keeps 3 weeks ahead |
+
+**To skip a week, don't delete the event** — the only "already exists?" check is
+whether the file is on disk, so a deleted week is recreated on the next run. Set
+its Status to "Cancelled" or "Hidden" in the CMS instead.
+
+Each weekly series is collapsed to its next occurrence on the homepage (see
+`weeklySeries` in `src/pages/index.astro`) so one series can't fill the list. The
+full run is still shown on `/calendar`.
+
+Coffee Club and the DRA Social render a fresh Open Graph card per occurrence via
+`scripts/generate-social-image.mjs`. Fitness on the Field instead reuses a single
+committed hero built from the Tiny Feet Yoga poster
+(`public/images/events/fitness-on-the-field/image.jpg`, with the original flyer
+kept beside it), so that job needs no npm install.
 
 ## Design System
 
