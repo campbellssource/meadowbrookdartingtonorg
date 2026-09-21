@@ -24,14 +24,18 @@ const allUpcoming = (await reader.collections.events.all())
     new Date(b.entry.date! + 'T12:00:00').getTime()
   );
 
-// Collapse the weekly Coffee Club to just its next occurrence so it doesn't
-// fill the homepage. The full run is still listed on the Calendar page.
-let coffeeShown = false;
+// Collapse each weekly series to just its next occurrence so they don't fill
+// the homepage. The full run is still listed on the Calendar page.
+const weeklySeries = ['coffee-club-', 'fitness-on-the-field-'];
+// Everything that runs to a schedule - none of these take the featured slot.
+const recurringSeries = [...weeklySeries, 'dra-social-'];
+const seriesShown = new Set<string>();
 const upcomingEvents = allUpcoming
   .filter(({ slug }) => {
-    if (!slug.startsWith('coffee-club-')) return true;
-    if (coffeeShown) return false;
-    coffeeShown = true;
+    const series = weeklySeries.find((prefix) => slug.startsWith(prefix));
+    if (!series) return true;
+    if (seriesShown.has(series)) return false;
+    seriesShown.add(series);
     return true;
   })
   .slice(0, 4);
@@ -88,9 +92,9 @@ const energyHubImageSrc = homepage?.energyHubImage
   </section>
 
   {upcomingEvents.length > 0 && (() => {
-    // DRA Socials are never the hero - find the first non-social event for that slot.
-    // Socials (and any events before the hero) stay in the compact list.
-    const featured = upcomingEvents.find(({ slug }) => !slug.startsWith('dra-social-') && !slug.startsWith('coffee-club-')) ?? null;
+    // The recurring series are never the hero - find the first one-off event for
+    // that slot. The series (and any events before the hero) stay in the compact list.
+    const featured = upcomingEvents.find(({ slug }) => !recurringSeries.some((prefix) => slug.startsWith(prefix))) ?? null;
     const rest = upcomingEvents.filter(({ slug }) => slug !== featured?.slug);
     const featuredImage = featured?.entry.image
       ? (featured.entry.image.startsWith('/') ? featured.entry.image : `/images/events/${featured.entry.image}`)
