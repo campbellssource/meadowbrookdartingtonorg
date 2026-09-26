@@ -1,0 +1,8 @@
+name: KOM Massage Therapy
+order: 14
+shortDescription: Sports and massage therapy at Meadowbrook
+image: /images/facilities/kom-massage-therapy/image.jpg
+facilityType:
+  discriminant: link
+  value:
+    externalUrl: https://www.komcoaching.uk/sports-massage-therapy/
