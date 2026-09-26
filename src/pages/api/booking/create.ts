@@ -22,6 +22,7 @@ import {
 } from '../../../lib/booking/store.ts';
 import { issue } from '../../../lib/booking/token.ts';
 import { squareConfig, charge, PaymentError } from '../../../lib/booking/square.ts';
+import { buildIntakeNotes } from '../../../lib/booking/intake.ts';
 import { confirmationEmail, ownerNotificationEmail, alertEmail, send } from '../../../lib/booking/email.ts';
 import { refundableAtBooking } from '../../../lib/booking/policy.ts';
 import { envBool, canonicalOrigin } from '../../../lib/booking/env.ts';
@@ -55,7 +56,6 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
   const name = String(payload.customer?.name ?? '').trim().slice(0, 100);
   const email = String(payload.customer?.email ?? '').trim().toLowerCase().slice(0, 254);
   const phone = String(payload.customer?.phone ?? '').trim().slice(0, 20);
-  const notes = String(payload.customer?.notes ?? '').trim().slice(0, 1000);
   const sourceId = String(payload.sourceId ?? '').trim();
   // Strict true. Anything else -- absent, "false", 1 -- is not consent.
   const newsletterOptIn = payload.newsletterOptIn === true;
@@ -82,6 +82,10 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
 
   const room = await getRoomConfig(slug);
   if (!room) return json({ error: 'That room cannot be booked online.' }, 404);
+
+  const intake = buildIntakeNotes(room.intakeQuestions, payload.customer?.answers, payload.customer?.notes);
+  if (!intake.ok) return json({ error: intake.error }, 400);
+  const notes = intake.notes;
 
   const start = new Date(startMs);
   const end = addMinutes(start, durationMins);
@@ -246,6 +250,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
       reference: bookingRef, roomName: room.shortName, start, end, durationMins,
       pricePence, customerName: name, customerEmail: email, manageUrl,
       capacityNote: room.capacityNote,
+      ...(notes ? { notes } : {}),
       doorCode: doorCodeOf(booking),
       nonRefundable: !refundableAtBooking(start, now),
     };

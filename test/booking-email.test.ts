@@ -66,6 +66,13 @@ describe('internal mail', () => {
     assert.ok(e.text.includes('j@example.com'));
   });
 
+  test('carries the intended use to the DRA, but not to the booker', () => {
+    const withUse = { ...b, notes: 'How do you intend to use the room? Yoga class' };
+    assert.ok(ownerNotificationEmail(withUse, 'New').text.includes('Yoga class'));
+    assert.ok(ownerNotificationEmail(withUse, 'New').html.includes('Yoga class'));
+    assert.ok(!confirmationEmail(withUse).text.includes('Yoga class'));
+  });
+
   // Two bookings for the same room on the same day arrived as a single thread in
   // the DRA's mail client, the second reading as a reply to the first. Gmail threads
   // on the normalised subject, so the subject has to distinguish them.

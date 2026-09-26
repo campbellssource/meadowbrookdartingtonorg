@@ -7,6 +7,8 @@
 
 import type { Booking } from './store.ts';
 import { MINUTE } from './time.ts';
+import type { IntakeQuestion } from './config.ts';
+import { intakeAnswers } from './intake.ts';
 
 export interface Row { ref: string; booking: Booking }
 
@@ -157,4 +159,21 @@ export function repeatBookers(rows: Row[]): {
     repeatBookers: repeats.length,
     repeatRevenueShare: total ? repeatRevenue / total : 0,
   };
+}
+
+/**
+ * What each booking said the room was for, newest first. Only rooms that ask
+ * (Studio, Lounge) -- nobody needs telling what the Snooker Room is used for.
+ * Cancelled bookings are left out: the room was not used.
+ */
+export function intendedUses(
+  rows: Row[], questionsFor: (room: string) => readonly IntakeQuestion[],
+): { ref: string; room: string; localDate: string; name: string; use: string }[] {
+  return rows
+    .filter(({ booking }) => booking.status === 'confirmed' && questionsFor(booking.room).length > 0)
+    .map(({ ref, booking }) => ({
+      ref, room: booking.room, localDate: booking.localDate, name: booking.customer.name,
+      use: intakeAnswers(booking.customer.notes, questionsFor(booking.room)),
+    }))
+    .sort((a, b) => b.localDate.localeCompare(a.localDate));
 }

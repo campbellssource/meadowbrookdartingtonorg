@@ -566,9 +566,9 @@ const wid = `bw-${room.slug}`;
         return reset();
       }
 
-      const notes = Array.from(root.querySelectorAll('[data-q]'))
-        .map((el) => `${el.parentElement?.querySelector('span')?.textContent ?? ''} ${el.value}`.trim())
-        .filter((s) => s.length > 1).join('\n');
+      // Keyed answers; the server pairs them with the room's own question wording.
+      const answers = Object.fromEntries(Array.from(root.querySelectorAll('[data-q]'))
+        .map((el) => [el.dataset.q, el.value.trim()]));
 
       try {
         const res = await fetch('/api/booking/create', {
@@ -576,7 +576,7 @@ const wid = `bw-${room.slug}`;
           body: JSON.stringify({
             room: roomSlug, start: state.slot.start, durationMins: state.durationMins,
             pricePence: state.pricePence, sourceId: result.token, acceptedTerms: true,
-            customer: { name, email, phone: $('phone').value.trim(), ...(notes ? { notes } : {}) },
+            customer: { name, email, phone: $('phone').value.trim(), answers },
             newsletterOptIn: $('newsletter').checked === true,
           }),
         });
