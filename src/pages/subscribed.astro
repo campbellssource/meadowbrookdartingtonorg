@@ -1,0 +1,76 @@
+---
+// Where Brevo sends people after they click the link in the double opt-in email.
+// Reached once, from an email client, by someone who has just done the last thing
+// we asked of them -- so it says so plainly and points back into the site.
+import Layout from '../layouts/Layout.astro';
+import SocialLinks from '../components/SocialLinks.astro';
+---
+
+<Layout
+  title="You're subscribed"
+  description="Your email address is confirmed. You're on the Meadowbrook and DRA mailing list."
+  noindex={true}
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Confirmed</span>
+      <h1>You're on the list</h1>
+      <p>
+        Thanks for confirming. We'll email you about what's on at Meadowbrook and
+        what the DRA is up to — and never more than we would want to receive
+        ourselves. Every email has an unsubscribe link.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <div class="confirmed-next">
+        <h2>While you're here</h2>
+        <div class="confirmed-links">
+          <a href="/calendar" class="mw-btn mw-btn-primary">See what's coming up</a>
+          <a href="/volunteer" class="mw-btn mw-btn-secondary">Volunteer with us</a>
+        </div>
+
+        <div class="confirmed-social">
+          <span class="confirmed-social-label">Or follow along</span>
+          <SocialLinks variant="inline" class="mw-socials-lg" />
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .confirmed-next {
+    max-width: 560px;
+  }
+
+  .confirmed-next h2 {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-5);
+    letter-spacing: -0.02em;
+  }
+
+  .confirmed-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .confirmed-social {
+    margin-top: var(--space-7);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--paper-deep);
+  }
+
+  .confirmed-social-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: var(--space-4);
+  }
+</style>
