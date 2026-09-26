@@ -5,7 +5,7 @@ import { listBookings } from '../../lib/booking/store.ts';
 import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
-import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers } from '../../lib/booking/reporting.ts';
+import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers, intendedUses } from '../../lib/booking/reporting.ts';
 
 export const prerender = false;
 for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
@@ -44,6 +44,7 @@ const revenue = byRoomByMonth(rows);
 const occ = occupancy(rows, OPENING_HOURS_PER_DAY);
 const lead = leadTimes(rows);
 const repeat = repeatBookers(rows);
+const uses = intendedUses(rows, (slug) => rooms.find((r) => r.slug === slug)?.intakeQuestions ?? []);
 
 const monthsList = [...new Set(revenue.map((r) => r.month))].sort();
 const roomsList = [...new Set(revenue.map((r) => r.room))].sort();
@@ -179,6 +180,27 @@ const maxLead = Math.max(1, ...lead.map((l) => l.count));
         </tbody>
       </table>
 
+      <h2 class="rp-h2">What the rooms are used for</h2>
+      <p class="rp-note">
+        What Studio and Lounge hirers said they wanted the room for, newest first.
+        Cancelled bookings are left out.
+      </p>
+      {uses.length === 0 ? <p class="rp-empty">No Studio or Lounge bookings in this period.</p> : (
+        <table class="rp-table rp-uses">
+          <thead><tr><th>Date</th><th>Room</th><th>Hirer</th><th>Intended use</th></tr></thead>
+          <tbody>
+            {uses.map((u) => (
+              <tr>
+                <td>{new Date(`${u.localDate}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                <td>{roomName(u.room)}</td>
+                <td>{u.name}</td>
+                <td>{u.use || <span class="rp-none">Not given</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       <p class="rp-note">
         <a href="/api/admin/export?view=past">Download the treasurer's CSV</a> — one row per
         booking, with charges and refunds flattened.
@@ -225,6 +247,9 @@ const maxLead = Math.max(1, ...lead.map((l) => l.count));
     border-radius: 5px; overflow: hidden; vertical-align: middle; }
   .rp-meter > div { height: 100%; background: var(--green); }
   .rp-meter-label { font-size: 12px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+  .rp-uses td:first-child { white-space: nowrap; }
+  .rp-uses td:last-child { white-space: pre-line; }
+  .rp-none { color: var(--ink-mute); font-style: italic; }
   .rp-empty { color: var(--fg-soft); margin-bottom: 20px; }
   .rp-fail { margin: 18px 0 0; padding: 14px 16px; border-radius: 10px; font-size: 14px;
     line-height: 1.6; background: #FCECE7; color: #8A2C0D; border: 1.5px solid #E0A38F; }

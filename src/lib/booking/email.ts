@@ -119,6 +119,8 @@ export interface BookingSummary {
   customerEmail: string;
   manageUrl: string;
   capacityNote?: string;
+  /** The booker's answers to the room's intake questions. Shown to the DRA only. */
+  notes?: string;
   /**
    * The allocated door code and where it came from. `source` decides whether an
    * email may say "the last four digits of your mobile number": only when it is.
@@ -311,6 +313,7 @@ export function ownerNotificationEmail(b: BookingSummary, action: 'New' | 'Amend
     `${b.customerName} <${b.customerEmail}>`,
     `${formatPence(b.pricePence)}`,
     `Reference: ${b.reference}`,
+    ...(b.notes ? ['', b.notes] : []),
   ].join('\n');
   return {
     to: OWNER_EMAIL,

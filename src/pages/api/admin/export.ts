@@ -7,6 +7,8 @@ import type { APIRoute } from 'astro';
 import { verifySession, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
 import { listBookings } from '../../../lib/booking/store.ts';
 import { instantToLocalTime } from '../../../lib/booking/time.ts';
+import { getBookableRooms } from '../../../lib/booking/config-reader.ts';
+import { intakeAnswers } from '../../../lib/booking/intake.ts';
 
 export const prerender = false;
 
@@ -36,10 +38,11 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   const from = view === 'past' ? new Date(now.getTime() - 365 * 86400000) : now;
   const to = view === 'past' ? now : new Date(now.getTime() + 365 * 86400000);
 
-  const rows = await listBookings(from, to);
+  const [rows, rooms] = await Promise.all([listBookings(from, to), getBookableRooms()]);
+  const questionsFor = (slug: string) => rooms.find((r) => r.slug === slug)?.intakeQuestions ?? [];
   const header = [
     'Reference', 'Status', 'Room', 'Date', 'Start', 'End', 'Duration (mins)',
-    'Price (£)', 'Paid (£)', 'Name', 'Email', 'Phone',
+    'Price (£)', 'Paid (£)', 'Name', 'Email', 'Phone', 'Intended use',
     'Charges (£)', 'Refunds (£)', 'Square payment id', 'Created',
   ];
 
@@ -56,6 +59,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       instantToLocalTime(b.start.toDate()), instantToLocalTime(b.end.toDate()),
       b.durationMins, (b.pricePence / 100).toFixed(2), (b.paidPence / 100).toFixed(2),
       b.customer.name, b.customer.email, b.customer.phone ?? '',
+      intakeAnswers(b.customer.notes, questionsFor(b.room)),
       (charges / 100).toFixed(2), (refunds / 100).toFixed(2),
       b.payments[0]?.squarePaymentId ?? '', b.createdAt.toDate().toISOString(),
     ].map(cell).join(','));

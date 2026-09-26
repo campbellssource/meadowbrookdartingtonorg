@@ -236,6 +236,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       pricePence: newPrice, customerName: booking.customer.name,
       customerEmail: booking.customer.email,
       manageUrl: new URL(`/bookings/${ref}`, canonicalOrigin(url.origin)).toString(),
+      ...(booking.customer.notes ? { notes: booking.customer.notes } : {}),
     };
     try {
       await send(amendmentEmail(summary, decision));

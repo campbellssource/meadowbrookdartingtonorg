@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers } from '../src/lib/booking/reporting.ts';
+import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers, intendedUses } from '../src/lib/booking/reporting.ts';
 import type { Row } from '../src/lib/booking/reporting.ts';
 
 const ts = (iso: string) => ({ toDate: () => new Date(iso) });
@@ -116,5 +116,24 @@ describe('breakdowns', () => {
     assert.equal(r.repeatBookers, 1);
     // a@ contributed 1500 of 3000.
     assert.ok(Math.abs(r.repeatRevenueShare - 0.5) < 1e-9);
+  });
+});
+
+describe('intendedUses', () => {
+  const USE = [{ key: 'use', label: 'How do you intend to use the room?', required: true }];
+  const qs = (room: string) => (room === 'snooker-room' ? [] : USE);
+
+  test('lists Studio and Lounge answers newest first, skipping snooker and cancellations', () => {
+    const rows = [
+      mk({ ref: 'S', booking: { room: 'snooker-room' } }),
+      mk({ ref: 'A', booking: { room: 'large-room', localDate: '2026-09-01',
+        customer: { name: 'Ann', email: 'a@x', notes: 'How do you intend to use the room? Yoga' } } }),
+      mk({ ref: 'B', booking: { room: 'small-room', localDate: '2026-09-20',
+        customer: { name: 'Bo', email: 'b@x', notes: 'How do you intend to use the room? Book club' } } }),
+      mk({ ref: 'C', booking: { room: 'small-room', status: 'cancelled',
+        customer: { name: 'Cy', email: 'c@x', notes: 'x' } } }),
+    ];
+    const u = intendedUses(rows, qs);
+    assert.deepEqual(u.map((x) => [x.ref, x.use]), [['B', 'Book club'], ['A', 'Yoga']]);
   });
 });
