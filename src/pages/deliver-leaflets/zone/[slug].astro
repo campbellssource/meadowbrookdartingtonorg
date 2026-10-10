@@ -83,9 +83,9 @@ const zoneData = JSON.stringify({ name: zone.name, polygon: zone.polygon });
     import L from 'leaflet';
     import 'leaflet/dist/leaflet.css';
 
-    const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-    const CARTO_ATTR =
-      '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const OSM_ATTR =
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
     const ESRI_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     const ESRI_ATTR = 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
@@ -99,7 +99,7 @@ const zoneData = JSON.stringify({ name: zone.name, polygon: zone.polygon });
       const data = JSON.parse(raw) as { name: string; polygon: [number, number][] };
       const map = L.map('zone-map', { scrollWheelZoom: true }).setView([50.4449, -3.7091], 15);
 
-      const street = L.tileLayer(CARTO_URL, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+      const street = L.tileLayer(OSM_URL, { attribution: OSM_ATTR, maxZoom: 19 }).addTo(map);
       const satellite = L.tileLayer(ESRI_URL, { attribution: ESRI_ATTR, maxZoom: 19 });
 
       const poly = L.polygon(data.polygon, streetStyle)
