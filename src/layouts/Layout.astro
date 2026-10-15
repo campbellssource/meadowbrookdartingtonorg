@@ -24,6 +24,13 @@ const {
   structuredData,
 } = Astro.props;
 
+// True only in PR preview builds (.github/workflows/preview.yml), whose
+// *.run.app URLs are public, so keep them out of search results. A build-time
+// constant (see astro.config.mjs), not a runtime env read, so prerendered pages
+// get it right too.
+// @ts-ignore -- injected by Vite define
+const isPreview: boolean = __SITE_PREVIEW__;
+
 const siteUrl = 'https://meadowbrookdartington.org';
 const ogImageUrl = ogImage
   ? (ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`)
@@ -80,7 +87,7 @@ const navRooms = navFacilities
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={ogImageUrl} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {(noindex || isPreview) && <meta name="robots" content="noindex, nofollow" />}
     {structuredData && (
       <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
     )}

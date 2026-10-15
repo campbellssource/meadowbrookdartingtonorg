@@ -3,7 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
-RUN npm run build
+# Set to true only by the PR preview workflow; adds noindex to every page.
+ARG SITE_PREVIEW=false
+RUN SITE_PREVIEW=$SITE_PREVIEW npm run build
 
 FROM node:22-slim AS runtime
 WORKDIR /app
