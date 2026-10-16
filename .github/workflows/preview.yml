@@ -1,0 +1,143 @@
+name: PR preview
+
+# Deploys each open pull request to its own URL on a separate Cloud Run service,
+# meadowbrook-site-preview, as a tagged revision that takes no traffic:
+#
+#   https://pr-<number>---meadowbrook-site-preview-<hash>.europe-west2.run.app
+#
+# The URL is posted as a comment on the PR and updated on every push. When the
+# PR closes, the tag and that PR's revisions are removed.
+#
+# Previews are for checking content and layout. They deliberately carry NO
+# secrets and none of production's config: no Square, no Brevo, no booking
+# service account. Payments, forms, sign-ups and the Keystatic editor won't work
+# there, and that's intended -- a preview must never be able to take a real
+# payment or email a real person. The service also runs as its own service
+# account, site-preview-runtime, which has no roles at all.
+#
+# Security, since the repo is public:
+#   - Uses `pull_request`, never `pull_request_target`, so PR code never runs
+#     with this repo's privileges by accident.
+#   - PRs from forks are skipped (they get no OIDC token anyway).
+#   - Deploys as github-preview-deploy, which can only touch the preview service
+#     and the meadowbrook-previews image repository -- not production.
+#
+# One-off GCP setup for all of this lives in scripts/setup-pr-previews.sh.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+env:
+  PROJECT_ID: meadowbrookdartington
+  REGION: europe-west2
+  SERVICE: meadowbrook-site-preview
+  IMAGE: europe-west2-docker.pkg.dev/meadowbrookdartington/meadowbrook-previews/site
+  RUNTIME_SA: site-preview-runtime@meadowbrookdartington.iam.gserviceaccount.com
+  TAG: pr-${{ github.event.pull_request.number }}
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/589136616970/locations/global/workloadIdentityPools/github-actions/providers/github-provider
+          service_account: github-preview-deploy@meadowbrookdartington.iam.gserviceaccount.com
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        run: |
+          docker build --build-arg SITE_PREVIEW=true -t ${{ env.IMAGE }}:${{ env.TAG }}-${{ github.event.pull_request.head.sha }} .
+          docker push ${{ env.IMAGE }}:${{ env.TAG }}-${{ github.event.pull_request.head.sha }}
+
+      # --no-traffic + --tag gives this revision its own URL without moving the
+      # service's main URL. The revision suffix lets the close job find this PR's
+      # revisions again.
+      - name: Deploy tagged revision
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image=${{ env.IMAGE }}:${{ env.TAG }}-${{ github.event.pull_request.head.sha }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --service-account=${{ env.RUNTIME_SA }} \
+            --revision-suffix=${{ env.TAG }}-$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)-${{ github.run_attempt }} \
+            --no-traffic \
+            --tag=${{ env.TAG }} \
+            --quiet
+
+      - name: Find preview URL
+        id: url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --format=json | jq -r '.status.traffic[] | select(.tag == "${{ env.TAG }}") | .url')
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.url.outputs.url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          MARKER='<!-- pr-preview -->'
+          BODY="$MARKER
+          **Preview:** $URL
+
+          Built from \`${SHA:0:7}\`. Content preview only — payments, forms and sign-ups are switched off here."
+          ID=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$ID" -f body="$BODY" > /dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$PR/comments" -f body="$BODY" > /dev/null
+          fi
+
+  cleanup:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/589136616970/locations/global/workloadIdentityPools/github-actions/providers/github-provider
+          service_account: github-preview-deploy@meadowbrookdartington.iam.gserviceaccount.com
+
+      - name: Remove preview tag
+        run: |
+          gcloud run services update-traffic ${{ env.SERVICE }} \
+            --remove-tags=${{ env.TAG }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --quiet || true
+
+      # Images are cleaned up by the meadowbrook-previews repository's cleanup
+      # policy, not here.
+      - name: Delete this PR's revisions
+        run: |
+          for REV in $(gcloud run revisions list --service=${{ env.SERVICE }} \
+              --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+              --format='value(metadata.name)' \
+              --filter='metadata.name ~ -${{ env.TAG }}-'); do
+            gcloud run revisions delete "$REV" \
+              --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --quiet || true
+          done

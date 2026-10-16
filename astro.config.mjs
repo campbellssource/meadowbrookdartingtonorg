@@ -8,6 +8,14 @@ import node from '@astrojs/node';
 export default defineConfig({
   integrations: [react(), markdoc(), keystatic()],
   output: 'server',
+  vite: {
+    // PR preview images are built with SITE_PREVIEW=true (see the Dockerfile and
+    // .github/workflows/preview.yml). Baked in at build time on purpose: the
+    // prerendered pages need it too, and a preview image is never promoted.
+    define: {
+      __SITE_PREVIEW__: JSON.stringify(process.env.SITE_PREVIEW === 'true'),
+    },
+  },
   adapter: node({ mode: 'standalone' }),
   security: {
     // Astro rejects POST form submissions whose Origin is not listed here. With
