@@ -130,14 +130,22 @@ jobs:
             --remove-tags=${{ env.TAG }} \
             --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --quiet || true
 
+      # Sweeps every revision that no tag or traffic points at, not just this
+      # PR's: Cloud Run refuses to delete the latest-created revision, so a PR
+      # closed while it was newest leaves one behind for the next close to clear.
+      # This also clears open PRs' revisions superseded by later pushes.
+      #
       # Images are cleaned up by the meadowbrook-previews repository's cleanup
       # policy, not here.
-      - name: Delete this PR's revisions
+      - name: Delete unused revisions
         run: |
+          IN_USE=$(gcloud run services describe ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --format=json | jq -r '.status.traffic[].revisionName')
           for REV in $(gcloud run revisions list --service=${{ env.SERVICE }} \
               --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
-              --format='value(metadata.name)' \
-              --filter='metadata.name ~ -${{ env.TAG }}-'); do
+              --format='value(metadata.name)'); do
+            if grep -qx "$REV" <<< "$IN_USE"; then continue; fi
             gcloud run revisions delete "$REV" \
               --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --quiet || true
           done
