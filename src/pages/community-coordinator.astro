@@ -1,0 +1,197 @@
+---
+// Expressions of interest for the paid Community Coordinator role. A one-off,
+// time-limited page, so the words live here rather than in Keystatic. Linked from
+// /volunteer only, not the main nav. Take the link off /volunteer (and this page
+// down) once the closing date has passed and the role is filled.
+export const prerender = true;
+
+import Layout from '../layouts/Layout.astro';
+
+const closingDate = 'Friday 13 November 2026';
+const email = 'contact@meadowbrookdartington.org';
+const mailto = `mailto:${email}?subject=${encodeURIComponent('Community Coordinator - expression of interest')}`;
+---
+
+<Layout
+  title="Community Coordinator: expressions of interest"
+  description="Paid, self-employed opportunity to help make Meadowbrook the heart of the Dartington community. £15 an hour, around 15 hours a week, for a year. Expressions of interest by 13 November 2026."
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Paid opportunity</span>
+      <h1>Community Coordinator</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0; padding-bottom: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article">
+        <div class="lead">
+          <p>
+            The Dartington Recreation Association (DRA) is looking for someone to help make
+            Meadowbrook Community Centre and Pavilion a vibrant, sustainable hub at the heart of
+            the community. We'd love to hear from you if you're interested.
+          </p>
+        </div>
+
+        <dl class="cc-facts">
+          <div><dt>Pay</dt><dd>£15 per hour</dd></div>
+          <div><dt>Hours</dt><dd>Around 15 hours a week, worked flexibly</dd></div>
+          <div><dt>Length</dt><dd>12-month contract</dd></div>
+          <div><dt>Basis</dt><dd>Self-employed, not an employed post</dd></div>
+          <div><dt>Closing date</dt><dd>{closingDate}</dd></div>
+        </dl>
+
+        <div class="cc-note">
+          <h2>Please note: this is not a job</h2>
+          <p>
+            This is a freelance contract, more like a sole-trader project than employment. You'd
+            invoice the DRA for your time and look after your own tax and National Insurance.
+            There's no holiday pay, sick pay or pension. In return you get a lot of freedom over
+            how and when the work gets done.
+          </p>
+          <p>
+            We'll talk with everyone who gets in touch before going any further, so we can both
+            be sure the arrangement suits you.
+          </p>
+        </div>
+
+        <h2>What it's about</h2>
+        <p>
+          Meadowbrook Park, its buildings and facilities are run by a team of volunteer trustees,
+          backed by a wider network of community volunteers. The Community Building has two
+          tenants, a brewery and a pizza restaurant. The Pavilion is home to a sauna, a masseuse and
+          the football club. The upstairs rooms are only hired now and then, so there's plenty of
+          room to grow.
+        </p>
+        <p>
+          The role will build up community activities and events, strengthen partnerships, improve
+          communication, grow and support the volunteer network, and create more chances for
+          people to take part. It will also help Meadowbrook earn more of its own income.
+        </p>
+
+        <h2>The main tasks</h2>
+        <ul>
+          <li>
+            Make the most of Meadowbrook Community Centre and Pavilion so they meet local needs
+            and bring in sustainable income.
+          </li>
+          <li>
+            Be a key point of contact for community groups, partner organisations and tenants,
+            and build good working relationships with them.
+          </li>
+          <li>
+            Develop and deliver a programme of community events, shaped by what local people say
+            they want and need.
+          </li>
+          <li>
+            Improve communications and promotion so Meadowbrook becomes known as the heart of
+            the community.
+          </li>
+          <li>
+            Put simple, effective systems in place for recruiting, coordinating and thanking
+            volunteers.
+          </li>
+          <li>
+            Coordinate monthly volunteer days that make practical improvements to the community
+            centre and pavilion.
+          </li>
+        </ul>
+
+        <h2>Who we're looking for</h2>
+        <p>You'll need:</p>
+        <ul>
+          <li>Training or a qualification in community engagement or development, volunteer management, or events</li>
+          <li>Experience in grassroots or community-led organisations</li>
+          <li>Experience of supporting and coordinating volunteers</li>
+          <li>Experience of organising and delivering community events</li>
+          <li>The ability to work well with trustees, volunteers, community groups and partners</li>
+          <li>An understanding of the needs and challenges facing local communities, and of good practice in working with volunteers</li>
+          <li>An adaptable approach, a strong sense of initiative and the ability to work on your own</li>
+          <li>Strong communication and relationship-building skills, and a passion for helping communities thrive</li>
+        </ul>
+        <p>It would be great if you also had:</p>
+        <ul>
+          <li>A degree in community development, community engagement, charity management or a related subject</li>
+          <li>Experience of developing sustainable projects, or of spotting and developing ways to generate income</li>
+          <li>Experience of capital improvements or building projects</li>
+          <li>Knowledge of the Totnes and Dartington charity sector and local community organisations</li>
+        </ul>
+
+        <h2 id="apply">How to express interest</h2>
+        <p>
+          Email us at <a href={mailto}>{email}</a> by <strong>{closingDate}</strong>. You don't
+          need a formal application. A short note is plenty, covering:
+        </p>
+        <ul>
+          <li>a little about you and why the role appeals</li>
+          <li>your relevant experience (attach a CV if you have one to hand)</li>
+          <li>whether working on a self-employed basis suits you</li>
+          <li>the best way and time to reach you</li>
+        </ul>
+        <p>
+          After the closing date we'll get in touch to arrange an informal conversation. If you'd
+          like a chat before you write, just email and ask.
+        </p>
+
+        <p class="cc-cta">
+          <a href={mailto} class="mw-btn mw-btn-primary">Email your interest</a>
+        </p>
+      </article>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .cc-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    background: var(--paper-deep);
+    border-radius: var(--radius-md, 12px);
+  }
+
+  .cc-facts div {
+    margin: 0;
+  }
+
+  .cc-facts dt {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-soft);
+  }
+
+  .cc-facts dd {
+    margin: var(--space-1) 0 0;
+    font-weight: 600;
+  }
+
+  .cc-note {
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    border-left: 4px solid var(--accent, var(--green-dark));
+    background: var(--paper);
+  }
+
+  .cc-note h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+  }
+
+  .cc-note p + p {
+    margin-top: var(--space-3);
+  }
+
+  .mw-article .cc-cta a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cc-cta {
+    margin-top: var(--space-6);
+  }
+</style>

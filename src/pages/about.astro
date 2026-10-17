@@ -16,14 +16,50 @@ const documents = {
     { title: 'Constitution (2022)', url: '/documents/Dartington-Recreation-Association-Constitution-2022.pdf' },
     { title: 'Handbook and Rules (2023)', url: '/documents/handbook-and-rules-2023.pdf' },
     { title: 'Lease from Dartington Hall Trust', url: '/documents/lease.pdf' },
+    { title: 'Lease Annex 1: Plan of Site', url: '/documents/leasea1.pdf' },
+    { title: 'Lease Annex 2: Schedule of Condition', url: '/documents/leasea2.pdf' },
+    { title: 'Lease Annex 3: User Agreement Template', url: '/documents/leasea3.pdf' },
+    { title: 'Lease Annex 4: Plan of User Groups (2018)', url: '/documents/leasea4.pdf' },
+  ],
+  agm: [
+    { title: 'October 2025', url: '/documents/2025-10-21-agm.pdf' },
+    { title: 'September 2023', url: '/documents/2023-09-26-agm.pdf' },
+    { title: 'April 2021', url: '/documents/2021-04-27-agm.pdf' },
+    { title: 'November 2017', url: '/documents/2017-11-17-agm.pdf' },
   ],
   minutes: [
     { title: 'June 2024', url: '/documents/2024-06-11.pdf' },
     { title: 'March 2024', url: '/documents/2024-03-12.pdf' },
     { title: 'January 2024', url: '/documents/2024-01-30.pdf' },
-    { title: 'September 2023 - AGM', url: '/documents/2023-09-26-agm.pdf' },
+    { title: 'May 2023', url: '/documents/2023-05-23.pdf' },
+    { title: 'March 2023', url: '/documents/2023-03-14.pdf' },
+    { title: 'November 2022', url: '/documents/2022-11-29.pdf' },
+    { title: 'January 2022', url: '/documents/2022-01-25.pdf' },
+    { title: 'September 2021', url: '/documents/2021-09-14.pdf' },
+    { title: 'June 2019', url: '/documents/2019-06-04.pdf' },
+    { title: 'March 2019', url: '/documents/2019-03-26.pdf' },
+    { title: 'February 2019', url: '/documents/2019-02-12.pdf' },
+    { title: 'September 2018', url: '/documents/2018-09-13.pdf' },
+    { title: 'June 2018', url: '/documents/2018-06-07.pdf' },
+    { title: 'February 2018', url: '/documents/2018-02-10.pdf' },
+    { title: 'September 2017', url: '/documents/2017-09-14.pdf' },
+    { title: 'May 2017', url: '/documents/2017-05-04.pdf' },
+    { title: 'March 2017', url: '/documents/2017-03-02.pdf' },
+    { title: 'January 2017', url: '/documents/2017-01-26.pdf' },
+    { title: 'December 2016', url: '/documents/2016-12-19.pdf' },
+    { title: 'November 2016', url: '/documents/2016-11-24.pdf' },
+    { title: 'October 2016', url: '/documents/2016-10-20.pdf' },
   ],
 };
+
+// The next AGM, if one is on the calendar. Event slugs follow dra-agm-<year>.
+const today = new Date().toISOString().slice(0, 10);
+const nextAgm = (await reader.collections.events.all())
+  .filter(({ slug, entry }) => slug.startsWith('dra-agm') && (entry.status ?? 'active') === 'active' && String(entry.date) >= today)
+  .sort((a, b) => String(a.entry.date).localeCompare(String(b.entry.date)))[0];
+const nextAgmDate = nextAgm
+  ? new Date(`${nextAgm.entry.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  : null;
 ---
 
 <Layout
@@ -48,11 +84,21 @@ const documents = {
     </div>
   </section>
 
+  <section class="mw-sect tight" style="background: var(--paper); padding-top: 0;">
+    <div class="mw-wrap">
+      <a href="/community-coordinator" class="about-paid">
+        <span class="mw-eyebrow">Paid opportunity</span>
+        <strong>We're looking for a Community Coordinator</strong>
+        <span>A self-employed role helping make Meadowbrook the heart of the community. £15 an hour, around 15 hours a week for a year. Expressions of interest by 13 November. Find out more →</span>
+      </a>
+    </div>
+  </section>
+
   <section class="mw-sect tight" style="background: var(--paper);">
-    <div class="mw-wrap" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-7);">
+    <div class="mw-wrap about-docs">
       <div>
         <span class="mw-eyebrow">Documents</span>
-        <h2 style="font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin: var(--space-2) 0 var(--space-5);">Key documents</h2>
+        <h2 class="about-docs-h">Key documents</h2>
         <ul class="mw-doclist">
           {documents.key.map((doc) => (
             <li><a href={doc.url} target="_blank" rel="noopener">{doc.title}</a></li>
@@ -61,18 +107,91 @@ const documents = {
       </div>
       <div>
         <span class="mw-eyebrow">Trustees</span>
-        <h2 style="font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; margin: var(--space-2) 0 var(--space-5);">Meeting minutes</h2>
-        <p>Minutes from trustee meetings are available on Google Drive.</p>
-        <p style="margin-top: var(--space-4);"><a href="https://drive.google.com/drive/folders/1chyrWRGYkopiYFYGdZNFxW-RLay6cY_v?usp=share_link" target="_blank" rel="noopener">View meeting minutes on Google Drive →</a></p>
+        <h2 class="about-docs-h">Meeting minutes</h2>
+        {nextAgm && (
+          <p class="about-next-agm">
+            Our next AGM is on <a href={`/calendar/${nextAgm.slug}`}>{nextAgmDate}{nextAgm.entry.startTime ? ` at ${nextAgm.entry.startTime}` : ''}</a>. Everyone is welcome.
+          </p>
+        )}
+        <h3 class="about-docs-sub">Annual General Meetings</h3>
+        <ul class="mw-doclist">
+          {documents.agm.map((doc) => (
+            <li><a href={doc.url} target="_blank" rel="noopener">{doc.title}</a></li>
+          ))}
+        </ul>
+        <h3 class="about-docs-sub">Trustee meetings</h3>
+        <ul class="mw-doclist">
+          {documents.minutes.map((doc) => (
+            <li><a href={doc.url} target="_blank" rel="noopener">{doc.title}</a></li>
+          ))}
+        </ul>
+        <p class="about-docs-note">
+          For more recent minutes, email <a href="mailto:contact@meadowbrookdartington.org">contact@meadowbrookdartington.org</a>.
+        </p>
       </div>
     </div>
   </section>
 </Layout>
 
 <style>
+  .about-paid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-width: var(--content-narrow);
+    margin: 0 auto;
+    padding: var(--space-5);
+    background: var(--paper-deep);
+    border-radius: var(--radius-md, 12px);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .about-paid strong {
+    font-size: 1.15rem;
+  }
+
+  .about-paid span:last-child {
+    color: var(--fg-soft);
+  }
+
+  .about-paid:hover strong {
+    text-decoration: underline;
+  }
+
+  .about-docs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-7);
+  }
+
+  .about-docs-h {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+    margin: var(--space-2) 0 var(--space-5);
+  }
+
+  .about-docs-sub {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin: var(--space-5) 0 var(--space-3);
+  }
+
+  .about-next-agm,
+  .about-docs-note {
+    color: var(--fg-soft);
+  }
+
+  .about-docs-note {
+    margin-top: var(--space-5);
+  }
+
   @media (max-width: 900px) {
-    section[class~="mw-sect"][class~="tight"] .mw-wrap {
-      grid-template-columns: 1fr !important;
+    .about-docs {
+      grid-template-columns: 1fr;
     }
   }
 </style>

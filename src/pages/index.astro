@@ -67,6 +67,10 @@ const introTextNodes = homepage?.introText ? await homepage.introText() : null;
 const energyHubImageSrc = homepage?.energyHubImage
   ? (homepage.energyHubImage.startsWith('/') ? homepage.energyHubImage : `/images/energy-hub/${homepage.energyHubImage}`)
   : '/images/energy-hub/image+30.png.webp';
+
+// Community Coordinator expressions of interest close at the end of 13 November
+// 2026 (UK time). The page is server-rendered, so the callout drops off by itself.
+const showCoordinatorCallout = new Date() < new Date('2026-11-14T00:00:00Z');
 ---
 
 <Layout title="Home" navOnPhoto>
@@ -177,6 +181,25 @@ const energyHubImageSrc = homepage?.energyHubImage
       </div>
     </div>
   </section>
+
+  {showCoordinatorCallout && (
+    <section class="mw-sect" style="padding-bottom: 0;">
+      <div class="mw-wrap">
+        <div class="home-paid">
+          <div>
+            <span class="mw-eyebrow">Paid opportunity</span>
+            <h3>We're looking for a Community Coordinator</h3>
+            <p>
+              A self-employed role helping make Meadowbrook the heart of the community.
+              £15 an hour, around 15 hours a week for a year. Expressions of interest by
+              13 November.
+            </p>
+          </div>
+          <a href="/community-coordinator" class="mw-btn mw-btn-primary">Find out more</a>
+        </div>
+      </div>
+    </section>
+  )}
 
   <section class="mw-sect">
     <div class="mw-wrap">
@@ -297,3 +320,34 @@ const energyHubImageSrc = homepage?.energyHubImage
     </div>
   </section>
 </Layout>
+
+<style>
+  .home-paid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding: var(--space-6);
+    background: var(--paper-deep);
+    border-radius: var(--r-xl);
+  }
+
+  .home-paid > div {
+    flex: 1 1 420px;
+  }
+
+  .home-paid h3 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+    letter-spacing: -0.02em;
+    margin: var(--space-2) 0 var(--space-3);
+  }
+
+  .home-paid p {
+    color: var(--fg-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+</style>
