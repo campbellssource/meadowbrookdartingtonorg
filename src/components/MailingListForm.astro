@@ -17,6 +17,9 @@ interface Props {
   submitLabel?: string;
   successHeading?: string;
   successText?: string;
+  /** Shown instead when the address is new and Brevo has sent a confirmation email. */
+  confirmHeading?: string;
+  confirmText?: string;
   class?: string;
 }
 
@@ -29,6 +32,11 @@ const {
   submitLabel = 'Subscribe',
   successHeading = "You're subscribed!",
   successText = "Thanks for signing up. We'll be in touch when there's something worth sharing.",
+  confirmHeading = 'Check your inbox',
+  confirmText =
+    "We've sent you an email with a link to confirm your address. Click it and you're done "
+    + '— until then you are not on the list. If it has not arrived in a minute or two, have a '
+    + 'look in your spam folder.',
   class: className = '',
 } = Astro.props;
 ---
@@ -72,6 +80,17 @@ const {
       </label>
     </div>
 
+    {/* Honeypot. Hidden from people, irresistible to the bots that fill in every
+        field they can find. Positioned off-screen rather than display:none, and
+        taken out of the tab order and the accessibility tree so nobody using a
+        keyboard or a screen reader can land on it by accident. */}
+    <div class="honeypot" aria-hidden="true">
+      <label>
+        Website
+        <input type="text" name="website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
+
     <div class="form-message form-message--error" data-ml-error hidden></div>
 
     <button type="submit" class="mw-btn mw-btn-primary" data-ml-submit>{submitLabel}</button>
@@ -82,6 +101,12 @@ const {
     <h2>{successHeading}</h2>
     <p>{successText}</p>
   </div>
+
+  <div class="success-wrap" data-ml-confirm hidden>
+    <div class="success-icon success-icon--pending">✉</div>
+    <h2>{confirmHeading}</h2>
+    <p>{confirmText}</p>
+  </div>
 </div>
 
 <script>
@@ -89,8 +114,9 @@ const {
     const form = root.querySelector('[data-ml-form]') as HTMLFormElement | null;
     const errorEl = root.querySelector('[data-ml-error]') as HTMLElement | null;
     const successEl = root.querySelector('[data-ml-success]') as HTMLElement | null;
+    const confirmEl = root.querySelector('[data-ml-confirm]') as HTMLElement | null;
     const submitBtn = root.querySelector('[data-ml-submit]') as HTMLButtonElement | null;
-    if (!form || !errorEl || !successEl || !submitBtn) continue;
+    if (!form || !errorEl || !successEl || !confirmEl || !submitBtn) continue;
 
     const volunteer = root.dataset.volunteer === 'true';
     const idleLabel = submitBtn.textContent ?? 'Subscribe';
@@ -137,13 +163,18 @@ const {
             firstName: value('firstName'),
             lastName: value('lastName'),
             volunteer,
+            website: value('website'),
           }),
         });
         const data = await res.json();
 
         if (data.success) {
+          // A new address gets a confirmation email and is not on the list yet;
+          // an address Brevo already knows is done. Saying "you're subscribed" to
+          // the first would be a lie they only discover by never hearing from us.
           form.hidden = true;
-          successEl.hidden = false;
+          if (data.confirm) confirmEl.hidden = false;
+          else successEl.hidden = false;
         } else {
           showError(data.error ?? 'Something went wrong. Please try again.');
           reset();
@@ -258,6 +289,15 @@ const {
     cursor: not-allowed;
   }
 
+  /* Off-screen rather than display:none: some bots skip anything set to none. */
+  .honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
   .success-wrap {
     padding: var(--space-6) 0;
   }
@@ -273,6 +313,10 @@ const {
     color: #fff;
     font-size: 1.5rem;
     margin-bottom: var(--space-5);
+  }
+
+  .success-icon--pending {
+    background: var(--green-dark);
   }
 
   .success-wrap h2 {
