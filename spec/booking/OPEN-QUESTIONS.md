@@ -109,7 +109,7 @@ Things the DRA must decide or supply. Struck-through items are settled; kept for
     calendar retention period rather than one nothing keeps (`12`). Tracked as **Phase 8**.
     Revisit the policy wording when it is built.
 
-22. ~~**Maximum advance booking.**~~ **ANSWERED 31 Aug 2026.** 90 days, all rooms.
+22. ~~**Maximum advance booking.**~~ **ANSWERED 31 Aug 2026.** 90 days, all rooms. Raised to 180 days on 21 Oct 2026 so a February 2027 event could be booked in October.
 
 23. ~~**Which calendars are wired to the locks?**~~ **ANSWERED 31 Aug 2026 from source.** All
     three, via `config/lockMappings.js`. Lounge and Studio open the Entrance and Upstairs locks;

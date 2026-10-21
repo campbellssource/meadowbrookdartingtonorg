@@ -25,7 +25,7 @@ facilityType:
       slotGranularityMins: 15
       bufferMins: 30
       minNoticeHours: 0
-      maxAdvanceDays: 90
+      maxAdvanceDays: 180
       capacityNote: >-
         Kitchen access and toilet facilities available. Parking on site is Dartington Hall Trust paid parking and is not included.
       intakeQuestions:

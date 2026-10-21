@@ -91,7 +91,7 @@ Everything below is DRA-confirmed (31 Aug 2026) and replaces the earlier default
 | Opening hours | **08:00–23:00, every day.** No closed days, no weekday variation |
 | Rate | Flat. No peak, off-peak or weekend rate — `peak` is empty everywhere |
 | VAT | **None.** Prices are stated VAT-free, not VAT-inclusive — see below |
-| Maximum advance | **90 days** |
+| Maximum advance | **180 days** (raised from 90, 21 Oct 2026) |
 | Minimum duration | **60 minutes** |
 | Duration increments | **30 minutes** — 1h, 1h30, 2h, 2h30 … |
 | Maximum duration | **A single day.** A booking may not span midnight |
@@ -105,7 +105,7 @@ Everything below is DRA-confirmed (31 Aug 2026) and replaces the earlier default
 |---|---|---|---|
 | `hourlyRatePence` | `750` | `1000` | `1000` |
 | `bufferMins` | **`0`** | **`30`** | **`30`** |
-| `maxAdvanceDays` | `90` | `90` | `90` |
+| `maxAdvanceDays` | `180` | `180` | `180` |
 | `intakeQuestions` | none | use of room | use of room |
 
 **Buffer semantics — settled 31 Aug 2026.** Per-room, as built: 30 minutes either side of a

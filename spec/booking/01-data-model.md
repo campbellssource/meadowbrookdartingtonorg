@@ -239,8 +239,8 @@ booker. Reconciliation detects it; the note tries to prevent it.
 
 ## Reconciliation
 
-A scheduled job (`/api/booking/cron/reconcile`, hourly — see `08-infrastructure.md`) walks the
-next 90 days of each room calendar and compares it with Firestore:
+A scheduled job (`/api/booking/cron/reconcile`, hourly — see `08-infrastructure.md`) walks every
+booking in Firestore, however far ahead, and checks its room calendar event:
 
 | Situation | Action |
 |---|---|

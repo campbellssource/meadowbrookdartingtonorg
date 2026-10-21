@@ -63,7 +63,7 @@ export const DEFAULTS = {
   maxDurationMins: 900, // 08:00-23:00
   bufferMins: 0,
   minNoticeHours: 0,
-  maxAdvanceDays: 90,
+  maxAdvanceDays: 180,
   capacityNote: '',
   intakeQuestions: [] as IntakeQuestion[],
   active: true,
