@@ -24,7 +24,7 @@ facilityType:
       slotGranularityMins: 15
       bufferMins: 0
       minNoticeHours: 0
-      maxAdvanceDays: 90
+      maxAdvanceDays: 180
       capacityNote: >-
         Cues and equipment are provided. The bar downstairs keeps its own hours and is not part of your booking.
       intakeQuestions: []

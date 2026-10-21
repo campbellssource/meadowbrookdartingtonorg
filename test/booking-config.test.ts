@@ -13,7 +13,7 @@ describe('config defaults', () => {
     assert.equal(c.slotGranularityMins, 15);
     assert.equal(c.minDurationMins, 60);
     assert.equal(c.durationIncrementMins, 30);
-    assert.equal(c.maxAdvanceDays, 90);
+    assert.equal(c.maxAdvanceDays, 180);
     assert.equal(c.minNoticeHours, 0);
     assert.equal(c.openingHours.length, 7);
     assert.ok(c.openingHours.every((h) => h.from === '08:00' && h.to === '23:00'));

@@ -170,12 +170,12 @@ describe('a fully booked and a nearly full day', () => {
 });
 
 describe('advance window', () => {
-  test('90 days out is bookable, 91 is not', () => {
+  test('180 days out is bookable, 181 is not', () => {
     const now = londonToInstant('2027-07-15', '09:00');
-    const ok = computeAvailability({ room: STUDIO, from: '2027-10-12', to: '2027-10-12', busy: [], now });
-    const tooFar = computeAvailability({ room: STUDIO, from: '2027-10-14', to: '2027-10-14', busy: [], now });
-    assert.ok(ok.days[0].slots.length > 0, '89 days out should be bookable');
-    assert.equal(tooFar.days[0].slots.length, 0, '91 days out should not be');
+    const ok = computeAvailability({ room: STUDIO, from: '2028-01-10', to: '2028-01-10', busy: [], now });
+    const tooFar = computeAvailability({ room: STUDIO, from: '2028-01-12', to: '2028-01-12', busy: [], now });
+    assert.ok(ok.days[0].slots.length > 0, '179 days out should be bookable');
+    assert.equal(tooFar.days[0].slots.length, 0, '181 days out should not be');
   });
 });
 

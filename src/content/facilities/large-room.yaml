@@ -34,7 +34,7 @@ facilityType:
       slotGranularityMins: 15
       bufferMins: 30
       minNoticeHours: 0
-      maxAdvanceDays: 90
+      maxAdvanceDays: 180
       capacityNote: >-
         First floor, stair access only (not step-free). No sound system - please bring your own speaker. Parking on site is Dartington Hall Trust paid parking and is not included.
       intakeQuestions:
