@@ -9,11 +9,18 @@ name: PR preview
 # PR closes, the tag and that PR's revisions are removed.
 #
 # Previews are for checking content and layout. They deliberately carry NO
-# secrets and none of production's config: no Square, no Brevo, no booking
+# secrets and none of production's config: no Square token, no Brevo, no booking
 # service account. Payments, forms, sign-ups and the Keystatic editor won't work
 # there, and that's intended -- a preview must never be able to take a real
 # payment or email a real person. The service also runs as its own service
 # account, site-preview-runtime, which has no roles at all.
+#
+# The one exception is /donate's card form, so its layout can be checked: the
+# preview gets the Square *sandbox* application's public IDs (the same sandbox
+# app the raffle and local booking use). They are public by nature -- every
+# visitor's browser receives them -- and point at sandbox, which cannot move
+# real money. No access token is set, so submitting the form stops at
+# /api/donate with a configuration error before anything is charged.
 #
 # Security, since the repo is public:
 #   - Uses `pull_request`, never `pull_request_target`, so PR code never runs
@@ -80,6 +87,7 @@ jobs:
             --revision-suffix=${{ env.TAG }}-$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)-${{ github.run_attempt }} \
             --no-traffic \
             --tag=${{ env.TAG }} \
+            --update-env-vars=PUBLIC_SQUARE_ENVIRONMENT=sandbox,PUBLIC_SQUARE_APPLICATION_ID=sandbox-sq0idb-u2sbtq_SEsLGWHObEJwDgg,PUBLIC_SQUARE_LOCATION_ID=LQA9JF8KM41F2 \
             --quiet
 
       - name: Find preview URL
