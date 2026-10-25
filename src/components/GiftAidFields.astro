@@ -1,0 +1,217 @@
+---
+// The Gift Aid declaration: wording, scope, opt-in and the donor's name and address.
+//
+// One component for the online form and every admin mode, so the donor on the
+// tablet and the donor on the website read the same words beside the same unticked
+// box. The wording is rendered in the browser by the same function the server uses
+// to store it (lib/gift-aid/declaration.ts), so what is shown and what is recorded
+// cannot drift.
+//
+// Fields carry `name` attributes and the page collects them with
+// `readGiftAidFields()`; this component does not submit anything itself.
+
+import {
+  BOOST_HEADLINE, NOT_A_TAXPAYER, UPDATE_NOTICE, DECLARATION_VERSION, renderDeclaration,
+} from '../lib/gift-aid/declaration.ts';
+
+interface Props {
+  mode: 'online' | 'tablet' | 'paper' | 'verbal';
+  /** Online: the starting amount, so the wording is right before any script runs. */
+  amountPence?: number;
+}
+
+const { mode, amountPence = 0 } = Astro.props;
+const online = mode === 'online';
+const keyed = mode === 'paper' || mode === 'verbal';
+const optInLabel = {
+  online: 'Yes, I want to Gift Aid my donation. I am a UK taxpayer and agree to the declaration above.',
+  tablet: 'Yes, I want to Gift Aid my donations. I am a UK taxpayer and agree to the declaration above.',
+  paper: 'The donor ticked and signed this declaration on the paper form.',
+  verbal: 'The donor gave this declaration verbally, and it was read back to them.',
+}[mode];
+const initial = renderDeclaration('Enduring', online ? amountPence : null);
+---
+
+<fieldset class="ga" data-ga data-ga-mode={mode} data-ga-version={DECLARATION_VERSION} data-ga-pence={online ? amountPence : 0}>
+  {online && (
+    <legend class="ga-head">
+      <span class="ga-headline">{BOOST_HEADLINE}</span>
+      <span class="ga-boost" data-ga-boost></span>
+    </legend>
+  )}
+  {online && <p class="ga-note"><strong>Not a UK taxpayer?</strong> {NOT_A_TAXPAYER.replace('Not a UK taxpayer? ', '')}</p>}
+
+  <div class="ga-scope" role="radiogroup" aria-label="Which donations does this cover?">
+    <label><input type="radio" name="scope" value="Enduring" checked /> {mode === 'online' ? 'This donation, my past 4 years of donations and any future ones' : 'All donations: past 4 years and future'}</label>
+    <label><input type="radio" name="scope" value="Single" /> This donation only</label>
+  </div>
+
+  <blockquote class="ga-wording" data-ga-wording>{initial}</blockquote>
+
+  <label class="ga-optin">
+    <input type="checkbox" name="optIn" data-ga-optin />
+    <span>{optInLabel}</span>
+  </label>
+  <p class="ga-notice">{UPDATE_NOTICE}</p>
+
+  <div class="ga-fields" data-ga-reveal hidden={online}>
+    <div class="ga-row ga-row-name">
+      <label class="ga-f ga-f-title"><span>Title <em>(optional)</em></span><input name="title" maxlength="4" autocomplete="honorific-prefix" /></label>
+      <label class="ga-f"><span>First name</span><input name="firstName" maxlength="35" autocomplete="given-name" /></label>
+      <label class="ga-f"><span>Last name</span><input name="lastName" maxlength="35" autocomplete="family-name" /></label>
+    </div>
+    <div class="ga-row">
+      <label class="ga-f ga-f-house"><span>House name or number</span><input name="houseNameOrNumber" maxlength="40" /></label>
+      <label class="ga-f"><span>Address</span><input name="addressLine" maxlength="100" autocomplete="address-line1" placeholder="Street" /></label>
+    </div>
+    <div class="ga-row">
+      <label class="ga-f"><span>Town</span><input name="town" maxlength="100" autocomplete="address-level2" /></label>
+      <label class="ga-f ga-f-pc"><span>Postcode</span><input name="postcode" maxlength="10" autocomplete="postal-code" autocapitalize="characters" /></label>
+    </div>
+    {!online && (
+      <div class="ga-row">
+        <label class="ga-f"><span>Email{keyed ? <em> (optional)</em> : ''}</span><input name="email" type="email" maxlength="254" autocomplete="email" /></label>
+        <label class="ga-f ga-f-amt"><span>Amount <em>(optional)</em></span><input name="amount" inputmode="decimal" placeholder="£" data-ga-amount /></label>
+      </div>
+    )}
+    {keyed && (
+      <div class="ga-row">
+        <label class="ga-f ga-f-date"><span>{mode === 'paper' ? 'Date signed' : 'Date made'}</span><input name="madeOn" type="date" /></label>
+        {mode === 'paper' && <label class="ga-f"><span>Scan link <em>(optional, Google Drive)</em></span><input name="scanLink" type="url" placeholder="https://drive.google.com/…" /></label>}
+      </div>
+    )}
+    {keyed && <label class="ga-f"><span>Notes <em>(optional)</em></span><input name="notes" maxlength="500" /></label>}
+    <p class="ga-err" data-ga-err hidden></p>
+  </div>
+</fieldset>
+
+<script>
+  import { renderDeclaration, giftAidOn, formatPounds } from '../lib/gift-aid/declaration.ts';
+
+  // Each fieldset keeps its own amount; the donate page sets it via the
+  // `ga:amount` event as the donor changes the figure.
+  document.querySelectorAll<HTMLFieldSetElement>('[data-ga]').forEach((root) => {
+    const online = root.dataset.gaMode === 'online';
+    const wording = root.querySelector<HTMLElement>('[data-ga-wording]')!;
+    const boost = root.querySelector<HTMLElement>('[data-ga-boost]');
+    const optin = root.querySelector<HTMLInputElement>('[data-ga-optin]')!;
+    const reveal = root.querySelector<HTMLElement>('[data-ga-reveal]')!;
+    const amountInput = root.querySelector<HTMLInputElement>('[data-ga-amount]');
+    let pence = Number(root.dataset.gaPence) || 0;
+
+    const scope = () => (root.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value ?? 'Enduring') as 'Single' | 'Enduring';
+    const paint = () => {
+      if (amountInput) {
+        const v = Number(amountInput.value.replace(/[£,\s]/g, ''));
+        pence = Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 0;
+      }
+      wording.textContent = renderDeclaration(scope(), pence || null);
+      if (boost) boost.textContent = pence > 0 ? `${formatPounds(pence)} becomes ${formatPounds(pence + giftAidOn(pence))}` : '';
+      if (online) reveal.hidden = !optin.checked;
+    };
+
+    root.addEventListener('ga:amount', (e) => { pence = (e as CustomEvent<number>).detail; paint(); });
+    root.querySelectorAll('input[name="scope"]').forEach((r) => r.addEventListener('change', paint));
+    optin.addEventListener('change', paint);
+    amountInput?.addEventListener('input', paint);
+    // The browser may restore a ticked box on Back; the declaration must be ticked
+    // by the donor on this page, every time.
+    optin.checked = false;
+    paint();
+  });
+
+  // For the pages' own scripts, including /donate's inline one, which cannot
+  // import modules.
+  const FIELDS = ['title', 'firstName', 'lastName', 'houseNameOrNumber', 'addressLine', 'town', 'postcode',
+    'email', 'amount', 'madeOn', 'scanLink', 'notes'];
+  (window as unknown as { mbGiftAid: unknown }).mbGiftAid = {
+    /** The declaration as typed. `optIn` is the checkbox itself: a real boolean, never a string. */
+    read(root: HTMLElement): Record<string, unknown> {
+      const out: Record<string, unknown> = {
+        optIn: root.querySelector<HTMLInputElement>('[data-ga-optin]')?.checked === true,
+        scope: root.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value ?? 'Enduring',
+        wordingVersion: root.dataset.gaVersion,
+      };
+      for (const name of FIELDS) {
+        const el = root.querySelector<HTMLInputElement>(`[name="${name}"]`);
+        if (el) out[name] = el.value;
+      }
+      return out;
+    },
+    showErrors(root: HTMLElement, errors: Record<string, string> = {}) {
+      root.querySelectorAll('input').forEach((el) => el.removeAttribute('aria-invalid'));
+      for (const name of Object.keys(errors)) root.querySelector(`[name="${name}"]`)?.setAttribute('aria-invalid', 'true');
+      const box = root.querySelector<HTMLElement>('[data-ga-err]');
+      if (box) {
+        const messages = Object.values(errors);
+        box.textContent = messages.join(' ');
+        box.hidden = messages.length === 0;
+      }
+    },
+    reset(root: HTMLElement) {
+      root.querySelectorAll<HTMLInputElement>('input').forEach((el) => {
+        if (el.type === 'radio') el.checked = el.value === 'Enduring';
+        else if (el.type === 'checkbox') el.checked = false;
+        else el.value = '';
+        el.removeAttribute('aria-invalid');
+        el.dispatchEvent(new Event('change'));
+      });
+      const box = root.querySelector<HTMLElement>('[data-ga-err]');
+      if (box) box.hidden = true;
+    },
+  };
+</script>
+
+<style>
+  .ga {
+    border: 1.5px solid #a8d18c;
+    background: #f4f8ef;
+    border-radius: var(--r-md);
+    padding: var(--space-5);
+    margin: 0 0 var(--space-6);
+    min-width: 0;
+  }
+  /* A floated legend sits inside the box instead of straddling its border. */
+  .ga-head { float: left; width: 100%; padding: 0; margin-bottom: var(--space-3); }
+  .ga-head + * { clear: both; }
+  .ga-headline { display: block; font-weight: 700; font-size: 1rem; color: var(--fg); }
+  .ga-boost { display: block; font-size: 0.875rem; color: #3f7a26; font-weight: 600; margin-top: 2px; }
+  .ga-note { font-size: 0.825rem; color: var(--fg-soft); margin: 0 0 var(--space-4); line-height: 1.5; }
+  .ga-scope { display: grid; gap: 6px; margin-bottom: var(--space-3); font-size: 0.9rem; }
+  .ga-scope label { display: flex; gap: 8px; align-items: baseline; cursor: pointer; }
+  .ga-wording {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--paper, #fff);
+    border-left: 3px solid var(--green);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--fg);
+  }
+  .ga-optin { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; font-size: 0.9rem; cursor: pointer; line-height: 1.45; }
+  .ga-optin input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--green); }
+  .ga-notice { font-size: 0.8rem; color: var(--fg-mute); margin: var(--space-3) 0 0; line-height: 1.5; }
+  .ga-fields { margin-top: var(--space-5); display: grid; gap: var(--space-3); }
+  .ga-fields[hidden] { display: none; }
+  .ga-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .ga-row-name { grid-template-columns: 5.5rem 1fr 1fr; }
+  .ga-f { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--fg-soft); }
+  .ga-f em { font-weight: 400; font-style: normal; color: var(--fg-mute); }
+  .ga-f input {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--fg);
+    background: var(--bone, #fff);
+    border: 1.5px solid var(--paper-deep);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+  }
+  .ga-f input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(116, 169, 83, 0.18); }
+  .ga-f input[aria-invalid="true"] { border-color: #c0392b; }
+  .ga-err { color: #a93226; font-size: 0.85rem; margin: 0; }
+  @media (max-width: 520px) {
+    .ga-row, .ga-row-name { grid-template-columns: 1fr; }
+  }
+</style>

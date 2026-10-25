@@ -24,6 +24,10 @@ const sources = [
   ...walk('src/pages/api/admin'),
   ...walk('src/pages/admin'),
   ...walk('src/pages/bookings'),
+  ...walk('src/lib/gift-aid'),
+  ...walk('src/pages/api/donate'),
+  ...walk('src/pages/api/gift-aid'),
+  'src/pages/api/donate.ts',
   'src/components/BookingWidget.astro',
 ];
 
@@ -61,6 +65,7 @@ const DELIBERATELY_ABSENT: Record<string, string> = {
   FIRESTORE_EMULATOR_HOST: 'local development only',
   GOOGLE_SERVICE_ACCOUNT_JSON: 'the Workspace blocks key downloads; impersonation is used',
   NODE_ENV: 'set by the container image',
+  GIFT_AID_SHEETS_SA_JSON: 'escape hatch only; the Workspace blocks key creation, so impersonation is used',
   ORIGIN: 'legacy name, read only as a fallback to PUBLIC_SITE_ORIGIN',
 };
 
