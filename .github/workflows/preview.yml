@@ -8,19 +8,24 @@ name: PR preview
 # The URL is posted as a comment on the PR and updated on every push. When the
 # PR closes, the tag and that PR's revisions are removed.
 #
-# Previews are for checking content and layout. They deliberately carry NO
-# secrets and none of production's config: no Square token, no Brevo, no booking
-# service account. Payments, forms, sign-ups and the Keystatic editor won't work
-# there, and that's intended -- a preview must never be able to take a real
-# payment or email a real person. The service also runs as its own service
-# account, site-preview-runtime, which has no roles at all.
+# Previews are for checking content and layout. They carry none of production's
+# config: no production Square, no Brevo, no booking service account. Booking,
+# sign-ups and the Keystatic editor don't work there, and emails never send --
+# a preview must never be able to take a real payment or email a real person.
+# The service runs as its own service account, site-preview-runtime.
 #
-# The one exception is /donate's card form, so its layout can be checked: the
-# preview gets the Square *sandbox* application's public IDs (the same sandbox
-# app the raffle and local booking use). They are public by nature -- every
-# visitor's browser receives them -- and point at sandbox, which cannot move
-# real money. No access token is set, so submitting the form stops at
-# /api/donate with a configuration error before anything is charged.
+# The exception is /donate, which works end to end in the Square SANDBOX
+# (spec/gift-aid/01, "PR previews"), against test-only stores:
+#   - SQUARE_ACCESS_TOKEN comes from PREVIEW_SQUARE_ACCESS_TOKEN, a sandbox token.
+#     Sandbox cannot move real money.
+#   - Firestore is the separate "preview" database in meadowbrook-booking.
+#     site-preview-runtime is granted that database only, by an IAM condition;
+#     it cannot read or write the production (default) database.
+#   - Gift Aid rows go to a test copy of the sheet, shared with
+#     site-preview-runtime and nothing else of the bookkeeper's.
+#   - Each PR gets its own Square sandbox webhook subscription at its tag URL,
+#     created here on every deploy and deleted when the PR closes. Its signature
+#     key is a sandbox key, passed as a masked env var on that PR's revision.
 #
 # Security, since the repo is public:
 #   - Uses `pull_request`, never `pull_request_target`, so PR code never runs
@@ -74,6 +79,33 @@ jobs:
           docker build --build-arg SITE_PREVIEW=true -t ${{ env.IMAGE }}:${{ env.TAG }}-${{ github.event.pull_request.head.sha }} .
           docker push ${{ env.IMAGE }}:${{ env.TAG }}-${{ github.event.pull_request.head.sha }}
 
+      # The tag URL is fixed per PR (pr-N---<service host>), so it is known before
+      # deploying and the sandbox webhook can point at it.
+      - name: Sandbox webhook for this PR
+        id: hook
+        run: |
+          BASE=$(gcloud run services describe ${{ env.SERVICE }} --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} --format='value(status.url)')
+          URL="https://${{ env.TAG }}---${BASE#https://}/api/donate/webhooks/square"
+          TOKEN=$(gcloud secrets versions access latest --secret=PREVIEW_SQUARE_ACCESS_TOKEN --project=${{ env.PROJECT_ID }})
+          echo "::add-mask::$TOKEN"
+          SQ=https://connect.squareupsandbox.com/v2/webhooks/subscriptions
+          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2024-01-17" -H "Content-Type: application/json")
+          # Replace rather than reuse: a fresh subscription is the reliable way to
+          # get its signature key back.
+          for ID in $(curl -sf "${H[@]}" "$SQ" | jq -r --arg u "$URL" '.subscriptions[]? | select(.notification_url == $u) | .id'); do
+            curl -sf -X DELETE "${H[@]}" "$SQ/$ID" > /dev/null
+          done
+          KEY=$(curl -sf -X POST "${H[@]}" "$SQ" -d "$(jq -n --arg u "$URL" --arg k "${{ env.TAG }}-$(uuidgen)" '{
+            idempotency_key: $k,
+            subscription: { name: "Meadowbrook preview ${{ env.TAG }}", notification_url: $u, api_version: "2024-01-17",
+              event_types: ["payment.created","payment.updated","refund.created","refund.updated"] } }')" \
+            | jq -r '.subscription.signature_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "Could not create the sandbox webhook subscription"; exit 1; fi
+          echo "::add-mask::$KEY"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
       # --no-traffic + --tag gives this revision its own URL without moving the
       # service's main URL. The revision suffix lets the close job find this PR's
       # revisions again.
@@ -87,7 +119,8 @@ jobs:
             --revision-suffix=${{ env.TAG }}-$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)-${{ github.run_attempt }} \
             --no-traffic \
             --tag=${{ env.TAG }} \
-            --update-env-vars=PUBLIC_SQUARE_ENVIRONMENT=sandbox,PUBLIC_SQUARE_APPLICATION_ID=sandbox-sq0idb-u2sbtq_SEsLGWHObEJwDgg,PUBLIC_SQUARE_LOCATION_ID=LQA9JF8KM41F2 \
+            --update-env-vars="^|^PUBLIC_SQUARE_ENVIRONMENT=sandbox|PUBLIC_SQUARE_APPLICATION_ID=sandbox-sq0idb-u2sbtq_SEsLGWHObEJwDgg|PUBLIC_SQUARE_LOCATION_ID=LQA9JF8KM41F2|BOOKING_PROJECT_ID=meadowbrook-booking|BOOKING_FIRESTORE_DATABASE=preview|GIFT_AID_SHEET_ID=10r2WxQTAPvy7zXNRN-9wdGQR3kGXcTAod5ba4A9E5Ng|DONATE_SQUARE_WEBHOOK_URL=${{ steps.hook.outputs.url }}|DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY=${{ steps.hook.outputs.key }}" \
+            --update-secrets=SQUARE_ACCESS_TOKEN=PREVIEW_SQUARE_ACCESS_TOKEN:latest \
             --quiet
 
       - name: Find preview URL
@@ -109,7 +142,7 @@ jobs:
           BODY="$MARKER
           **Preview:** $URL
 
-          Built from \`${SHA:0:7}\`. Content preview only — payments, forms and sign-ups are switched off here."
+          Built from \`${SHA:0:7}\`. Donations run in the Square sandbox (test card 4111 1111 1111 1111) and record to the preview database and the TEST copy of the Gift Aid sheet. Bookings, sign-ups and emails are switched off here."
           ID=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
             --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
           if [ -n "$ID" ]; then
@@ -131,6 +164,19 @@ jobs:
         with:
           workload_identity_provider: projects/589136616970/locations/global/workloadIdentityPools/github-actions/providers/github-provider
           service_account: github-preview-deploy@meadowbrookdartington.iam.gserviceaccount.com
+
+      - name: Remove this PR's sandbox webhook
+        run: |
+          BASE=$(gcloud run services describe ${{ env.SERVICE }} --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} --format='value(status.url)')
+          URL="https://${{ env.TAG }}---${BASE#https://}/api/donate/webhooks/square"
+          TOKEN=$(gcloud secrets versions access latest --secret=PREVIEW_SQUARE_ACCESS_TOKEN --project=${{ env.PROJECT_ID }})
+          echo "::add-mask::$TOKEN"
+          SQ=https://connect.squareupsandbox.com/v2/webhooks/subscriptions
+          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2024-01-17")
+          for ID in $(curl -sf "${H[@]}" "$SQ" | jq -r --arg u "$URL" '.subscriptions[]? | select(.notification_url == $u) | .id'); do
+            curl -sf -X DELETE "${H[@]}" "$SQ/$ID" > /dev/null || true
+          done
 
       - name: Remove preview tag
         run: |

@@ -65,6 +65,7 @@ const DELIBERATELY_ABSENT: Record<string, string> = {
   FIRESTORE_EMULATOR_HOST: 'local development only',
   GOOGLE_SERVICE_ACCOUNT_JSON: 'the Workspace blocks key downloads; impersonation is used',
   NODE_ENV: 'set by the container image',
+  BOOKING_FIRESTORE_DATABASE: 'production uses the default database; only PR previews name one',
   GIFT_AID_SHEETS_SA_JSON: 'escape hatch only; the Workspace blocks key creation, so impersonation is used',
   ORIGIN: 'legacy name, read only as a fallback to PUBLIC_SITE_ORIGIN',
 };

@@ -12,7 +12,7 @@
 // Auth: impersonation of a dedicated, role-less service account that is shared on
 // this one spreadsheet and nothing else. Not a key file -- the Workspace forbids
 // creating them (spec/booking/08). GIFT_AID_SHEETS_SA_JSON is honoured first in case
-// one ever exists.
+// one ever exists; with neither set (PR previews) the runtime identity is used.
 
 import { GoogleAuth, Impersonated } from 'google-auth-library';
 import { env } from '../booking/env.ts';
@@ -46,7 +46,13 @@ async function client(): Promise<Client> {
     return cached;
   }
   const target = env('GIFT_AID_SHEETS_IMPERSONATE_SA');
-  if (!target) throw new Error('GIFT_AID_SHEETS_IMPERSONATE_SA is not set');
+  if (!target) {
+    // PR previews: the runtime identity itself is shared on the *test* copy of
+    // the sheet. Production always sets the variable above (the deploy test
+    // checks), so this never quietly becomes the production path.
+    cached = new GoogleAuth({ scopes: SCOPES });
+    return cached;
+  }
   const sourceClient = await new GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/cloud-platform'],
   }).getClient();

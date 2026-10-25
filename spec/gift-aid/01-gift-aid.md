@@ -509,6 +509,33 @@ record nothing.
 
 ---
 
+## PR previews: sandbox donations, end to end
+
+Added 25 Oct 2026 at the DRA's request, so the whole flow can be tried on a PR's
+preview URL before merging: card form → sandbox charge → webhook → Firestore → sheet.
+Every store it touches is a test one, and `test/preview-isolation.test.ts` fails if
+`preview.yml` ever names a production one.
+
+| | Production | PR preview |
+|---|---|---|
+| Square | live, `SQUARE_ACCESS_TOKEN` | **sandbox**, `PREVIEW_SQUARE_ACCESS_TOKEN` (secret) |
+| Webhook | one subscription on the donate app | one **sandbox** subscription per PR, at its tag URL, made on each deploy and deleted on close |
+| Firestore | `meadowbrook-booking`, default database, via `booking-app` | `meadowbrook-booking`, database **`preview`**, via `site-preview-runtime` with an IAM condition limiting it to that database |
+| Sheet | the bookkeeper's (`1h-eMAKX…`) via `gift-aid-sheets@` | **"DRA Gift Aid register (PREVIEW TEST - not for claims)"** (`10r2WxQ…`), shared with `site-preview-runtime` |
+| Email | Brevo | none: `BREVO_API_KEY` is absent, so sends fail and are logged |
+
+Code changes for this are small and inert in production:
+`BOOKING_FIRESTORE_DATABASE` selects a named database (unset = default), and the
+sheet client falls back to the runtime identity when no impersonation target is set.
+
+Setup is in `scripts/setup-pr-previews.sh` (secret, database, TTL, conditional IAM).
+Try it with Square's sandbox card `4111 1111 1111 1111`, any future expiry, any CVV,
+and a US ZIP such as `94103` in the postcode box (a sandbox artefact; see
+`spec/booking/04`). `/admin/gift-aid` does not work on previews: production refuses
+the dev login, and the Google OAuth client does not list preview URLs.
+
+---
+
 ## Open questions
 
 1. **Single-scope wording.** The brief gives only the enduring sentence. v1 uses HMRC's model
