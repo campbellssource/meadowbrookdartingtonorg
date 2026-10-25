@@ -90,18 +90,23 @@ jobs:
           TOKEN=$(gcloud secrets versions access latest --secret=PREVIEW_SQUARE_ACCESS_TOKEN --project=${{ env.PROJECT_ID }})
           echo "::add-mask::$TOKEN"
           SQ=https://connect.squareupsandbox.com/v2/webhooks/subscriptions
-          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2024-01-17" -H "Content-Type: application/json")
+          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2025-01-23" -H "Content-Type: application/json")
           # Replace rather than reuse: a fresh subscription is the reliable way to
           # get its signature key back.
           for ID in $(curl -sf "${H[@]}" "$SQ" | jq -r --arg u "$URL" '.subscriptions[]? | select(.notification_url == $u) | .id'); do
             curl -sf -X DELETE "${H[@]}" "$SQ/$ID" > /dev/null
           done
-          KEY=$(curl -sf -X POST "${H[@]}" "$SQ" -d "$(jq -n --arg u "$URL" --arg k "${{ env.TAG }}-$(uuidgen)" '{
+          # The webhooks API refuses the 2024-01-17 version the payment code pins,
+          # so subscriptions use a current one. The event payload fields the
+          # handler reads (data.object.payment.id / refund.id) are the same.
+          RESP=$(curl -s -X POST "${H[@]}" "$SQ" -d "$(jq -n --arg u "$URL" --arg k "${{ env.TAG }}-$(uuidgen)" '{
             idempotency_key: $k,
-            subscription: { name: "Meadowbrook preview ${{ env.TAG }}", notification_url: $u, api_version: "2024-01-17",
-              event_types: ["payment.created","payment.updated","refund.created","refund.updated"] } }')" \
-            | jq -r '.subscription.signature_key')
-          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "Could not create the sandbox webhook subscription"; exit 1; fi
+            subscription: { name: "Meadowbrook preview ${{ env.TAG }}", notification_url: $u, api_version: "2025-01-23",
+              event_types: ["payment.created","payment.updated","refund.created","refund.updated"] } }')")
+          KEY=$(jq -r '.subscription.signature_key // empty' <<< "$RESP")
+          if [ -z "$KEY" ]; then
+            echo "Could not create the sandbox webhook subscription:"; jq -c '.errors' <<< "$RESP"; exit 1
+          fi
           echo "::add-mask::$KEY"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "key=$KEY" >> "$GITHUB_OUTPUT"
@@ -173,7 +178,7 @@ jobs:
           TOKEN=$(gcloud secrets versions access latest --secret=PREVIEW_SQUARE_ACCESS_TOKEN --project=${{ env.PROJECT_ID }})
           echo "::add-mask::$TOKEN"
           SQ=https://connect.squareupsandbox.com/v2/webhooks/subscriptions
-          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2024-01-17")
+          H=(-H "Authorization: Bearer $TOKEN" -H "Square-Version: 2025-01-23")
           for ID in $(curl -sf "${H[@]}" "$SQ" | jq -r --arg u "$URL" '.subscriptions[]? | select(.notification_url == $u) | .id'); do
             curl -sf -X DELETE "${H[@]}" "$SQ/$ID" > /dev/null || true
           done
