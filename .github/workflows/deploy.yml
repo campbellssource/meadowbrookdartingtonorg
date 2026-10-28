@@ -54,6 +54,11 @@ jobs:
       # variables alone -- anything that replaced the variables wholesale would
       # have taken the newsletter and volunteer sign-up forms down with it.
       #
+      # Gift Aid (spec/gift-aid/01): DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY must exist in
+      # Secret Manager before this deploys -- Cloud Run refuses to mount a missing
+      # secret, which is the point: Gift Aid without its webhook would take money
+      # and record nothing. GIFT_AID_SHEETS_SA_JSON is deliberately absent (no keys).
+      #
       # The ^|^ prefix switches gcloud's delimiter to | so values containing
       # commas (the admin allowlist) survive.
       - name: Deploy to Cloud Run
@@ -62,6 +67,6 @@ jobs:
             --image=${{ env.IMAGE }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
-            --update-env-vars="^|^PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic|PUBLIC_SQUARE_APPLICATION_ID=sq0idp-SJPH8U9hBP8q9dM97RSZmA|PUBLIC_SQUARE_LOCATION_ID=LT08J54D3THKE|PUBLIC_SQUARE_ENVIRONMENT=production|BREVO_LIST_ID=2|BREVO_LEAFLET_LIST_ID=3|BOOKING_NEWSLETTER_LIST_ID=2|LEAFLET_SHEET_ID=18QilZ2jGCf3W-DzV5zWKvYs5k3yeVLQB455nnCHNVak|BOOKING_PROJECT_ID=meadowbrook-booking|BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com|BOOKING_NOTIFY_OWNER=true|BOOKING_ADMIN_EMAILS=${{ vars.BOOKING_ADMIN_EMAILS }}|BOOKING_ADMIN_OAUTH_CLIENT_ID=${{ vars.BOOKING_ADMIN_OAUTH_CLIENT_ID }}|PUBLIC_SITE_ORIGIN=https://meadowbrookdartington.org|BOOKING_SQUARE_WEBHOOK_URL=https://meadowbrookdartington.org/api/booking/webhooks/square|PUBLIC_BOOKING_SQUARE_ENVIRONMENT=${{ vars.PUBLIC_BOOKING_SQUARE_ENVIRONMENT }}|PUBLIC_BOOKING_SQUARE_APPLICATION_ID=${{ vars.PUBLIC_BOOKING_SQUARE_APPLICATION_ID }}|PUBLIC_BOOKING_SQUARE_LOCATION_ID=${{ vars.PUBLIC_BOOKING_SQUARE_LOCATION_ID }}" \
-            --update-secrets="SQUARE_ACCESS_TOKEN=SQUARE_ACCESS_TOKEN:latest,BREVO_API_KEY=BREVO_API_KEY:latest,BOOKING_MAGIC_LINK_SECRET=BOOKING_MAGIC_LINK_SECRET:latest,BOOKING_CRON_SECRET=BOOKING_CRON_SECRET:latest,BOOKING_SQUARE_ACCESS_TOKEN=BOOKING_SQUARE_ACCESS_TOKEN:latest,BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY=BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY:latest,BOOKING_ADMIN_OAUTH_CLIENT_SECRET=BOOKING_ADMIN_OAUTH_CLIENT_SECRET:latest" \
+            --update-env-vars="^|^PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=meadowbrook-keystatic|PUBLIC_SQUARE_APPLICATION_ID=sq0idp-SJPH8U9hBP8q9dM97RSZmA|PUBLIC_SQUARE_LOCATION_ID=LT08J54D3THKE|PUBLIC_SQUARE_ENVIRONMENT=production|BREVO_LIST_ID=2|BREVO_LEAFLET_LIST_ID=3|BOOKING_NEWSLETTER_LIST_ID=2|LEAFLET_SHEET_ID=18QilZ2jGCf3W-DzV5zWKvYs5k3yeVLQB455nnCHNVak|BOOKING_PROJECT_ID=meadowbrook-booking|BOOKING_IMPERSONATE_SA=booking-app@meadowbrook-booking.iam.gserviceaccount.com|BOOKING_NOTIFY_OWNER=true|BOOKING_ADMIN_EMAILS=${{ vars.BOOKING_ADMIN_EMAILS }}|BOOKING_ADMIN_OAUTH_CLIENT_ID=${{ vars.BOOKING_ADMIN_OAUTH_CLIENT_ID }}|PUBLIC_SITE_ORIGIN=https://meadowbrookdartington.org|BOOKING_SQUARE_WEBHOOK_URL=https://meadowbrookdartington.org/api/booking/webhooks/square|PUBLIC_BOOKING_SQUARE_ENVIRONMENT=${{ vars.PUBLIC_BOOKING_SQUARE_ENVIRONMENT }}|PUBLIC_BOOKING_SQUARE_APPLICATION_ID=${{ vars.PUBLIC_BOOKING_SQUARE_APPLICATION_ID }}|PUBLIC_BOOKING_SQUARE_LOCATION_ID=${{ vars.PUBLIC_BOOKING_SQUARE_LOCATION_ID }}|DONATE_SQUARE_WEBHOOK_URL=https://meadowbrookdartington.org/api/donate/webhooks/square|GIFT_AID_SHEET_ID=1h-eMAKXv22b9oTQzXqg9RKh4y0t9ZeMOhcBfLh3VBRE|GIFT_AID_SHEETS_IMPERSONATE_SA=gift-aid-sheets@meadowbrook-booking.iam.gserviceaccount.com" \
+            --update-secrets="SQUARE_ACCESS_TOKEN=SQUARE_ACCESS_TOKEN:latest,BREVO_API_KEY=BREVO_API_KEY:latest,BOOKING_MAGIC_LINK_SECRET=BOOKING_MAGIC_LINK_SECRET:latest,BOOKING_CRON_SECRET=BOOKING_CRON_SECRET:latest,BOOKING_SQUARE_ACCESS_TOKEN=BOOKING_SQUARE_ACCESS_TOKEN:latest,BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY=BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY:latest,BOOKING_ADMIN_OAUTH_CLIENT_SECRET=BOOKING_ADMIN_OAUTH_CLIENT_SECRET:latest,DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY=DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY:latest" \
             --quiet
