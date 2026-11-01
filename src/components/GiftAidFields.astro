@@ -64,6 +64,7 @@ const initial = renderDeclaration(defaultScope, online ? amountPence : null);
     <input type="checkbox" name="optIn" data-ga-optin />
     <span>{optInBefore}{optInLink && <a href={ELIGIBILITY_PATH} target="_blank" rel="noopener" aria-label={`${optInLink} (opens in a new tab)`}>{optInLink}</a>}{optInAfter}</span>
   </label>
+  {online && <p class="ga-hint" data-ga-hint>Ticking this asks for your name and home address, which HMRC needs to claim Gift Aid.</p>}
   <p class="ga-notice">{UPDATE_NOTICE}</p>
 
   <div class="ga-fields" data-ga-reveal hidden={online}>
@@ -108,6 +109,7 @@ const initial = renderDeclaration(defaultScope, online ? amountPence : null);
     const boost = root.querySelector<HTMLElement>('[data-ga-boost]');
     const optin = root.querySelector<HTMLInputElement>('[data-ga-optin]')!;
     const reveal = root.querySelector<HTMLElement>('[data-ga-reveal]')!;
+    const hint = root.querySelector<HTMLElement>('[data-ga-hint]');
     const amountInput = root.querySelector<HTMLInputElement>('[data-ga-amount]');
     let pence = Number(root.dataset.gaPence) || 0;
 
@@ -122,6 +124,8 @@ const initial = renderDeclaration(defaultScope, online ? amountPence : null);
       wording.textContent = renderDeclaration(scope(), pence || null);
       if (boost) boost.textContent = pence > 0 ? `${formatPounds(pence)} becomes ${formatPounds(pence + giftAidOn(pence))}` : '';
       if (online) reveal.hidden = !optin.checked;
+      // Once ticked the questions themselves are on screen, so the hint has done its job.
+      if (hint) hint.hidden = optin.checked;
       if (toggle) {
         const enduring = scope() === 'Enduring';
         toggle.setAttribute('aria-pressed', String(enduring));
@@ -230,6 +234,8 @@ const initial = renderDeclaration(defaultScope, online ? amountPence : null);
   .ga-optin a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .ga-optin { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; font-size: 0.9rem; cursor: pointer; line-height: 1.45; }
   .ga-optin input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--green); }
+  .ga-hint { font-size: 0.825rem; color: var(--fg-soft); margin: var(--space-2) 0 0 30px; line-height: 1.5; }
+  .ga-hint[hidden] { display: none; }
   .ga-notice { font-size: 0.8rem; color: var(--fg-mute); margin: var(--space-3) 0 0; line-height: 1.5; }
   .ga-fields { margin-top: var(--space-5); display: grid; gap: var(--space-3); }
   .ga-fields[hidden] { display: none; }

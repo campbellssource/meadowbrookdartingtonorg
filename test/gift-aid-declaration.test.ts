@@ -121,6 +121,11 @@ describe('the opt-in', () => {
     assert.match(src, /<input type="hidden" name="scope" value="Single" data-ga-scope \/>/);
     assert.match(src, /data-ga-scope-toggle/);
   });
+
+  test('online, the unticked box says it will ask for name and address', () => {
+    const src = readFileSync('src/components/GiftAidFields.astro', 'utf8');
+    assert.match(src, /data-ga-hint>Ticking this asks for your name and home address/);
+  });
 });
 
 describe('declaration validation', () => {
