@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   renderDeclaration, DECLARATION_VERSION, DECLARATIONS, giftAidOn, formatPounds, CHARITY_NUMBER,
+  OPT_IN, optInText, ELIGIBILITY_PATH,
 } from '../src/lib/gift-aid/declaration.ts';
 import {
   validateDeclaration, normalisePostcode, isIsoDate, validateOfflineDonation, validateSmallDonation, parsePounds,
@@ -94,6 +95,31 @@ describe('the opt-in', () => {
     assert.ok(box, 'opt-in checkbox not found');
     assert.ok(!/checked/.test(box), 'the Gift Aid box must never be pre-ticked');
     assert.ok(src.includes('optin.checked = false'), 'a box restored by the browser on Back must be cleared');
+  });
+
+  test('donors confirm their gifts are eligible, with a link to what that means', () => {
+    for (const method of ['Online', 'Tablet'] as const) {
+      assert.match(OPT_IN[method], /\[eligible for Gift Aid\]/, `${method} opt-in must link to the eligibility page`);
+      assert.equal(optInText(method).includes('['), false);
+    }
+    assert.equal(ELIGIBILITY_PATH, '/gift-aid');
+    const page = readFileSync('src/pages/gift-aid.astro', 'utf8');
+    assert.match(page, /You don't pay enough UK tax/);
+    assert.match(page, /https:\/\/www\.gov\.uk\/donating-to-charity\/gift-aid/);
+  });
+
+  test('the stored declaration records the sentence its box confirmed', () => {
+    const v = validateDeclaration(good(), { method: 'Online', now: NOW });
+    assert.ok(v.ok);
+    const d = buildDeclaration(v.value, { enteredBy: 'website', now: NOW });
+    assert.match(d.optInText, /my donation is eligible for Gift Aid\.$/);
+  });
+
+  test('online asks about this donation; repeat givers opt in to enduring by a link', () => {
+    const src = readFileSync('src/components/GiftAidFields.astro', 'utf8');
+    assert.match(src, /const defaultScope = online \? 'Single' : 'Enduring'/);
+    assert.match(src, /<input type="hidden" name="scope" value="Single" data-ga-scope \/>/);
+    assert.match(src, /data-ga-scope-toggle/);
   });
 });
 

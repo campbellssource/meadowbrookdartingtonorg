@@ -99,13 +99,30 @@ Changing any of this means adding `v2` to `DECLARATIONS` in `declaration.ts`, sw
 
 Shown by default, below the amount:
 
-> **Boost your donation by 25p of Gift Aid for every £1 you donate**
-> ☐ Yes, I want to Gift Aid my donation *(+ live "£25 becomes £31.25")*
+> **Boost your donation by 25p of Gift Aid for every £1 you donate** *(+ live "£25 becomes £31.25")*
+> *I want to Gift Aid my donation of £25 to …* (the declaration)
+> <u>Give to us regularly? Cover your past and future donations too</u>
+> ☐ Yes, I want to Gift Aid my donation. I am a UK taxpayer, I agree to the declaration above,
+> and my donation is <u>eligible for Gift Aid</u>.
+
+**Scope.** Online gifts are nearly always one-offs (committee feedback, 1 Nov 2026), so the
+website defaults to **Single** and shows no radio buttons. The small link switches to
+**Enduring** (and back, "Just this donation instead"); the declaration above it repaints with
+the matching wording. The committee's tablet, paper and verbal modes keep the radio buttons
+and default to Enduring: someone signing up at a stall is usually a regular.
+
+**Eligibility.** The tick-box sentence confirms the gift is eligible, terms-and-conditions
+style: *eligible for Gift Aid* links (new tab, so the form keeps its state) to
+[`/gift-aid`](../../src/pages/gift-aid.astro). That page leads with the four common reasons a
+gift doesn't qualify (not enough UK tax; not your own money; paying for something, such as
+pool sessions, room hire, tickets or raffle tickets; a benefit over HMRC's limits) and then
+gives the detail by linking to GOV.UK rather than restating it. The sentence is in
+`declaration.ts` `OPT_IN` and is stored on each declaration as `optInText`. It is not part of
+the HMRC wording, so changing it does not need a new `declarationVersion`; the stored text
+records what the box said.
 
 Unticked on load, always. Ticking reveals:
 
-- **Scope:** radio, *All my donations (past 4 years and future)* (**default**, Enduring) /
-  *This donation only* (Single). The wording beneath updates live.
 - **Title** (optional, max 4 characters; HMRC's limit), **First name**, **Last name**
 - **House name or number**, **Address** (street), **Town**, **Postcode**
 - The declaration text with the live amount, and the "let us know" line
@@ -260,6 +277,7 @@ ids with a prefix, Crockford base32, `Timestamp` for instants, `LocalDate` strin
   scope: 'Single' | 'Enduring';
   method: 'Online' | 'Tablet' | 'Paper' | 'Verbal';
   madeOn: LocalDate; madeAt: Timestamp;
+  optInText: string;        // the tick-box sentence, incl. the eligibility confirmation
   wordingVersion: 'v1'; wordingText: string;          // the sentence as shown, amount included
   enteredBy: string;                                   // 'website' online; the admin's email otherwise
   enteredAt: Timestamp;

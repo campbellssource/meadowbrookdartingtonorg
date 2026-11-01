@@ -4,7 +4,7 @@
 // record here, so "who entered it and when" and the retention date cannot be
 // forgotten by one door and remembered by another.
 
-import { DECLARATION_VERSION, renderDeclaration } from './declaration.ts';
+import { DECLARATION_VERSION, optInText, renderDeclaration } from './declaration.ts';
 import { newDeclarationId, newDonationId, newSmallDonationId } from './ids.ts';
 import { retainUntil, addDays, VERBAL_CANCEL_DAYS } from './retention.ts';
 import { londonToday } from './validate.ts';
@@ -47,6 +47,7 @@ export function buildDeclaration(v: ValidDeclaration, ctx: DeclarationContext): 
     madeAt: ctx.now,
     wordingVersion: DECLARATION_VERSION,
     wordingText,
+    optInText: optInText(v.method),
     enteredBy: ctx.enteredBy,
     enteredAt: ctx.now,
     confirmationSentOn: null,

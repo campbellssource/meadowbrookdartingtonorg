@@ -11,7 +11,8 @@
 // `readGiftAidFields()`; this component does not submit anything itself.
 
 import {
-  BOOST_HEADLINE, NOT_A_TAXPAYER, UPDATE_NOTICE, DECLARATION_VERSION, renderDeclaration,
+  BOOST_HEADLINE, NOT_A_TAXPAYER, UPDATE_NOTICE, DECLARATION_VERSION, ELIGIBILITY_PATH, OPT_IN,
+  renderDeclaration,
 } from '../lib/gift-aid/declaration.ts';
 
 interface Props {
@@ -23,16 +24,18 @@ interface Props {
 const { mode, amountPence = 0 } = Astro.props;
 const online = mode === 'online';
 const keyed = mode === 'paper' || mode === 'verbal';
-const optInLabel = {
-  online: 'Yes, I want to Gift Aid my donation. I am a UK taxpayer and agree to the declaration above.',
-  tablet: 'Yes, I want to Gift Aid my donations. I am a UK taxpayer and agree to the declaration above.',
-  paper: 'The donor ticked and signed this declaration on the paper form.',
-  verbal: 'The donor gave this declaration verbally, and it was read back to them.',
-}[mode];
-const initial = renderDeclaration('Enduring', online ? amountPence : null);
+// "Yes, I want ... my donation is [eligible for Gift Aid]." -> text, link, text.
+const [optInBefore, optInLink, optInAfter] = OPT_IN[
+  ({ online: 'Online', tablet: 'Tablet', paper: 'Paper', verbal: 'Verbal' } as const)[mode]
+].split(/[[\]]/);
+// Online gifts are nearly always one-offs, so the website asks about this donation
+// and offers the enduring declaration as a link. The committee's modes default to
+// enduring: someone signing up at a stall or on paper is usually a regular.
+const defaultScope = online ? 'Single' : 'Enduring';
+const initial = renderDeclaration(defaultScope, online ? amountPence : null);
 ---
 
-<fieldset class="ga" data-ga data-ga-mode={mode} data-ga-version={DECLARATION_VERSION} data-ga-pence={online ? amountPence : 0}>
+<fieldset class="ga" data-ga data-ga-mode={mode} data-ga-default-scope={defaultScope} data-ga-version={DECLARATION_VERSION} data-ga-pence={online ? amountPence : 0}>
   {online && (
     <legend class="ga-head">
       <span class="ga-headline">{BOOST_HEADLINE}</span>
@@ -41,16 +44,25 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
   )}
   {online && <p class="ga-note"><strong>Not a UK taxpayer?</strong> {NOT_A_TAXPAYER.replace('Not a UK taxpayer? ', '')}</p>}
 
-  <div class="ga-scope" role="radiogroup" aria-label="Which donations does this cover?">
-    <label><input type="radio" name="scope" value="Enduring" checked /> {mode === 'online' ? 'This donation, my past 4 years of donations and any future ones' : 'All donations: past 4 years and future'}</label>
-    <label><input type="radio" name="scope" value="Single" /> This donation only</label>
-  </div>
+  {online ? (
+    <input type="hidden" name="scope" value="Single" data-ga-scope />
+  ) : (
+    <div class="ga-scope" role="radiogroup" aria-label="Which donations does this cover?">
+      <label><input type="radio" name="scope" value="Enduring" checked /> All donations: past 4 years and future</label>
+      <label><input type="radio" name="scope" value="Single" /> This donation only</label>
+    </div>
+  )}
 
   <blockquote class="ga-wording" data-ga-wording>{initial}</blockquote>
+  {online && (
+    <p class="ga-scope-link">
+      <button type="button" class="ga-linkbtn" data-ga-scope-toggle aria-pressed="false">Give to us regularly? Cover your past and future donations too</button>
+    </p>
+  )}
 
   <label class="ga-optin">
     <input type="checkbox" name="optIn" data-ga-optin />
-    <span>{optInLabel}</span>
+    <span>{optInBefore}{optInLink && <a href={ELIGIBILITY_PATH} target="_blank" rel="noopener" aria-label={`${optInLink} (opens in a new tab)`}>{optInLink}</a>}{optInAfter}</span>
   </label>
   <p class="ga-notice">{UPDATE_NOTICE}</p>
 
@@ -99,7 +111,9 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
     const amountInput = root.querySelector<HTMLInputElement>('[data-ga-amount]');
     let pence = Number(root.dataset.gaPence) || 0;
 
-    const scope = () => (root.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value ?? 'Enduring') as 'Single' | 'Enduring';
+    const toggle = root.querySelector<HTMLButtonElement>('[data-ga-scope-toggle]');
+    const hiddenScope = root.querySelector<HTMLInputElement>('[data-ga-scope]');
+    const scope = () => readScope(root);
     const paint = () => {
       if (amountInput) {
         const v = Number(amountInput.value.replace(/[£,\s]/g, ''));
@@ -108,10 +122,21 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
       wording.textContent = renderDeclaration(scope(), pence || null);
       if (boost) boost.textContent = pence > 0 ? `${formatPounds(pence)} becomes ${formatPounds(pence + giftAidOn(pence))}` : '';
       if (online) reveal.hidden = !optin.checked;
+      if (toggle) {
+        const enduring = scope() === 'Enduring';
+        toggle.setAttribute('aria-pressed', String(enduring));
+        toggle.textContent = enduring
+          ? 'Just this donation instead'
+          : 'Give to us regularly? Cover your past and future donations too';
+      }
     };
 
     root.addEventListener('ga:amount', (e) => { pence = (e as CustomEvent<number>).detail; paint(); });
     root.querySelectorAll('input[name="scope"]').forEach((r) => r.addEventListener('change', paint));
+    toggle?.addEventListener('click', () => {
+      hiddenScope!.value = scope() === 'Enduring' ? 'Single' : 'Enduring';
+      paint();
+    });
     optin.addEventListener('change', paint);
     amountInput?.addEventListener('input', paint);
     // The browser may restore a ticked box on Back; the declaration must be ticked
@@ -119,6 +144,12 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
     optin.checked = false;
     paint();
   });
+
+  // A radio group in the committee's modes; a hidden field the link flips online.
+  function readScope(root: HTMLElement): 'Single' | 'Enduring' {
+    const el = root.querySelector<HTMLInputElement>('input[name="scope"]:checked, input[type="hidden"][name="scope"]');
+    return (el?.value ?? root.dataset.gaDefaultScope ?? 'Enduring') as 'Single' | 'Enduring';
+  }
 
   // For the pages' own scripts, including /donate's inline one, which cannot
   // import modules.
@@ -129,7 +160,7 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
     read(root: HTMLElement): Record<string, unknown> {
       const out: Record<string, unknown> = {
         optIn: root.querySelector<HTMLInputElement>('[data-ga-optin]')?.checked === true,
-        scope: root.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value ?? 'Enduring',
+        scope: readScope(root),
         wordingVersion: root.dataset.gaVersion,
       };
       for (const name of FIELDS) {
@@ -151,6 +182,7 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
     reset(root: HTMLElement) {
       root.querySelectorAll<HTMLInputElement>('input').forEach((el) => {
         if (el.type === 'radio') el.checked = el.value === 'Enduring';
+        else if (el.type === 'hidden' && el.name === 'scope') el.value = root.dataset.gaDefaultScope ?? 'Enduring';
         else if (el.type === 'checkbox') el.checked = false;
         else el.value = '';
         el.removeAttribute('aria-invalid');
@@ -188,6 +220,14 @@ const initial = renderDeclaration('Enduring', online ? amountPence : null);
     line-height: 1.6;
     color: var(--fg);
   }
+  .ga-scope-link { margin: calc(-1 * var(--space-2)) 0 var(--space-4); }
+  .ga-linkbtn {
+    font: inherit; font-size: 0.825rem; color: var(--green-dark);
+    background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .ga-linkbtn:hover { text-decoration-thickness: 2px; }
+  .ga-optin a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .ga-optin { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; font-size: 0.9rem; cursor: pointer; line-height: 1.45; }
   .ga-optin input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--green); }
   .ga-notice { font-size: 0.8rem; color: var(--fg-mute); margin: var(--space-3) 0 0; line-height: 1.5; }

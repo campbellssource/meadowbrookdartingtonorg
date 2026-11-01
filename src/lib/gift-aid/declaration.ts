@@ -48,6 +48,25 @@ export const BOOST_HEADLINE = 'Boost your donation by 25p of Gift Aid for every 
 export const NOT_A_TAXPAYER = 'Not a UK taxpayer? Please leave this unticked. Gift Aid can only be '
   + 'claimed on tax you have paid in the UK. Your donation is just as welcome without it.';
 
+/** Where the opt-in's "eligible for Gift Aid" link goes: src/pages/gift-aid.astro. */
+export const ELIGIBILITY_PATH = '/gift-aid';
+
+/**
+ * The tick-box sentence beside the declaration, by method. [Bracketed words] are
+ * the link to ELIGIBILITY_PATH, terms-and-conditions style. Stored, unbracketed,
+ * with each declaration, so a record says what the box confirmed.
+ */
+export const OPT_IN: Record<'Online' | 'Tablet' | 'Paper' | 'Verbal', string> = {
+  Online: 'Yes, I want to Gift Aid my donation. I am a UK taxpayer, I agree to the declaration '
+    + 'above, and my donation is [eligible for Gift Aid].',
+  Tablet: 'Yes, I want to Gift Aid my donations. I am a UK taxpayer, I agree to the declaration '
+    + 'above, and my donations are [eligible for Gift Aid].',
+  Paper: 'The donor ticked and signed this declaration on the paper form.',
+  Verbal: 'The donor gave this declaration verbally, and it was read back to them.',
+};
+
+export const optInText = (method: keyof typeof OPT_IN): string => OPT_IN[method].replace(/[[\]]/g, '');
+
 export const CONTACT_EMAIL = 'contact@meadowbrookdartington.org';
 
 /** £25, £25.50. Integer pence in, never a float. */

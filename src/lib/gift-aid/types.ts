@@ -45,6 +45,8 @@ export interface Declaration {
   madeAt: Date;
   wordingVersion: string;
   wordingText: string;
+  /** The tick-box sentence, including that the gifts are eligible (declaration.ts OPT_IN). */
+  optInText: string;
   /** 'website' for an online declaration; the signed-in committee member otherwise. */
   enteredBy: string;
   enteredAt: Date;
