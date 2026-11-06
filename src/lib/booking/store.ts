@@ -149,6 +149,12 @@ export async function getDb(): Promise<Firestore> {
   if (db) return db;
   const projectId = env('BOOKING_PROJECT_ID') ?? 'meadowbrook-booking';
   const settings: Settings = { projectId };
+  // PR previews point at a separate named database ("preview") in the same
+  // project, which their runtime identity is granted and nothing else is -- so a
+  // preview can take sandbox donations end to end without being able to read or
+  // write a single production record. Unset means the default database.
+  const databaseId = env('BOOKING_FIRESTORE_DATABASE');
+  if (databaseId) settings.databaseId = databaseId;
 
   // Impersonation is required in BOTH environments, which is easy to get wrong.
   //
