@@ -116,10 +116,24 @@ Environment variables are set on Cloud Run at deploy time via `--update-env-vars
 | `PUBLIC_SQUARE_ENVIRONMENT` | Cloud Run env var (deploy workflow) | `production` or `sandbox` |
 | `BREVO_API_KEY` | Secret Manager | Brevo mailing list API key |
 | `BREVO_LIST_ID` | Cloud Run env var (deploy workflow) | Brevo list the newsletter and volunteer forms subscribe to (2) |
+| `BREVO_DOI_TEMPLATE_ID` | GitHub Actions variable → Cloud Run env var | Brevo double opt-in template used to confirm new addresses |
 | `KEYSTATIC_GITHUB_CLIENT_ID` | Secret Manager | Keystatic GitHub OAuth app |
 | `KEYSTATIC_GITHUB_CLIENT_SECRET` | Secret Manager | Keystatic GitHub OAuth app |
 | `KEYSTATIC_SECRET` | Secret Manager | Keystatic session signing secret |
 | `SQUARE_ACCESS_TOKEN` | Secret Manager | Square server-side payments token |
+
+> **Double opt-in is required, not optional.** A new address is not added to the
+> list at all until the person clicks the link in the confirmation email Brevo
+> sends; `/subscribed` is where they land afterwards. Addresses Brevo already
+> knows skip the loop and are updated directly, so an existing subscriber who
+> volunteers is flagged immediately. If `BREVO_DOI_TEMPLATE_ID` is unset the
+> endpoint refuses every sign-up rather than quietly adding people unconfirmed —
+> between June and August 2026 ten of thirteen sign-ups were bots, which is what
+> this and the form's honeypot field exist to stop.
+>
+> Setting it up: create an **active double opt-in template** in Brevo, then
+> `gh variable set BREVO_DOI_TEMPLATE_ID --body <template id>`. Brevo answers
+> `"An active DOI template does not exist"` if the template is missing or inactive.
 
 > **Brevo contact attribute:** the volunteer form at `/volunteer` posts to the same
 > endpoint and the same list as the newsletter form; what marks a volunteer is a
