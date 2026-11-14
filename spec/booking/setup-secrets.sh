@@ -51,7 +51,7 @@ validate() { # name, value -> prints a complaint, or nothing
       [[ "$value" =~ ^EAAA ]] || { echo "does not start with EAAA"; return; }
       (( len == 64 )) || echo "is $len characters; a Square access token is 64 (a doubled paste gives 128)"
       ;;
-    BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY)
+    BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY|DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY)
       (( len >= 20 && len <= 60 )) || echo "is $len characters, which is outside the usual range"
       ;;
     BOOKING_ADMIN_OAUTH_CLIENT_SECRET)
@@ -96,6 +96,8 @@ prompted BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY \
   "Square webhook signature key, shown when the subscription is created (see 15, step 4)"
 prompted BOOKING_ADMIN_OAUTH_CLIENT_SECRET \
   "OAuth client secret for /admin sign-in (see 15, step 3)"
+prompted DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY \
+  "Signature key of the /donate app's webhook subscription (see spec/gift-aid/01, setup step 4)"
 
 bold "Checking the Square token against Square"
 if exists BOOKING_SQUARE_ACCESS_TOKEN; then
@@ -124,7 +126,8 @@ done
 bold "Grant the Cloud Run service account read access"
 SA="589136616970-compute@developer.gserviceaccount.com"
 for s in BOOKING_MAGIC_LINK_SECRET BOOKING_CRON_SECRET BOOKING_SQUARE_ACCESS_TOKEN \
-         BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY BOOKING_ADMIN_OAUTH_CLIENT_SECRET BREVO_API_KEY; do
+         BOOKING_SQUARE_WEBHOOK_SIGNATURE_KEY BOOKING_ADMIN_OAUTH_CLIENT_SECRET BREVO_API_KEY \
+         DONATE_SQUARE_WEBHOOK_SIGNATURE_KEY; do
   if exists "$s"; then
     gcloud secrets add-iam-policy-binding "$s" --project="$PROJECT" \
       --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor" >/dev/null 2>&1 \
