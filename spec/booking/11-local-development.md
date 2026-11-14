@@ -128,6 +128,9 @@ BOOKING_EMAIL_TRANSPORT=console
 PUBLIC_BOOKING_SQUARE_ENVIRONMENT=sandbox
 PUBLIC_BOOKING_SQUARE_APPLICATION_ID=<sandbox app id>
 PUBLIC_BOOKING_SQUARE_LOCATION_ID=<sandbox location id>
+# Optional: per-room locations (18). Leave unset and every room uses the one above.
+# To exercise it, create matching locations in the sandbox seller account first.
+# BOOKING_SQUARE_LOCATION_IDS={"snooker-room":"<sandbox id>","large-room":"<sandbox id>","small-room":"<sandbox id>"}
 BOOKING_SQUARE_ACCESS_TOKEN=<sandbox token>
 BOOKING_MAGIC_LINK_SECRET=<openssl rand -base64 32>
 BOOKING_CRON_SECRET=<openssl rand -base64 32>

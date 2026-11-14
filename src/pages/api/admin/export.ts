@@ -9,6 +9,8 @@ import { listBookings } from '../../../lib/booking/store.ts';
 import { instantToLocalTime } from '../../../lib/booking/time.ts';
 import { getBookableRooms } from '../../../lib/booking/config-reader.ts';
 import { intakeAnswers } from '../../../lib/booking/intake.ts';
+import { bookingLocations, locationLabel } from '../../../lib/booking/square.ts';
+import { chargeLocations } from '../../../lib/booking/reporting.ts';
 
 export const prerender = false;
 
@@ -39,11 +41,13 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   const to = view === 'past' ? now : new Date(now.getTime() + 365 * 86400000);
 
   const [rows, rooms] = await Promise.all([listBookings(from, to), getBookableRooms()]);
+  const locs = bookingLocations();
+  const roomName = (slug: string) => rooms.find((r) => r.slug === slug)?.shortName ?? slug;
   const questionsFor = (slug: string) => rooms.find((r) => r.slug === slug)?.intakeQuestions ?? [];
   const header = [
     'Reference', 'Status', 'Room', 'Date', 'Start', 'End', 'Duration (mins)',
     'Price (£)', 'Paid (£)', 'Name', 'Email', 'Phone', 'Intended use',
-    'Charges (£)', 'Refunds (£)', 'Square payment id', 'Created',
+    'Charges (£)', 'Refunds (£)', 'Square payment id', 'Square location', 'Created',
   ];
 
   const lines = [header.map(cell).join(',')];
@@ -61,7 +65,9 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       b.customer.name, b.customer.email, b.customer.phone ?? '',
       intakeAnswers(b.customer.notes, questionsFor(b.room)),
       (charges / 100).toFixed(2), (refunds / 100).toFixed(2),
-      b.payments[0]?.squarePaymentId ?? '', b.createdAt.toDate().toISOString(),
+      b.payments[0]?.squarePaymentId ?? '',
+      chargeLocations(b, locs.fallback).map((l) => locationLabel(l, locs, roomName)).join('; '),
+      b.createdAt.toDate().toISOString(),
     ].map(cell).join(','));
   }
 

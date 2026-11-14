@@ -9,6 +9,7 @@
 // made you remember your own choices.
 import type { RoomBookingConfig } from '../lib/booking/config.ts';
 import { NEWSLETTER_CONSENT_TEXT } from '../lib/booking/newsletter.ts';
+import { bookingLocationFor } from '../lib/booking/square.ts';
 
 interface Props { room: RoomBookingConfig; heading?: string }
 const { room, heading } = Astro.props;
@@ -18,7 +19,9 @@ const squareSdkUrl = env === 'sandbox'
   ? 'https://sandbox.web.squarecdn.com/v1/square.js'
   : 'https://web.squarecdn.com/v1/square.js';
 const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
-const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+// Per room (`18`), and resolved by the same function the charge uses: a card
+// tokenised against one location and charged at another is refused by Square.
+const squareLocationId = bookingLocationFor(room.slug);
 // Sandbox validates the card form's postal field as a US ZIP. A sandbox artefact,
 // not a real requirement — derived so nobody "fixes" production to match it.
 const billingCountry = env === 'sandbox' ? 'US' : 'GB';

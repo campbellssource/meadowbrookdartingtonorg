@@ -106,8 +106,10 @@ if exists BOOKING_SQUARE_ACCESS_TOKEN; then
     ok "token works against Square production"
     curl -s -H "Authorization: Bearer $tok" -H 'Square-Version: 2024-01-17' \
       https://connect.squareup.com/v2/locations \
-      | grep -oE '"id":"[A-Z0-9]+"' | head -1 \
-      | sed 's/.*:"/    location id (for PUBLIC_BOOKING_SQUARE_LOCATION_ID): /;s/"$//'
+      | grep -oE '"id":"[A-Z0-9]+","name":"[^"]*"' \
+      | sed 's/"id":"\([A-Z0-9]*\)","name":"\(.*\)"/    location \1  \2/'
+    echo "    (main one -> PUBLIC_BOOKING_SQUARE_LOCATION_ID; per-room ones ->"
+    echo "     BOOKING_SQUARE_LOCATION_IDS, see spec/booking/18-square-locations.md)"
   else
     warn "Square returned HTTP $code for that token — it will not take payments"
   fi
@@ -139,9 +141,10 @@ cat <<'NOTE'
     BOOKING_ADMIN_OAUTH_CLIENT_ID         from the OAuth client
     PUBLIC_BOOKING_SQUARE_ENVIRONMENT     production
     PUBLIC_BOOKING_SQUARE_APPLICATION_ID  Square production application id
-    PUBLIC_BOOKING_SQUARE_LOCATION_ID     Square production location id
+    PUBLIC_BOOKING_SQUARE_LOCATION_ID     Square production location id (fallback)
+    BOOKING_SQUARE_LOCATION_IDS           {"snooker-room":"L3JVJABCDB86K","large-room":"LFQHKA4RM1P51","small-room":"L22B8R37R9508"}
 
-  These are variables, not secrets: they reach the browser anyway.
+  These are variables, not secrets: none of them is sensitive.
 
   Then the OAuth client and the Square webhook subscription — spec/booking/15.
 NOTE

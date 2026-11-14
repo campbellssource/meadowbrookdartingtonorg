@@ -12,7 +12,8 @@ can never touch the live donation credentials.
 | Var | Where | Notes |
 |---|---|---|
 | `PUBLIC_BOOKING_SQUARE_APPLICATION_ID` | client | |
-| `PUBLIC_BOOKING_SQUARE_LOCATION_ID` | client | |
+| `PUBLIC_BOOKING_SQUARE_LOCATION_ID` | client | Fallback location: any room not in the map below |
+| `BOOKING_SQUARE_LOCATION_IDS` | server (resolved into the page) | JSON, facility slug → location id. See `18` |
 | `PUBLIC_BOOKING_SQUARE_ENVIRONMENT` | client | `sandbox` in dev, `production` live |
 | `BOOKING_SQUARE_ACCESS_TOKEN` | server, Secret Manager | Never `PUBLIC_` |
 
@@ -30,11 +31,33 @@ POST {base}/v2/payments
   source_id:        <token from the client>
   idempotency_key:  <holdId>          // see below
   amount_money:     { amount: pricePence, currency: 'GBP' }
-  location_id:      <location>
+  location_id:      <the room's location>   // see "Locations per room" below
   buyer_email_address: <customer email>   // Square sends its own receipt
   reference_id:     <bookingRef>
   note:             "Meadowbrook room booking — Studio, 5 Sep 2026 14:00, MB-7K2QX4"
 ```
+
+### Locations per room
+
+Square pays out per location, so each room charges against its own and the bookkeeper sees
+the income split by stream (`18`). `squareLocationFor(cfg, roomSlug)` reads
+`BOOKING_SQUARE_LOCATION_IDS` and falls back to `PUBLIC_BOOKING_SQUARE_LOCATION_ID` for any
+room not in it. A missing or malformed map logs a warning and falls back — it never stops
+payments.
+
+The card form must be initialised (`Square.payments(appId, locationId)`) with the same
+location the server charges, or Square rejects the token. Both the booking widget and the
+manage-booking page resolve it with `bookingLocationFor(roomSlug)`, which uses the same
+parsing, at render time.
+
+Every ledger entry records `squareLocationId`. A refund names the payment, not a location, so
+Square returns the money from wherever the payment was taken; the refund entry copies the
+charge's location. Entries from before `18` have no id and are the fallback location.
+
+**Amendments never change room** — that is cancel-and-rebook — so a top-up charge goes to the
+same location as the original. If room changes ever become amendments, the top-up would go to
+the *new* room's location while earlier charges, and refunds of them, stay where they were
+taken. That split is acceptable.
 
 ### Idempotency
 

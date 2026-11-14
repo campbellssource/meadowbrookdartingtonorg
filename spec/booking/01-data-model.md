@@ -67,7 +67,9 @@ Append-only. Never mutate an entry; correct by appending.
   squareRefundId: string | null,
   idempotencyKey: string,       // what we sent Square; see 04
   status: 'completed' | 'pending' | 'failed',
-  reason: string | null }       // 'initial' | 'amend-up' | 'amend-down' | 'cancel'
+  reason: string | null,        // 'initial' | 'amend-up' | 'amend-down' | 'cancel'
+  squareLocationId?: string }   // where the money sits (18); on a refund, the charge's
+                                // location. Absent before 18 = PUBLIC_BOOKING_SQUARE_LOCATION_ID
 ```
 
 `paidPence` is the derived sum and is stored so reporting doesn't have to fold every ledger.
