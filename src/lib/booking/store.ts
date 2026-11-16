@@ -30,6 +30,12 @@ export interface Payment {
   idempotencyKey: string;
   status: 'completed' | 'pending' | 'failed';
   reason: string | null;
+  /**
+   * The Square location the money sits in (`18`). On a refund, the location of
+   * the charge it returns. Absent on entries from before per-room locations:
+   * those are the fallback `PUBLIC_BOOKING_SQUARE_LOCATION_ID`.
+   */
+  squareLocationId?: string;
 }
 
 export interface HistoryEntry {

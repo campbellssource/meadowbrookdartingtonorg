@@ -5,7 +5,8 @@ import { listBookings } from '../../lib/booking/store.ts';
 import { freshenPending } from '../../lib/booking/reconcile.ts';
 import { getBookableRooms } from '../../lib/booking/config-reader.ts';
 import { formatPence } from '../../lib/booking/pricing.ts';
-import { headline, byRoomByMonth, occupancy, leadTimes, repeatBookers, intendedUses } from '../../lib/booking/reporting.ts';
+import { bookingLocations, locationLabel } from '../../lib/booking/square.ts';
+import { headline, byRoomByMonth, byLocationByMonth, occupancy, leadTimes, repeatBookers, intendedUses } from '../../lib/booking/reporting.ts';
 
 export const prerender = false;
 for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
@@ -41,6 +42,10 @@ const OPENING_HOURS_PER_DAY = 15;
 
 const h = headline(rows);
 const revenue = byRoomByMonth(rows);
+const locs = bookingLocations();
+const byLoc = byLocationByMonth(rows, locs.fallback);
+const locList = [...new Set(byLoc.map((r) => r.locationId))].sort();
+const locNetFor = (m: string, l: string) => byLoc.find((x) => x.month === m && x.locationId === l)?.netPence ?? 0;
 const occ = occupancy(rows, OPENING_HOURS_PER_DAY);
 const lead = leadTimes(rows);
 const repeat = repeatBookers(rows);
@@ -141,6 +146,22 @@ const maxLead = Math.max(1, ...lead.map((l) => l.count));
             </tbody>
           </table>
         </>
+      )}
+
+      <h2 class="rp-h2">Net revenue by Square location</h2>
+      <p class="rp-empty">Square pays out per location, so these are the streams the bookkeeper sees.
+        Grouped by booking month; Square's payouts follow the payment date.</p>
+      {monthsList.length === 0 ? <p class="rp-empty">No bookings in this period.</p> : (
+        <table class="rp-table">
+          <thead><tr><th>Month</th>{locList.map((l) => <th>{locationLabel(l, locs, roomName)}</th>)}<th>Total</th></tr></thead>
+          <tbody>
+            {monthsList.map((m) => {
+              const vals = locList.map((l) => locNetFor(m, l));
+              return <tr><td>{monthLabel(m)}</td>{vals.map((v) => <td>{formatPence(v)}</td>)}
+                <td><strong>{formatPence(vals.reduce((a, b) => a + b, 0))}</strong></td></tr>;
+            })}
+          </tbody>
+        </table>
       )}
 
       <h2 class="rp-h2">Occupancy</h2>

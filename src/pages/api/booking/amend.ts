@@ -148,19 +148,26 @@ export const POST: APIRoute = async ({ request, url }) => {
 
     // Dearer: take the money FIRST. If the card fails, nothing has changed and the
     // hirer still has the booking they paid for.
+    //
+    // The top-up goes to this room's Square location (`18`). An amendment never
+    // changes room -- that is cancel-and-rebook -- so it is the same location as
+    // the original charge. If room changes ever become amendments, the top-up
+    // would land in the NEW room's location while earlier charges, and any refund
+    // of them, stay where they were taken; that split is acceptable.
     let paymentEntry;
     if (decision.chargePence > 0) {
       try {
         const result = await charge(cfg, {
           sourceId: String(body.sourceId), amountPence: decision.chargePence,
           idempotencyKey: held.holdId, bookingRef: ref, roomName: room.shortName,
-          buyerEmail: booking.customer.email,
+          roomSlug: room.slug, buyerEmail: booking.customer.email,
           note: `Meadowbrook booking change — ${room.shortName} — ${ref}`,
         });
         paymentEntry = {
           kind: 'charge' as const, amountPence: decision.chargePence,
           squarePaymentId: result.squarePaymentId, squareRefundId: null,
           idempotencyKey: held.holdId, status: result.status, reason: 'amend-up' as const,
+          squareLocationId: result.squareLocationId,
         };
       } catch (err) {
         await releaseHold(held.holdId);

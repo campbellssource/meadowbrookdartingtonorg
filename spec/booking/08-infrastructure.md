@@ -54,6 +54,14 @@ New secrets to create:
 | `BOOKING_ADMIN_OAUTH_CLIENT_SECRET` | Google OAuth client for `/admin` sign-in |
 | `BOOKING_CRON_SECRET` | Fallback shared secret on the scheduled endpoints |
 
+Not a secret, but booking config that differs by environment: `BOOKING_SQUARE_LOCATION_IDS`,
+the per-room Square locations (`18`), set from a GitHub repository variable alongside
+`PUBLIC_BOOKING_SQUARE_LOCATION_ID`. Production value:
+
+```json
+{"snooker-room":"L3JVJABCDB86K","large-room":"LFQHKA4RM1P51","small-room":"L22B8R37R9508"}
+```
+
 ## Firestore
 
 - **Native mode**, location `europe-west2`. **The location is permanent** — it cannot be
