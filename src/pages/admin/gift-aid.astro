@@ -1,0 +1,425 @@
+---
+// /admin/gift-aid — the committee's Gift Aid capture page (spec/gift-aid/01).
+//
+// Behind the same Google sign-in and allowlist as /admin/bookings, checked before
+// anything else on the page runs, and never linked from a public page. It holds
+// donors' home addresses, so it is noindex, no-store and no-referrer like the rest
+// of /admin.
+//
+// Tablet mode is handed to the donor. It shows nothing about anyone else and clears
+// itself after each declaration, so the next person sees a blank form.
+
+import Layout from '../../layouts/Layout.astro';
+import GiftAidFields from '../../components/GiftAidFields.astro';
+import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { firestoreStore } from '../../lib/gift-aid/store.ts';
+import { sheetId } from '../../lib/gift-aid/sheets.ts';
+import { londonToday, OFFLINE_METHODS, CAMPAIGNS } from '../../lib/gift-aid/validate.ts';
+import type { Declaration } from '../../lib/gift-aid/types.ts';
+
+export const prerender = false;
+for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
+
+const actor = verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value);
+if (!actor) return Astro.redirect('/admin/signin', 302);
+
+const MODES = [
+  { key: 'tablet', label: 'Donor on tablet' },
+  { key: 'paper', label: 'Paper form' },
+  { key: 'verbal', label: 'Verbal' },
+  { key: 'donation', label: 'Record a donation' },
+  { key: 'small', label: 'Small donations' },
+  { key: 'records', label: 'Records' },
+] as const;
+type Mode = typeof MODES[number]['key'];
+const requested = Astro.url.searchParams.get('mode');
+const mode: Mode = (MODES.find((m) => m.key === requested)?.key ?? 'tablet');
+const today = londonToday();
+
+// Only the Records tab reads anything, so a database problem never stops someone
+// keying in a paper form -- that save will report its own error if it fails.
+let awaiting: Declaration[] = [];
+let pendingCount = 0;
+let dataError: string | null = null;
+if (mode === 'records') {
+  try {
+    [awaiting, pendingCount] = await Promise.all([
+      firestoreStore.listAwaitingConfirmation(),
+      firestoreStore.listSheetPending(200).then((r) => r.length),
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('admin/gift-aid: could not read records', message);
+    dataError = `Could not reach the database. ${message.slice(0, 200)}`;
+  }
+}
+const syncOn = Boolean(sheetId());
+---
+
+<Layout title="Gift Aid admin" description="Meadowbrook Gift Aid capture." noindex={true}>
+  <section class="mw-sect ga-adm-head">
+    <div class="mw-wrap">
+      <div class="ad-top">
+        <div>
+          <span class="mw-eyebrow">Gift Aid</span>
+          <h1>{mode === 'tablet' ? 'Gift Aid declaration' : MODES.find((m) => m.key === mode)!.label}</h1>
+        </div>
+        <div class="ad-who" hidden={mode === 'tablet'}>
+          <span>{actor}</span>
+          <a href="/admin/bookings">Bookings</a>
+          <button type="button" id="ad-signout">Sign out</button>
+        </div>
+      </div>
+      {mode === 'tablet' && (
+        <p class="ga-exit">
+          <a href="/admin/gift-aid?mode=records" data-exit-tablet>Committee: exit tablet mode</a>
+        </p>
+      )}
+      <nav class="ga-tabs" aria-label="Gift Aid modes" hidden={mode === 'tablet'}>
+        {MODES.map((m) => (
+          <a href={`/admin/gift-aid?mode=${m.key}`} aria-current={m.key === mode ? 'page' : undefined}>{m.label}</a>
+        ))}
+      </nav>
+    </div>
+  </section>
+
+  <section class="mw-sect ga-adm-body">
+    <div class="mw-wrap ga-adm-wrap">
+      <div id="ga-msg" class="ga-msg" hidden></div>
+
+      {(mode === 'tablet' || mode === 'paper' || mode === 'verbal') && (
+        <form class="ga-card" data-form="declaration" data-mode={mode} novalidate>
+          {mode === 'tablet' && (
+            <p class="ga-lead">
+              Thank you for supporting Meadowbrook. If you pay UK tax, Gift Aid lets us claim an extra
+              25p from HMRC for every £1 you give, at no cost to you. Please fill this in and tick the box.
+            </p>
+          )}
+          {mode === 'paper' && <p class="ga-lead">Copy the signed form exactly. Keep the paper: HMRC can ask to see it.</p>}
+          {mode === 'verbal' && (
+            <p class="ga-warn">
+              <strong>A verbal declaration cannot be claimed on yet.</strong> After saving, send the donor a
+              written confirmation from <a href="/admin/gift-aid?mode=records">Records</a>. They then have
+              30 days to cancel; only after that is it claimable.
+            </p>
+          )}
+          <GiftAidFields mode={mode} />
+          <button type="submit" class="mw-btn mw-btn-primary ga-submit">
+            {mode === 'tablet' ? 'Submit my declaration' : 'Save declaration'}
+          </button>
+        </form>
+      )}
+
+      {mode === 'donation' && (
+        <div class="ga-card">
+          <form class="ga-lookup" data-form="lookup" novalidate>
+            <h2>1. Find the donor's declaration</h2>
+            <div class="ga-grid">
+              <label><span>Last name</span><input name="lastName" required /></label>
+              <label><span>Postcode</span><input name="postcode" required autocapitalize="characters" /></label>
+              <button type="submit" class="mw-btn mw-btn-primary mw-btn-sm ga-lookup-btn">Look up</button>
+            </div>
+            <div id="ga-matches" class="ga-matches"></div>
+            <p class="ga-hint">No declaration? Take one first on the Paper form, Verbal or tablet tab.</p>
+          </form>
+
+          <form data-form="donation" novalidate>
+            <h2>2. The gift</h2>
+            <input type="hidden" name="declarationId" />
+            <p class="ga-chosen" id="ga-chosen">No declaration chosen yet.</p>
+            <div class="ga-grid">
+              <label><span>Amount (£)</span><input name="amount" inputmode="decimal" /></label>
+              <label><span>Date received</span><input name="receivedOn" type="date" max={today} /></label>
+              <label><span>Method</span>
+                <select name="method">
+                  <option value="">Choose…</option>
+                  {OFFLINE_METHODS.map((m) => <option value={m}>{m === 'Cash' ? 'Cash (over £30)' : m}</option>)}
+                </select>
+              </label>
+              <label><span>Campaign</span>
+                <select name="campaign">
+                  {CAMPAIGNS.map((c) => <option value={c} selected={c === 'Pool appeal'}>{c}</option>)}
+                </select>
+              </label>
+              <label><span>Bank reference <em>(optional)</em></span><input name="bankReference" maxlength="100" /></label>
+              <label><span>Notes <em>(optional)</em></span><input name="notes" maxlength="500" /></label>
+            </div>
+            <p class="ga-hint">Cash of £30 or less from someone without a declaration goes on the Small donations tab instead.</p>
+            <button type="submit" class="mw-btn mw-btn-primary ga-submit">Save donation</button>
+          </form>
+        </div>
+      )}
+
+      {mode === 'small' && (
+        <form class="ga-card" data-form="small" novalidate>
+          <p class="ga-lead">
+            One line per collection: a bucket, a tin or the contactless reader at an event. Only gifts of
+            £30 or less each, and no donor details. These are claimed under the Small Donations Scheme.
+          </p>
+          <div class="ga-grid">
+            <label><span>Date collected</span><input name="collectedOn" type="date" max={today} /></label>
+            <label><span>Event or place</span><input name="eventOrPlace" maxlength="100" placeholder="e.g. Extravaganza bucket" /></label>
+            <label><span>Total collected (£)</span><input name="amount" inputmode="decimal" /></label>
+            <label><span>Cash or contactless</span>
+              <select name="kind"><option value="">Choose…</option><option>Cash</option><option>Contactless</option></select>
+            </label>
+            <label><span>In the Meadowbrook building?</span>
+              <select name="inBuilding"><option value="">Choose…</option><option value="Y">Yes</option><option value="N">No</option></select>
+            </label>
+            <label><span>Notes <em>(optional)</em></span><input name="notes" maxlength="400" /></label>
+          </div>
+          <button type="submit" class="mw-btn mw-btn-primary ga-submit">Save collection</button>
+        </form>
+      )}
+
+      {mode === 'records' && (
+        <div class="ga-card">
+          {dataError && <p class="ga-warn">{dataError}</p>}
+          <h2>Sheet</h2>
+          <p>
+            {!syncOn
+              ? 'Sheet sync is off here (GIFT_AID_SHEET_ID is unset). Records are saved in Firestore only.'
+              : pendingCount === 0
+                ? 'Everything is in the bookkeeper’s sheet.'
+                : `${pendingCount} record${pendingCount === 1 ? '' : 's'} not yet in the sheet, or with a change it has not seen.`}
+          </p>
+          <button type="button" class="mw-btn mw-btn-sm" data-action="retry-sync">Retry now</button>
+
+          <h2>Verbal declarations awaiting written confirmation</h2>
+          {awaiting.length === 0 ? <p class="ga-hint">None.</p> : (
+            <table class="ga-table">
+              <thead><tr><th>Donor</th><th>Made</th><th>Email</th><th></th></tr></thead>
+              <tbody>
+                {awaiting.map((d) => (
+                  <tr>
+                    <td>{d.firstName} {d.lastName}<br /><span class="ga-sub">{d.postcode} · {d.id}</span></td>
+                    <td>{d.madeOn}</td>
+                    <td>{d.email ?? '—'}</td>
+                    <td class="ga-actions">
+                      {d.email && <button type="button" class="mw-btn mw-btn-sm" data-action="confirm-email" data-id={d.id}>Email confirmation</button>}
+                      <button type="button" class="mw-btn mw-btn-sm" data-action="confirm-post" data-id={d.id}>Mark as posted…</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <h2>Find and cancel a declaration</h2>
+          <form class="ga-lookup" data-form="lookup" data-cancel novalidate>
+            <div class="ga-grid">
+              <label><span>Last name</span><input name="lastName" /></label>
+              <label><span>Postcode</span><input name="postcode" autocapitalize="characters" /></label>
+              <button type="submit" class="mw-btn mw-btn-primary mw-btn-sm ga-lookup-btn">Look up</button>
+            </div>
+            <div id="ga-matches" class="ga-matches"></div>
+          </form>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const msg = document.getElementById('ga-msg') as HTMLElement;
+  type GA = { read(r: HTMLElement): Record<string, unknown>; showErrors(r: HTMLElement, e?: Record<string, string>): void; reset(r: HTMLElement): void };
+  const ga = () => (window as unknown as { mbGiftAid: GA }).mbGiftAid;
+
+  function say(text: string, kind: 'ok' | 'err' | 'warn' = 'ok') {
+    msg.textContent = text;
+    msg.className = `ga-msg ga-msg-${kind}`;
+    msg.hidden = false;
+    msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function post(payload: Record<string, unknown>): Promise<Record<string, any>> {
+    const res = await fetch('/api/admin/gift-aid', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    if (res.status === 401) { window.location.href = '/admin/signin'; return {}; }
+    return { ...(await res.json().catch(() => ({ error: 'Unexpected response.' }))), ok: res.ok };
+  }
+
+  function fields(form: HTMLFormElement): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[name], select[name]').forEach((el) => { out[el.name] = el.value; });
+    return out;
+  }
+
+  function markErrors(form: HTMLFormElement, errors: Record<string, string> = {}) {
+    form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    for (const name of Object.keys(errors)) form.querySelector(`[name="${name}"]`)?.setAttribute('aria-invalid', 'true');
+  }
+
+  // Tablet mode hides the navigation so a donor holding the tablet is not one tap
+  // from other donors' records. This is a speed bump, not a lock: the session is
+  // still the committee member's, so the tablet should never be left unattended.
+  document.querySelector('[data-exit-tablet]')?.addEventListener('click', (e) => {
+    if (!confirm('Leave tablet mode? Only do this once the tablet is back with you.')) e.preventDefault();
+  });
+
+  document.getElementById('ad-signout')?.addEventListener('click', async () => {
+    await fetch('/api/admin/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    window.location.href = '/admin/signin';
+  });
+
+  // Declarations: tablet, paper, verbal.
+  document.querySelector<HTMLFormElement>('form[data-form="declaration"]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const root = form.querySelector<HTMLElement>('[data-ga]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    button.disabled = true;
+    const data = await post({ action: 'declaration', mode: form.dataset.mode, fields: ga().read(root) });
+    button.disabled = false;
+    ga().showErrors(root, data.fields);
+    if (!data.ok) { say(data.error ?? 'That did not save.', 'err'); return; }
+    if (form.dataset.mode === 'tablet') {
+      // Hand the tablet back clean: the next donor must not see this one's details.
+      ga().reset(root);
+      say('Thank you! Your Gift Aid declaration has been saved. Please hand the tablet back.');
+    } else {
+      ga().reset(root);
+      say(data.warning ? `${data.message} ${data.warning}` : data.message, data.warning ? 'warn' : 'ok');
+    }
+  });
+
+  // Lookup, for recording a donation or cancelling.
+  document.querySelectorAll<HTMLFormElement>('form[data-form="lookup"]').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const box = form.querySelector<HTMLElement>('.ga-matches')!;
+      const data = await post({ action: 'lookup', ...fields(form) });
+      if (!data.ok) { say(data.error, 'err'); return; }
+      box.replaceChildren();
+      if (data.matches.length === 0) { box.textContent = 'No declarations found for that name and postcode.'; return; }
+      for (const m of data.matches) {
+        const row = document.createElement('div');
+        row.className = 'ga-match';
+        const status = m.cancelledOn ? `cancelled ${m.cancelledOn}`
+          : m.method === 'Verbal' && !m.confirmationSentOn ? 'verbal, awaiting confirmation'
+            : m.claimable ? 'valid' : `claimable from ${m.claimableFrom}`;
+        const label = document.createElement('div');
+        label.innerHTML = '<strong></strong><br><span></span>';
+        label.querySelector('strong')!.textContent = `${m.name} · ${m.id}`;
+        label.querySelector('span')!.textContent = `${m.address} · ${m.scope}, ${m.method}, ${m.madeOn} · ${status}`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'mw-btn mw-btn-sm';
+        if (form.hasAttribute('data-cancel')) {
+          button.textContent = 'Cancel declaration';
+          button.disabled = Boolean(m.cancelledOn);
+          button.addEventListener('click', async () => {
+            const on = prompt('Cancelled from which date? (yyyy-mm-dd, blank for today)', '');
+            if (on === null) return;
+            const r = await post({ action: 'cancel-declaration', id: m.id, cancelledOn: on.trim() });
+            say(r.ok ? `${r.message}${r.warning ? ` ${r.warning}` : ''}` : r.error, r.ok ? 'ok' : 'err');
+          });
+        } else {
+          button.textContent = 'Use this';
+          button.addEventListener('click', () => {
+            const donation = document.querySelector<HTMLFormElement>('form[data-form="donation"]')!;
+            (donation.querySelector('[name="declarationId"]') as HTMLInputElement).value = m.id;
+            document.getElementById('ga-chosen')!.textContent = `${m.name}, ${m.address} (${m.id}, ${status})`;
+          });
+        }
+        row.append(label, button);
+        box.append(row);
+      }
+    });
+  });
+
+  document.querySelector<HTMLFormElement>('form[data-form="donation"]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const data = await post({ action: 'donation', fields: fields(form) });
+    markErrors(form, data.fields);
+    if (!data.ok) { say(data.fields ? Object.values(data.fields).join(' ') : data.error, 'err'); return; }
+    form.reset();
+    document.getElementById('ga-chosen')!.textContent = 'No declaration chosen yet.';
+    say(data.warning ? `${data.message} ${data.warning}` : data.message, data.warning ? 'warn' : 'ok');
+  });
+
+  document.querySelector<HTMLFormElement>('form[data-form="small"]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const raw = fields(form);
+    const inBuilding = raw.inBuilding === 'Y' ? true : raw.inBuilding === 'N' ? false : null;
+    const data = await post({ action: 'small', fields: { ...raw, inBuilding } });
+    markErrors(form, data.fields);
+    if (!data.ok) { say(data.fields ? Object.values(data.fields).join(' ') : data.error, 'err'); return; }
+    form.reset();
+    say(data.warning ? `${data.message} ${data.warning}` : data.message, data.warning ? 'warn' : 'ok');
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const action = button.dataset.action;
+      let payload: Record<string, unknown>;
+      if (action === 'retry-sync') payload = { action };
+      else if (action === 'confirm-email') {
+        if (!confirm('Email the donor their written confirmation now?')) return;
+        payload = { action: 'confirm-verbal', id: button.dataset.id, how: 'email' };
+      } else {
+        const sentOn = prompt('Date the letter was posted (yyyy-mm-dd)', new Date().toLocaleDateString('en-CA'));
+        if (!sentOn) return;
+        payload = { action: 'confirm-verbal', id: button.dataset.id, how: 'post', sentOn: sentOn.trim() };
+      }
+      button.disabled = true;
+      const data = await post(payload);
+      button.disabled = false;
+      say(data.ok ? `${data.message}${data.warning ? ` ${data.warning}` : ''}` : data.error, data.ok ? 'ok' : 'err');
+      if (data.ok && action !== 'retry-sync') button.closest('tr')?.remove();
+    });
+  });
+</script>
+
+<style>
+  .ga-adm-head { padding-bottom: var(--space-4); }
+  .ad-top { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-5); flex-wrap: wrap; }
+  .ad-top h1 { margin: var(--space-2) 0 0; }
+  .ad-who { display: flex; gap: var(--space-4); align-items: center; font-size: 0.875rem; color: var(--fg-mute); flex-wrap: wrap; }
+  .ad-who button { background: none; border: none; color: var(--green); cursor: pointer; font: inherit; padding: 0; }
+  .ga-exit { font-size: 0.8rem; margin: var(--space-3) 0 0; }
+  .ga-exit a { color: var(--fg-mute); }
+  .ga-tabs[hidden], .ad-who[hidden] { display: none; }
+  .ga-tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-5); }
+  .ga-tabs a {
+    padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--paper-deep);
+    font-size: 0.875rem; font-weight: 600; color: var(--fg); text-decoration: none; background: var(--paper);
+  }
+  .ga-tabs a[aria-current="page"] { background: var(--green); border-color: var(--green); color: #fff; }
+  .ga-adm-body { background: var(--bg-elevated); padding-top: var(--space-6); }
+  .ga-adm-wrap { max-width: 760px; }
+  .ga-card { background: var(--paper); border-radius: var(--r-lg); padding: var(--space-6); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .ga-card h2 { font-family: var(--font-body); font-size: 1.1rem; margin: var(--space-6) 0 var(--space-3); }
+  .ga-card h2:first-child { margin-top: 0; }
+  .ga-lead { color: var(--fg-soft); line-height: 1.6; margin: 0 0 var(--space-5); }
+  .ga-warn { background: #fff7e6; border: 1px solid #f0d19a; border-radius: var(--r-md); padding: 10px 14px; font-size: 0.9rem; line-height: 1.5; margin: 0 0 var(--space-5); }
+  .ga-hint { font-size: 0.825rem; color: var(--fg-mute); margin: var(--space-3) 0; }
+  .ga-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); align-items: end; }
+  .ga-grid label { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--fg-soft); }
+  .ga-grid em { font-weight: 400; font-style: normal; color: var(--fg-mute); }
+  .ga-grid input, .ga-grid select {
+    font: inherit; font-size: 1rem; font-weight: 400; color: var(--fg); background: var(--bone, #fff);
+    border: 1.5px solid var(--paper-deep); border-radius: var(--r-md); padding: 10px 12px; width: 100%;
+  }
+  .ga-grid [aria-invalid="true"] { border-color: #c0392b; }
+  .ga-lookup-btn { justify-self: start; }
+  .ga-submit { margin-top: var(--space-5); width: 100%; justify-content: center; }
+  .ga-chosen { font-size: 0.9rem; background: var(--bg-elevated); border-radius: var(--r-md); padding: 10px 14px; margin: 0 0 var(--space-4); }
+  .ga-matches { margin-top: var(--space-4); display: grid; gap: var(--space-2); font-size: 0.875rem; }
+  .ga-matches :global(.ga-match) { display: flex; justify-content: space-between; gap: var(--space-4); align-items: center; padding: 10px 14px; border: 1px solid var(--paper-deep); border-radius: var(--r-md); }
+  .ga-msg { border-radius: var(--r-md); padding: 12px 16px; margin-bottom: var(--space-5); font-weight: 600; line-height: 1.5; }
+  .ga-msg-ok { background: #eef7e8; border: 1px solid #a8d18c; color: #2f5d1c; }
+  .ga-msg-warn { background: #fff7e6; border: 1px solid #f0d19a; color: #7a5300; }
+  .ga-msg-err { background: #fdf0ee; border: 1px solid #f0b8b2; color: #a93226; }
+  .ga-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .ga-table th, .ga-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--paper-deep); vertical-align: top; }
+  .ga-sub { color: var(--fg-mute); font-size: 0.8rem; }
+  .ga-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  @media (max-width: 560px) {
+    .ga-card { padding: var(--space-5); }
+    .ga-matches :global(.ga-match) { flex-direction: column; align-items: flex-start; }
+  }
+</style>
