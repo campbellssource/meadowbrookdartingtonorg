@@ -1,15 +1,15 @@
 title: Sort out the lounge sink
 category: job
-status: open
+status: done
 order: 30
 scope: half-day
 summary: >-
-  The lounge sink has been reported leaking and the drain may not run freely.
-  Get it flowing properly and watertight.
+  The lounge sink has been fixed - it no longer leaks and the drain runs
+  freely.
+completedDate: '2026-11-22'
 image: /images/projects/lounge-sink-leak/lounge-sink-leak-1.jpg
 gallery: []
-helpNeeded:
-  - A plumber or handy general builder
+helpNeeded: []
 lead:
   name: ''
   contact: ''
