@@ -1,16 +1,20 @@
 title: Fix the lounge-to-studio double doors
 category: job
-status: open
+status: done
 order: 41
 scope: half-day
 summary: >-
-  Get the double doors between the lounge and studio working from both sides,
-  and able to be held open.
+  The double doors between the lounge and studio now work from both sides and
+  can be held open.
+completedDate: '2026-11-22'
 image: /images/projects/double-doors-lounge-studio/double-doors-lounge-studio-1.jpg
 gallery: []
-helpNeeded:
-  - A general builder or joiner
+helpNeeded: []
 lead:
   name: ''
   contact: ''
-contributors: []
+contributors:
+  - name: Bambi
+    business: ''
+    url: ''
+    logo: ''
