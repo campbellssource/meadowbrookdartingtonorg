@@ -173,13 +173,21 @@ phone number when the line is absent.
 
 ### The event
 
-One more line in the description, directly after `Phone:`, exactly:
+One more line in the description, exactly:
 
 ```
 Pass Code: 48213
 ```
 
-Label, colon, one space, digits, nothing else. Four or five digits. The `Phone:` line is left
+Label, colon, one space, digits, nothing else. Four or five digits.
+
+**Position (changed 22 Nov 2026):** the line used to sit directly after `Phone:`. Apple
+Calendar's data detector folded the two into one dial string (`+447755555555;1234`), so the
+Call button on the event dialled nothing useful. New and amended events now put it below
+`Booking:`, after a blank line, with the booker's intake answers after it in a final block.
+The door system's `parsePassCodeLine` matches `pass code:` anywhere, so position is free. The
+value cannot be quoted or decorated: anything but bare digits reads as `invalid` and the door
+system skips the event. Existing events are not rewritten. The `Phone:` line is left
 exactly as it was — the door system still reads it for call screening. `sanitiseForCalendar`
 refuses a booker's name that contains `Pass Code:`, for the same reason it refuses `Phone:`.
 

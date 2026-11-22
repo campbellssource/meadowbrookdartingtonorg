@@ -175,7 +175,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     const eventBody = buildEvent({
       room, name: booking.customer.name, phone: booking.customer.phone ?? '',
       email: booking.customer.email, start, end, pricePence: newPrice, reference: ref,
-      passCode: doorCode.code, isTest: process.env.NODE_ENV !== 'production',
+      passCode: doorCode.code, notes: booking.customer.notes, isTest: process.env.NODE_ENV !== 'production',
     });
     try {
       if (calendarEventId) {

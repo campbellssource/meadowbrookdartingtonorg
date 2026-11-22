@@ -211,3 +211,11 @@ describe('door code and the leaving-the-room note', () => {
     assert.ok(e.text.indexOf('close the windows') > e.text.indexOf('refund'));
   });
 });
+
+test('the confirmation gives a number to call on the day, as a tappable link', async () => {
+  const { confirmationEmail, HELP_LINE, HELP_PHONE } = await import('../src/lib/booking/email.ts');
+  const e = confirmationEmail(b);
+  assert.ok(e.text.includes(HELP_LINE));
+  assert.ok(e.html.includes(`href="tel:${HELP_PHONE.tel}"`));
+  assert.ok(e.html.includes(HELP_PHONE.display));
+});
