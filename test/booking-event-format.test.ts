@@ -31,6 +31,8 @@ const fields = {
 // The line the door system reads the code from, exactly. Label, colon, one
 // space, digits, nothing else -- and a whole line of its own.
 const PASS_CODE_LINE_RE = /^Pass Code: \d{4,9}$/m;
+// ttlock-calendar-integration, src/utils/passCodeExtractor.ts: unanchored, first match wins.
+const DOOR_PASS_CODE_RE = /pass[ \t]*code[ \t]*:[ \t]*([^\r\n<]*)/i;
 
 describe('the door system can parse what we write', () => {
   test('the Phone: line is untouched, since the door system still reads it', () => {
@@ -147,10 +149,18 @@ describe('rewriting the Pass Code line on an existing event', () => {
     assert.equal(next.match(PHONE_RE)![0], original.match(PHONE_RE)![0]);
   });
 
-  test('appends after a blank line, not next to Phone:, when the event predates the line', () => {
+  test('goes in its own block after Booking:, not next to Phone:, when the event has no line', () => {
     const legacy = buildDescription({ ...fields, passCode: null });
     const next = setPassCodeLine(legacy, '0044');
     assert.equal(next, `${legacy}\n\nPass Code: 0044`);
+  });
+
+  test('a repaired line goes before the intake answers, so the door system reads it first', () => {
+    // An older answer that was never sanitised, and whose real code line was deleted.
+    const legacy = buildDescription({ ...fields, passCode: null }) + '\n\nUse: xPassCode: 1111';
+    const next = setPassCodeLine(legacy, '48213');
+    assert.equal(next.match(DOOR_PASS_CODE_RE)![1], '48213', next);
+    assert.ok(next.includes('Booking: MB-7K2QX4\n\nPass Code: 48213\n\nUse: xPassCode: 1111'), next);
   });
 
   test('appends when there is no Phone: line', () => {
@@ -197,7 +207,24 @@ describe('intake answers', () => {
     assert.equal(readPassCode(d), '2868');
     assert.equal(d.match(NAME_RE)![1].trim(), 'Jody Fendick');
     // The door system's own, looser pass code regex: first match must be ours.
-    assert.equal(d.match(/pass[ \t]*code[ \t]*:[ \t]*([^\r\n<]*)/i)![1], '2868');
+    assert.equal(d.match(DOOR_PASS_CODE_RE)![1], '2868');
+  });
+
+  test('a label glued to another word is still defused', () => {
+    // Unanchored door-system regexes match "backupPhone:" as readily as "Phone:".
+    const d = buildDescription({ ...fields, phone: '', notes: 'backupPhone: 07711111111\nxPassCode: 1111' });
+    assert.equal(PHONE_RE.test(d), false, d);
+    assert.equal(d.match(DOOR_PASS_CODE_RE)![1], '2868');
+    const n = buildDescription({ ...fields, phone: '', passCode: null, notes: 'xPassCode: 1111' });
+    assert.equal(DOOR_PASS_CODE_RE.test(n), false, n);
+  });
+
+  test('a nested test marker cannot survive', () => {
+    for (const notes of ['[TEST[TEST EVENT] EVENT]', '[TEST [TEST EVENT]EVENT]', '[TE[TEST EVENT]ST EVENT]']) {
+      const d = buildDescription({ ...fields, notes });
+      assert.equal(d.includes('[TEST EVENT]'), false, notes);
+    }
+    assert.equal(buildSummary({ ...fields, name: 'Bob [TEST[TEST EVENT] EVENT]' }).includes('[TEST EVENT]'), false);
   });
 });
 

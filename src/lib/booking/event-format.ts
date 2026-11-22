@@ -98,8 +98,8 @@ export function readPassCode(description: string): string | null {
  * else -- the `Phone:` line in particular stays byte-for-byte as it was.
  *
  * Replaces the line in place if there is one and drops any duplicates. Otherwise
- * it appends the line at the end after a blank line, never next to `Phone:` (see
- * the header for why). Line endings are normalised to LF, which is what Google
+ * it inserts the line in its own block after `Booking:` (or at the end, if there
+ * is no `Booking:`), never next to `Phone:` (see the header for why). Line endings are normalised to LF, which is what Google
  * returns.
  */
 export function setPassCodeLine(description: string, code: string): string {
@@ -109,6 +109,15 @@ export function setPassCodeLine(description: string, code: string): string {
     const kept = lines.filter((l, i) => i === first || !ANY_PASS_CODE_LINE.test(l));
     kept[first] = passCodeLine(code);
     return kept.join('\n');
+  }
+  // Straight after `Booking:` when there is one, so the code comes before the
+  // free-text intake answers: the door system takes the FIRST `pass code:` it
+  // finds, and an older or hand-edited answer may not have been sanitised.
+  const booking = lines.findIndex((l) => /^Booking:/.test(l));
+  if (booking >= 0) {
+    const tail = lines.slice(booking + 1);
+    const gap = tail.length && tail[0].trim() ? [''] : [];
+    return [...lines.slice(0, booking + 1), '', passCodeLine(code), ...gap, ...tail].join('\n');
   }
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
   return [...lines, '', passCodeLine(code)].join('\n');
@@ -132,12 +141,21 @@ export function setPassCodeLine(description: string, code: string): string {
  * refusing on principle and costs one function.
  */
 export function sanitiseForCalendar(value: string): string {
-  return value
-    .replace(/[\r\n\t]+/g, ' ')
-    .replace(/\[TEST\s*EVENT\]/gi, '')
-    .replace(/\b(Phone|Name|Email|Price|Booking|Calendar|Pass\s*Code)\s*:/gi, '$1 -')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  // Repeated until nothing changes: one pass turns "[TEST[TEST EVENT] EVENT]"
+  // into a live marker. No word boundary on the labels either -- the door
+  // system's regexes are unanchored, so "backupPhone:" or "xPassCode:" match
+  // there just as "Phone:" does. (Copilot review on #61, 22 Nov 2026.)
+  let out = value;
+  for (let prev = ''; prev !== out;) {
+    prev = out;
+    out = out
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\[TEST\s*EVENT\]/gi, '')
+      .replace(/(Phone|Name|Email|Price|Booking|Calendar|Pass\s*Code)\s*:/gi, '$1 -')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+  return out;
 }
 
 export interface BookingEventFields {
