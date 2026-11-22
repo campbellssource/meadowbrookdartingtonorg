@@ -166,6 +166,10 @@ export function doorCodeNote(d: AllocatedDoorCode): string {
 export const HOUSEKEEPING = 'Before you go: please close the windows, turn the lights and '
   + 'heating off, and leave the room tidy for the next person.';
 
+/** Who a hirer rings if something is wrong on the day (a door code that fails, say). */
+export const HELP_PHONE = { display: '07725 972868', tel: '+447725972868' };
+export const HELP_LINE = `Any issues, please call Michael on ${HELP_PHONE.display}.`;
+
 const wrap = (title: string, bodyHtml: string): string => `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#FBF0DF;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#28201A;">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
@@ -195,6 +199,7 @@ export function confirmationEmail(b: BookingSummary): Email {
     b.capacityNote ? `${b.capacityNote}\n` : '',
     `Change or cancel your booking:`, b.manageUrl, '',
     policy, '',
+    HELP_LINE, '',
     HOUSEKEEPING, '',
     `Meadowbrook, Shinners Bridge, Dartington, TQ9 6JD`,
     OWNER_EMAIL,
@@ -215,6 +220,7 @@ export function confirmationEmail(b: BookingSummary): Email {
       <a href="${b.manageUrl}" style="display:inline-block;background:#74A953;color:#fff;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:600;">Change or cancel</a>
     </p>
     <p style="margin:18px 0 0;font-size:14px;color:#5B4E42;">${policy}</p>
+    <p style="margin:14px 0 0;font-size:14px;color:#5B4E42;">Any issues, please call Michael on <a href="tel:${HELP_PHONE.tel}" style="color:#4D7A33;font-weight:600;">${HELP_PHONE.display}</a>.</p>
     <p style="margin:22px 0 0;padding-top:16px;border-top:1px solid #F4E4CB;font-size:13px;color:#8B7C6E;line-height:1.55;">${HOUSEKEEPING}</p>`);
 
   return {

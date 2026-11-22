@@ -267,7 +267,7 @@ export async function reconcile(now = new Date()): Promise<ReconcileReport> {
       const event = await createEvent(room.calendarId, buildEvent({
         room, name: b.customer.name, phone: b.customer.phone ?? '', email: b.customer.email,
         start: b.start.toDate(), end: b.end.toDate(), pricePence: b.pricePence,
-        reference: doc.id, passCode: doorCode.code, isTest: process.env.NODE_ENV !== 'production',
+        reference: doc.id, passCode: doorCode.code, notes: b.customer.notes, isTest: process.env.NODE_ENV !== 'production',
       }));
       // arrayUnion rather than a rewrite of `b.history`: ensureDoorCode may just
       // have appended to it, and `b` is the copy read before that.

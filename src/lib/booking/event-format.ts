@@ -21,6 +21,13 @@
 //   Pass Code: 48213          label, colon, one space, digits, nothing else
 //
 // The `Phone:` line is left exactly as it was -- the door system still reads it.
+//
+// Since 22 Nov 2026 the Pass Code line is kept well away from `Phone:` (a blank
+// line, then below `Booking:`). Apple Calendar's data detector folds a number
+// followed closely by a "pass code" into one dial string
+// ("+447755555555;1234"), which makes the Call button useless. The door system
+// matches `pass code:` anywhere in the description, so position is free; the
+// value must stay bare digits, so it cannot be quoted or decorated.
 // A code is 4 digits (from the phone) or 5 (generated), always a string, and a
 // leading zero is part of it: "Pass Code: 0044", never "Pass Code: 44".
 //
@@ -90,9 +97,9 @@ export function readPassCode(description: string): string | null {
  * Rewrites the `Pass Code:` line of an existing description and changes nothing
  * else -- the `Phone:` line in particular stays byte-for-byte as it was.
  *
- * Replaces the line in place if there is one, drops any duplicates, and otherwise
- * inserts it directly after `Phone:` (or at the end, for a description with no
- * `Phone:` line at all). Line endings are normalised to LF, which is what Google
+ * Replaces the line in place if there is one and drops any duplicates. Otherwise
+ * it appends the line at the end after a blank line, never next to `Phone:` (see
+ * the header for why). Line endings are normalised to LF, which is what Google
  * returns.
  */
 export function setPassCodeLine(description: string, code: string): string {
@@ -103,9 +110,8 @@ export function setPassCodeLine(description: string, code: string): string {
     kept[first] = passCodeLine(code);
     return kept.join('\n');
   }
-  const phone = lines.findIndex((l) => /^Phone:/.test(l));
-  lines.splice(phone >= 0 ? phone + 1 : lines.length, 0, passCodeLine(code));
-  return lines.join('\n');
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  return [...lines, '', passCodeLine(code)].join('\n');
 }
 
 /**
@@ -148,6 +154,11 @@ export interface BookingEventFields {
    * which only a booking with no code should ever do.
    */
   passCode: string | null;
+  /**
+   * The booker's answers to the room's intake questions (`customer.notes`), one
+   * `Question answer` line each. Empty or absent writes nothing.
+   */
+  notes?: string;
   /** Marks the event as ours to delete. Always true outside production. */
   isTest?: boolean;
 }
@@ -171,6 +182,11 @@ export function buildSummary(f: BookingEventFields): string {
  * Description. `Name:`, `Phone:` and `Pass Code:` must each be on their own
  * line — the name regex is anchored per-line with `^...$` under the `m` flag,
  * and the pass code line is defined as a whole line.
+ *
+ * The Pass Code sits in its own block, separated from `Phone:` by four lines and
+ * a blank one, so Apple Calendar does not fold it into the phone number. The
+ * intake answers come last: they are free text, and every machine-read line is
+ * written before them so the door system's first-match regexes find ours first.
  */
 export function buildDescription(f: BookingEventFields): string {
   const date = f.start.toLocaleDateString('en-GB', {
@@ -181,11 +197,13 @@ export function buildDescription(f: BookingEventFields): string {
     `Calendar: ${CALENDAR_DISPLAY_NAME[f.room.slug] ?? f.room.shortName}`,
     `Name: ${sanitiseForCalendar(f.name)}`,
     `Phone: ${normalisePhone(f.phone)}`,
-    ...(f.passCode ? [passCodeLine(f.passCode)] : []),
     `Email: ${sanitiseForCalendar(f.email)}`,
     `Price: £${(f.pricePence / 100).toFixed(2)}`,
     `Booking: ${f.reference}`,
   ];
+  if (f.passCode) lines.push('', passCodeLine(f.passCode));
+  const answers = (f.notes ?? '').split(/\r?\n/).map(sanitiseForCalendar).filter(Boolean);
+  if (answers.length) lines.push('', ...answers);
   if (f.isTest) {
     lines.unshift(TEST_EVENT_MARKER, 'Automated test booking. Safe to delete.');
   }

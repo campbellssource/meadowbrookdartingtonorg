@@ -214,7 +214,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
     try {
       const event = await createEvent(room.calendarId, buildEvent({
         room, name, phone: phone || '', email, start, end, pricePence,
-        reference: bookingRef, passCode: booking.doorCode?.code ?? null,
+        reference: bookingRef, passCode: booking.doorCode?.code ?? null, notes,
         isTest: process.env.NODE_ENV !== 'production',
       }));
       calendarEventId = event.id;

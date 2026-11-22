@@ -81,11 +81,13 @@ describe('the Pass Code line', () => {
     assert.equal(readPassCode(d), '2868');
   });
 
-  test('directly follows the Phone: line', () => {
+  test('is kept apart from the Phone: line, so Apple Calendar does not dial it', () => {
+    // Apple folds "Phone: +44...\nPass Code: 1234" into "+44...;1234" on the Call button.
     const lines = buildDescription(fields).split('\n');
     const phone = lines.indexOf('Phone: 07725972868');
-    assert.ok(phone >= 0);
-    assert.equal(lines[phone + 1], 'Pass Code: 2868');
+    const code = lines.indexOf('Pass Code: 2868');
+    assert.ok(phone >= 0 && code > phone + 3, lines.join('\n'));
+    assert.equal(lines[code - 1], '', 'a blank line precedes it');
   });
 
   test('a five-digit generated code', () => {
@@ -145,16 +147,15 @@ describe('rewriting the Pass Code line on an existing event', () => {
     assert.equal(next.match(PHONE_RE)![0], original.match(PHONE_RE)![0]);
   });
 
-  test('inserts directly after Phone: when the event predates the line', () => {
+  test('appends after a blank line, not next to Phone:, when the event predates the line', () => {
     const legacy = buildDescription({ ...fields, passCode: null });
-    const lines = setPassCodeLine(legacy, '0044').split('\n');
-    assert.equal(lines[lines.indexOf('Phone: 07725972868') + 1], 'Pass Code: 0044');
-    assert.equal(lines.length, legacy.split('\n').length + 1);
+    const next = setPassCodeLine(legacy, '0044');
+    assert.equal(next, `${legacy}\n\nPass Code: 0044`);
   });
 
-  test('appends when there is no Phone: line to follow', () => {
-    assert.equal(setPassCodeLine('Name: A Hirer\nEmail: a@b.co', '48213'),
-      'Name: A Hirer\nEmail: a@b.co\nPass Code: 48213');
+  test('appends when there is no Phone: line', () => {
+    assert.equal(setPassCodeLine('Name: A Hirer\nEmail: a@b.co\n', '48213'),
+      'Name: A Hirer\nEmail: a@b.co\n\nPass Code: 48213');
   });
 
   test('never leaves two Pass Code lines', () => {
@@ -167,6 +168,36 @@ describe('rewriting the Pass Code line on an existing event', () => {
   test('is idempotent', () => {
     const once = setPassCodeLine(original, '48213');
     assert.equal(setPassCodeLine(once, '48213'), once);
+  });
+});
+
+describe('intake answers', () => {
+  const notes = 'How do you intend to use the room? Book club meeting';
+
+  test('are written at the end, after the Pass Code', () => {
+    const lines = buildDescription({ ...fields, notes }).split('\n');
+    assert.equal(lines[lines.length - 1], notes);
+    assert.equal(lines[lines.length - 2], '');
+    assert.ok(lines.indexOf('Pass Code: 2868') < lines.length - 2);
+  });
+
+  test('absent or blank notes write nothing', () => {
+    assert.equal(buildDescription({ ...fields, notes: '  ' }), buildDescription(fields));
+    assert.equal(buildDescription({ ...fields, notes: undefined }), buildDescription(fields));
+  });
+
+  test('one line per question is kept', () => {
+    const d = buildDescription({ ...fields, notes: 'Q1? a\nQ2? b' });
+    assert.ok(d.endsWith('\n\nQ1? a\nQ2? b'), d);
+  });
+
+  test('cannot impersonate the door-system lines', () => {
+    const d = buildDescription({ ...fields, notes: 'Phone: 07711111111\nPass Code: 1111\nName: Eve' });
+    assert.equal(d.match(PHONE_RE)![1], '07725972868');
+    assert.equal(readPassCode(d), '2868');
+    assert.equal(d.match(NAME_RE)![1].trim(), 'Jody Fendick');
+    // The door system's own, looser pass code regex: first match must be ours.
+    assert.equal(d.match(/pass[ \t]*code[ \t]*:[ \t]*([^\r\n<]*)/i)![1], '2868');
   });
 });
 
