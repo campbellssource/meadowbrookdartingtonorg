@@ -17,7 +17,13 @@ const API_VERSION = '2024-01-17';
 
 export interface SquareConfig {
   accessToken: string;
+  /**
+   * The fallback location: any room not in `locationIds`, and every payment
+   * recorded before per-room locations existed (`18`).
+   */
   locationId: string;
+  /** Facility slug → Square location id, from `BOOKING_SQUARE_LOCATION_IDS`. */
+  locationIds: Record<string, string>;
   environment: 'sandbox' | 'production';
 }
 
@@ -26,7 +32,79 @@ export function squareConfig(): SquareConfig | null {
   const locationId = env('PUBLIC_BOOKING_SQUARE_LOCATION_ID');
   const environment = (env('PUBLIC_BOOKING_SQUARE_ENVIRONMENT') ?? 'sandbox') as SquareConfig['environment'];
   if (!accessToken || !locationId) return null;
-  return { accessToken, locationId, environment };
+  return { accessToken, locationId, locationIds: parseLocationMap(env('BOOKING_SQUARE_LOCATION_IDS')), environment };
+}
+
+// ── Locations per room (spec/booking/18-square-locations.md) ─────────────────
+//
+// Square pays out per location, so each room charges against its own location
+// and the bookkeeper sees the income split without asking. The ids live in env,
+// not Keystatic content, because sandbox and production ids differ.
+//
+// The one failure that matters: the card form is tokenised against a location in
+// the browser, and the charge names a location on the server. Both sides resolve
+// through `bookingLocationFor`, so they cannot disagree.
+
+const LOCATION_ID = /^[A-Z0-9]{8,32}$/;
+
+/**
+ * `BOOKING_SQUARE_LOCATION_IDS` as a map. Never throws: a bad value means every
+ * room falls back to the single location, which is how bookings worked before --
+ * a mis-set env var must not take payments down.
+ */
+export function parseLocationMap(raw: string | undefined): Record<string, string> {
+  if (!raw || !raw.trim()) return {};
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch {
+    console.warn('booking/square: BOOKING_SQUARE_LOCATION_IDS is not valid JSON; using the fallback location');
+    return {};
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    console.warn('booking/square: BOOKING_SQUARE_LOCATION_IDS is not an object; using the fallback location');
+    return {};
+  }
+  const out: Record<string, string> = {};
+  for (const [slug, id] of Object.entries(parsed)) {
+    if (typeof id === 'string' && LOCATION_ID.test(id)) out[slug] = id;
+    else console.warn('booking/square: ignoring bad location id', { slug });
+  }
+  return out;
+}
+
+/** The Square location a room's payments go to. */
+export function squareLocationFor(cfg: Pick<SquareConfig, 'locationId' | 'locationIds'>, roomSlug: string): string {
+  return cfg.locationIds[roomSlug] ?? cfg.locationId;
+}
+
+/** Both halves of the location config, for reporting. No access token needed. */
+export function bookingLocations(): { fallback: string; bySlug: Record<string, string> } {
+  return {
+    fallback: env('PUBLIC_BOOKING_SQUARE_LOCATION_ID') ?? 'unknown',
+    bySlug: parseLocationMap(env('BOOKING_SQUARE_LOCATION_IDS')),
+  };
+}
+
+/**
+ * A location id as the bookkeeper knows it: the rooms that pay into it, or "Main"
+ * for the fallback. The id goes alongside so it can be matched to Square.
+ */
+export function locationLabel(
+  id: string, locs: { fallback: string; bySlug: Record<string, string> },
+  roomName: (slug: string) => string = (s) => s,
+): string {
+  if (id === 'acuity') return 'Acuity (imported)';
+  const rooms = Object.entries(locs.bySlug).filter(([, v]) => v === id).map(([slug]) => roomName(slug));
+  const name = rooms.length ? rooms.join(' + ') : id === locs.fallback ? 'Main' : 'Other';
+  return `${name} (${id})`;
+}
+
+/**
+ * The same resolution from env alone, for pages initialising the card form.
+ * Needs no access token, so it works wherever the public ids are readable.
+ */
+export function bookingLocationFor(roomSlug: string): string | undefined {
+  const fallback = env('PUBLIC_BOOKING_SQUARE_LOCATION_ID');
+  return parseLocationMap(env('BOOKING_SQUARE_LOCATION_IDS'))[roomSlug] ?? fallback;
 }
 
 const baseUrl = (env: string): string =>
@@ -98,6 +176,8 @@ export interface ChargeInput {
   idempotencyKey: string;
   bookingRef: string;
   roomName: string;
+  /** Picks the Square location. Must match the location the card was tokenised against. */
+  roomSlug: string;
   buyerEmail?: string;
   note?: string;
 }
@@ -106,16 +186,19 @@ export interface ChargeResult {
   squarePaymentId: string;
   amountPence: number;
   status: 'completed' | 'pending';
+  /** Where the money went, for the ledger. */
+  squareLocationId: string;
 }
 
 export async function charge(cfg: SquareConfig, input: ChargeInput): Promise<ChargeResult> {
+  const locationId = squareLocationFor(cfg, input.roomSlug);
   const { ok, status, data } = await call(cfg, '/v2/payments', {
     // Strong Customer Authentication rides on the token: the client runs it via
     // tokenize(verificationDetails), so no separate verification token here.
     source_id: input.sourceId,
     idempotency_key: input.idempotencyKey,
     amount_money: { amount: input.amountPence, currency: 'GBP' },
-    location_id: cfg.locationId,
+    location_id: locationId,
     ...(input.buyerEmail ? { buyer_email_address: input.buyerEmail } : {}),
     reference_id: input.bookingRef,
     note: input.note ?? `Meadowbrook room booking — ${input.roomName} — ${input.bookingRef}`,
@@ -127,13 +210,14 @@ export async function charge(cfg: SquareConfig, input: ChargeInput): Promise<Cha
       squarePaymentId: payment.id,
       amountPence: payment.amount_money?.amount ?? input.amountPence,
       status: payment.status === 'COMPLETED' ? 'completed' : 'pending',
+      squareLocationId: payment.location_id ?? locationId,
     };
   }
 
   const err: SquareError | undefined = data.errors?.[0];
   // Non-identifying fields only: never the token, never a PAN.
   console.error('booking/square: payment not completed', {
-    httpStatus: status, amountPence: input.amountPence, bookingRef: input.bookingRef,
+    httpStatus: status, amountPence: input.amountPence, bookingRef: input.bookingRef, locationId,
     code: err?.code, category: err?.category, detail: err?.detail,
   });
   throw new PaymentError(friendlyMessage(err), {
@@ -151,6 +235,9 @@ export interface RefundInput {
 
 export interface RefundResult { squareRefundId: string; status: 'completed' | 'pending' }
 
+// Refunds name the payment, not a location: Square returns the money from
+// whichever location the payment was taken at, so a refund always follows the
+// original charge (`18`).
 export async function refund(cfg: SquareConfig, input: RefundInput): Promise<RefundResult> {
   const { ok, status, data } = await call(cfg, '/v2/refunds', {
     idempotency_key: input.idempotencyKey,

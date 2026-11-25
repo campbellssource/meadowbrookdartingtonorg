@@ -19,6 +19,8 @@ import { refund as squareRefund, type SquareConfig } from './square.ts';
 export interface RefundSlice {
   squarePaymentId: string;
   amountPence: number;
+  /** Carried from the charge so the refund entry records where the money left from. */
+  squareLocationId?: string;
 }
 
 export type RefundPlan =
@@ -59,7 +61,10 @@ export function planRefund(payments: Payment[], amountPence: number): RefundPlan
     available += remaining;
     if (outstanding <= 0 || remaining <= 0) continue;
     const take = Math.min(remaining, outstanding);
-    slices.push({ squarePaymentId: charge.squarePaymentId, amountPence: take });
+    slices.push({
+      squarePaymentId: charge.squarePaymentId, amountPence: take,
+      ...(charge.squareLocationId ? { squareLocationId: charge.squareLocationId } : {}),
+    });
     outstanding -= take;
   }
 
@@ -123,6 +128,7 @@ export async function issueRefund(
         kind: 'refund', amountPence: slice.amountPence,
         squarePaymentId: slice.squarePaymentId, squareRefundId: result.squareRefundId,
         idempotencyKey, status: result.status, reason: input.ledgerReason,
+        ...(slice.squareLocationId ? { squareLocationId: slice.squareLocationId } : {}),
       });
       refundedPence += slice.amountPence;
     } catch (err) {

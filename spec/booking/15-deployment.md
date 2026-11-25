@@ -36,9 +36,10 @@ being hardcoded, because they differ between sandbox and production:
 | `BOOKING_ADMIN_OAUTH_CLIENT_ID` | from the OAuth client (step 3) |
 | `PUBLIC_BOOKING_SQUARE_ENVIRONMENT` | `production` |
 | `PUBLIC_BOOKING_SQUARE_APPLICATION_ID` | Square production application id |
-| `PUBLIC_BOOKING_SQUARE_LOCATION_ID` | Square production location id |
+| `PUBLIC_BOOKING_SQUARE_LOCATION_ID` | Square production location id (fallback for unmapped rooms) |
+| `BOOKING_SQUARE_LOCATION_IDS` | `{"snooker-room":"L3JVJABCDB86K","large-room":"LFQHKA4RM1P51","small-room":"L22B8R37R9508"}` — per-room locations, see `18` |
 
-Variables rather than secrets: all five reach the browser anyway.
+Variables rather than secrets: none of them is sensitive, and most reach the browser anyway.
 
 `test/deploy-config.test.ts` compares what the code reads against what the workflow supplies, so
 adding a variable without wiring it fails the build rather than the deploy. Three are absent on
@@ -58,6 +59,7 @@ BOOKING_SQUARE_WEBHOOK_URL=https://meadowbrookdartington.org/api/booking/webhook
 PUBLIC_BOOKING_SQUARE_ENVIRONMENT=production
 PUBLIC_BOOKING_SQUARE_APPLICATION_ID=<square production app id>
 PUBLIC_BOOKING_SQUARE_LOCATION_ID=<square production location id>
+BOOKING_SQUARE_LOCATION_IDS={"snooker-room":"L3JVJABCDB86K","large-room":"LFQHKA4RM1P51","small-room":"L22B8R37R9508"}
 ```
 
 **`BOOKING_IMPERSONATE_SA` is required in production.** It reads like a local convenience and

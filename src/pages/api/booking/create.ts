@@ -155,7 +155,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
     try {
       payment = await charge(squareCfg, {
         sourceId, amountPence: pricePence, idempotencyKey: holdId,
-        bookingRef, roomName: room.shortName, buyerEmail: email,
+        bookingRef, roomName: room.shortName, roomSlug: room.slug, buyerEmail: email,
       });
     } catch (err) {
       await releaseHold(holdId);
@@ -184,6 +184,7 @@ export const POST: APIRoute = async ({ request, url, clientAddress }) => {
           kind: 'charge', amountPence: pricePence,
           squarePaymentId: payment.squarePaymentId, squareRefundId: null,
           idempotencyKey: holdId, status: payment.status, reason: 'initial',
+          squareLocationId: payment.squareLocationId,
         },
         calendarEventId: null,
         termsVersion: TERMS_VERSION,

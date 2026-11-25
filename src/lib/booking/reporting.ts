@@ -69,6 +69,49 @@ export function byRoomByMonth(rows: Row[]): { month: string; room: string; netPe
     .sort((a, b) => a.month.localeCompare(b.month) || a.room.localeCompare(b.room));
 }
 
+/** Pseudo-location for imported history (`17`): that money went through Acuity. */
+export const ACUITY_LOCATION = 'acuity';
+
+const locationOf = (b: Booking, p: Booking['payments'][number], fallback: string): string =>
+  b.source === 'acuity' ? ACUITY_LOCATION : p.squareLocationId ?? fallback;
+
+/**
+ * Net revenue by Square location by month (`18`): what each payout stream should
+ * show. Read from the ledger rather than the room, because the location is a fact
+ * about where each payment went. Entries from before per-room locations carry no
+ * id and count against `fallbackLocationId`, which is where they were taken.
+ *
+ * Month is the booking's month, to line up with `byRoomByMonth`. Square's payouts
+ * follow payment date, so a booking paid in March for April shows here under April.
+ */
+export function byLocationByMonth(
+  rows: Row[], fallbackLocationId: string,
+): { month: string; locationId: string; netPence: number }[] {
+  const acc = new Map<string, number>();
+  for (const { booking } of rows) {
+    if (booking.status === 'orphaned') continue;
+    const month = booking.localDate.slice(0, 7);
+    for (const p of booking.payments) {
+      if (p.status !== 'completed') continue;
+      const key = `${month}|${locationOf(booking, p, fallbackLocationId)}`;
+      acc.set(key, (acc.get(key) ?? 0) + (p.kind === 'charge' ? p.amountPence : -p.amountPence));
+    }
+  }
+  return [...acc.entries()]
+    .map(([key, netPence]) => {
+      const [month, locationId] = key.split('|');
+      return { month, locationId, netPence };
+    })
+    .sort((a, b) => a.month.localeCompare(b.month) || a.locationId.localeCompare(b.locationId));
+}
+
+/** Distinct Square locations a booking's charges went to, oldest first. */
+export function chargeLocations(booking: Booking, fallbackLocationId: string): string[] {
+  return [...new Set(booking.payments
+    .filter((p) => p.kind === 'charge')
+    .map((p) => locationOf(booking, p, fallbackLocationId)))];
+}
+
 /**
  * Booked hours as a share of opening hours, by room by month.
  *

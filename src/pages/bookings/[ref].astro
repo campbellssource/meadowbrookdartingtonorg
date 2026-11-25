@@ -15,6 +15,7 @@ import { formatPence } from '../../lib/booking/pricing.ts';
 import { instantToLocalTime, instantToLocalDate } from '../../lib/booking/time.ts';
 import { refundFor } from '../../lib/booking/policy.ts';
 import { doorCodeOf } from '../../lib/booking/door-code.ts';
+import { bookingLocationFor } from '../../lib/booking/square.ts';
 
 export const prerender = false;
 
@@ -86,7 +87,9 @@ const squareSdkUrl = sqEnv === 'sandbox'
   ? 'https://sandbox.web.squarecdn.com/v1/square.js'
   : 'https://web.squarecdn.com/v1/square.js';
 const squareAppId = import.meta.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_APPLICATION_ID;
-const squareLocationId = import.meta.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID ?? process.env.PUBLIC_BOOKING_SQUARE_LOCATION_ID;
+// The booking's own room, so the card is tokenised against the location the
+// amend endpoint will charge (`18`). Room never changes on amendment.
+const squareLocationId = booking ? bookingLocationFor(booking.room) : undefined;
 const billingCountry = sqEnv === 'sandbox' ? 'US' : 'GB';
 ---
 
