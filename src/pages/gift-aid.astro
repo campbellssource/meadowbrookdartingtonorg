@@ -1,0 +1,143 @@
+---
+// Is my donation eligible for Gift Aid? Linked from the Gift Aid tick-box on
+// /donate and the committee's tablet (declaration.ts ELIGIBILITY_PATH), so a donor
+// confirming "my donation is eligible" can read what that means.
+//
+// The common reasons a gift does not qualify come first, in plain words; the
+// detail points at GOV.UK rather than restating it, so HMRC's rules are read from
+// HMRC and this page cannot drift out of date with them. Hand-written rather than
+// Keystatic for the same reason the declaration is config: it is what a donor
+// confirms by ticking the box.
+//
+// Prerendered: nothing here reads runtime config.
+export const prerender = true;
+
+import Layout from '../layouts/Layout.astro';
+import { CHARITY_NAME, CHARITY_NUMBER, CONTACT_EMAIL, UPDATE_NOTICE } from '../lib/gift-aid/declaration.ts';
+
+const GOV = {
+  donor: 'https://www.gov.uk/donating-to-charity/gift-aid',
+  whatQualifies: 'https://www.gov.uk/claim-gift-aid/what-you-can-claim-it-on',
+  rules: 'https://www.gov.uk/guidance/gift-aid-what-donations-charities-and-cascs-can-claim-on',
+  incomeTax: 'https://www.gov.uk/income-tax',
+  cgt: 'https://www.gov.uk/capital-gains-tax',
+};
+---
+
+<Layout
+  title="Is my donation eligible for Gift Aid?"
+  description="The common reasons a donation to the Dartington Recreation Association can't have Gift Aid added, with links to HMRC's full rules on GOV.UK."
+>
+  <section class="mw-zone-hero" style="padding-bottom: var(--space-7);">
+    <div class="mw-wrap">
+      <span class="mw-eyebrow">Gift Aid</span>
+      <h1>Is my donation eligible?</h1>
+    </div>
+  </section>
+
+  <section class="mw-sect" style="padding-top: 0;">
+    <div class="mw-wrap">
+      <article class="mw-article">
+        <p class="lead">
+          Gift Aid lets us claim an extra 25p from HMRC for every £1 you give, at no cost to you.
+          Most donations qualify. These are the usual reasons one doesn't:
+        </p>
+
+        <ul class="ga-reasons">
+          <li>
+            <strong>You don't pay enough UK tax.</strong>
+            In the tax year you give, you need to pay at least as much Income Tax or Capital Gains
+            Tax as all the charities you Gift Aid to will claim: 25p for every £1.
+          </li>
+          <li>
+            <strong>It isn't your own money.</strong>
+            For example, money you collected from other people, a business or company's money, or
+            a donation you're making on someone else's behalf.
+          </li>
+          <li>
+            <strong>You're paying for something.</strong>
+            Swimming sessions, room hire, event tickets, raffle tickets, and food or drink are
+            purchases, not donations.
+          </li>
+          <li>
+            <strong>You're getting something valuable in return.</strong>
+            A gift or benefit worth more than HMRC's limits stops the donation qualifying.
+          </li>
+        </ul>
+
+        <p>
+          If none of these apply, you can tick the Gift Aid box. If you're not sure, leave it
+          unticked: your donation is just as welcome without it.
+        </p>
+
+        <h2 id="tax">Paying enough tax</h2>
+        <p>
+          Gift Aid is tax you've already paid, given to the charity. So it only works if you paid
+          enough <a href={GOV.incomeTax}>Income Tax</a> or <a href={GOV.cgt}>Capital Gains Tax</a> in
+          that tax year (6 April to 5 April) to cover what every charity you've given to claims. If
+          you didn't, HMRC can ask you to pay the difference. VAT and Council Tax don't count.
+        </p>
+        <p>
+          GOV.UK explains this for donors: <a href={GOV.donor}>Donating to charity: Gift Aid</a>.
+        </p>
+
+        <h2 id="own-money">Your own money</h2>
+        <p>
+          The donation has to come from you personally. Donations from limited companies can't
+          have Gift Aid added, and neither can gifts made on behalf of other people or a group.
+          Each person giving can make their own declaration instead.
+        </p>
+
+        <h2 id="payments">Payments, tickets and benefits</h2>
+        <p>
+          Paying for goods or services isn't a donation, even when the money goes to the charity
+          and even if it's described as "voluntary". At Meadowbrook that includes pool sessions,
+          room bookings, event and Extravaganza tickets, and raffle tickets. If you pay more than
+          the asking price, the extra on top can be a donation.
+        </p>
+        <p>
+          A donation still qualifies if you receive a small thank-you, but not if what you receive
+          is worth more than HMRC's limits. HMRC sets out the benefit rule, events, auctions,
+          membership fees and sponsored challenges in
+          <a href={GOV.rules}>Gift Aid: what donations charities can claim on</a>.
+        </p>
+
+        <h2 id="other">Other donations that don't qualify</h2>
+        <p>
+          Donations through Payroll Giving, charity vouchers or cards (such as CAF vouchers) and
+          gifts of shares can't have Gift Aid added through us. The full list is on
+          <a href={GOV.whatQualifies}>What you can claim Gift Aid on</a>.
+        </p>
+
+        <h2 id="changes">If things change</h2>
+        <p>
+          {UPDATE_NOTICE} Email us at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        </p>
+
+        <p class="ga-charity">
+          {CHARITY_NAME}, registered charity number {CHARITY_NUMBER}.
+        </p>
+      </article>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .ga-reasons {
+    list-style: none;
+    padding: var(--space-5);
+    margin: var(--space-5) 0;
+    display: grid;
+    gap: var(--space-4);
+    background: #f4f8ef;
+    border: 1.5px solid #a8d18c;
+    border-radius: var(--r-md);
+  }
+  .ga-reasons li { line-height: 1.55; }
+  .ga-reasons strong { display: block; }
+  .ga-charity {
+    margin-top: var(--space-7);
+    font-size: 0.875em;
+    opacity: 0.75;
+  }
+</style>

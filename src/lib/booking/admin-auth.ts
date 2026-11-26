@@ -16,15 +16,32 @@ export const ADMIN_COOKIE = 'mb_admin';
 /** Short-lived, ties an OAuth callback to the browser that started it. */
 export const OAUTH_STATE_COOKIE = 'mb_admin_state';
 
-export function adminEmails(): string[] {
-  return (env('BOOKING_ADMIN_EMAILS') ?? '')
-    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-}
+const listFrom = (name: string): string[] => (env(name) ?? '')
+  .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
-export function isAllowed(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return adminEmails().includes(email.trim().toLowerCase());
-}
+export const adminEmails = (): string[] => listFrom('BOOKING_ADMIN_EMAILS');
+
+/**
+ * /admin/gift-aid has its own, narrower list (spec/gift-aid/01): donors' home
+ * addresses are for the treasurer and bookkeeper, not everyone who runs bookings.
+ */
+export const giftAidAdminEmails = (): string[] => listFrom('GIFT_AID_ADMIN_EMAILS');
+
+export type Allowlist = (email: string | null | undefined) => boolean;
+
+/** May use the bookings admin. */
+export const isAllowed: Allowlist = (email) =>
+  !!email && adminEmails().includes(email.trim().toLowerCase());
+
+/** May use /admin/gift-aid. */
+export const isGiftAidAdmin: Allowlist = (email) =>
+  !!email && giftAidAdminEmails().includes(email.trim().toLowerCase());
+
+/** May sign in at all. Each page then checks its own list through verifySession. */
+export const canSignIn: Allowlist = (email) => isAllowed(email) || isGiftAidAdmin(email);
+
+/** Where to land after signing in: bookings if allowed there, otherwise Gift Aid. */
+export const adminHome = (email: string): string => (isAllowed(email) ? '/admin/bookings' : '/admin/gift-aid');
 
 /**
  * Local sign-in without a Google OAuth client.
@@ -52,7 +69,9 @@ export function signSession(email: string, now = new Date()): string {
   return `${body}.${sig}`;
 }
 
-export function verifySession(cookie: string | undefined, now = new Date()): string | null {
+export function verifySession(
+  cookie: string | undefined, now = new Date(), allowed: Allowlist = isAllowed,
+): string | null {
   if (!cookie) return null;
   const dot = cookie.indexOf('.');
   if (dot <= 0) return null;
@@ -66,7 +85,7 @@ export function verifySession(cookie: string | undefined, now = new Date()): str
     if (!email || !exp || exp * 1000 <= now.getTime()) return null;
     // Re-checked on every request, not just at sign-in: removing someone from the
     // allowlist must lock them out immediately, not in twelve hours.
-    return isAllowed(email) ? String(email).toLowerCase() : null;
+    return allowed(email) ? String(email).toLowerCase() : null;
   } catch {
     return null;
   }

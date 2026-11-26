@@ -5,7 +5,7 @@
 // shortcut past Google, not past authorisation.
 
 import type { APIRoute } from 'astro';
-import { devLoginAllowed, isAllowed, signSession, ADMIN_COOKIE } from '../../../lib/booking/admin-auth.ts';
+import { devLoginAllowed, canSignIn, signSession, ADMIN_COOKIE } from '../../../lib/booking/admin-auth.ts';
 
 export const prerender = false;
 
@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   } catch {
     return new Response('Invalid request.', { status: 400 });
   }
-  if (!isAllowed(email)) return new Response('Not on the admin list.', { status: 403 });
+  if (!canSignIn(email)) return new Response('Not on the admin list.', { status: 403 });
 
   cookies.set(ADMIN_COOKIE, signSession(email), {
     httpOnly: true, sameSite: 'lax', path: '/',

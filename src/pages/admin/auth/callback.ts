@@ -6,7 +6,7 @@
 
 import type { APIRoute } from 'astro';
 import { timingSafeEqual } from 'node:crypto';
-import { isAllowed, signSession, ADMIN_COOKIE, OAUTH_STATE_COOKIE } from '../../../lib/booking/admin-auth.ts';
+import { canSignIn, adminHome, signSession, ADMIN_COOKIE, OAUTH_STATE_COOKIE } from '../../../lib/booking/admin-auth.ts';
 import { env } from '../../../lib/booking/env.ts';
 
 export const prerender = false;
@@ -55,13 +55,13 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     if (info.aud !== clientId) return fail('verify');
     if (String(info.email_verified) !== 'true') return fail('verify');
     if (info.hd !== 'meadowbrookdartington.org') return fail('not-allowed');
-    if (!isAllowed(info.email)) return fail('not-allowed');
+    if (!canSignIn(info.email)) return fail('not-allowed');
 
     cookies.set(ADMIN_COOKIE, signSession(info.email!), {
       httpOnly: true, sameSite: 'lax', path: '/',
       secure: url.protocol === 'https:', maxAge: 12 * 3600,
     });
-    return new Response(null, { status: 302, headers: { Location: '/admin/bookings' } });
+    return new Response(null, { status: 302, headers: { Location: adminHome(info.email!) } });
   } catch (err) {
     console.error('admin: oauth callback failed', err);
     return fail('exchange');
