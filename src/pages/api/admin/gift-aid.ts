@@ -9,7 +9,7 @@
 // page as a warning and left for the hourly sync; it never fails the save.
 
 import type { APIRoute } from 'astro';
-import { verifySession, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
+import { verifySession, isGiftAidAdmin, ADMIN_COOKIE, ADMIN_HEADERS } from '../../../lib/booking/admin-auth.ts';
 import { send } from '../../../lib/booking/email.ts';
 import {
   validateDeclaration, validateOfflineDonation, validateSmallDonation, normalisePostcode, isIsoDate, londonToday,
@@ -57,7 +57,7 @@ function summary(d: Declaration, today: string) {
 const DECLARATION_MODES: Record<string, DeclarationMethod> = { tablet: 'Tablet', paper: 'Paper', verbal: 'Verbal' };
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const actor = verifySession(cookies.get(ADMIN_COOKIE)?.value);
+  const actor = verifySession(cookies.get(ADMIN_COOKIE)?.value, undefined, isGiftAidAdmin);
   if (!actor) return json({ error: 'Not signed in.' }, 401);
 
   let body: Record<string, any>;

@@ -139,6 +139,7 @@ bold "Still to do by hand"
 cat <<'NOTE'
   GitHub repo variables (Settings > Secrets and variables > Actions > Variables):
     BOOKING_ADMIN_EMAILS                  michael.campbell@meadowbrookdartington.org
+    GIFT_AID_ADMIN_EMAILS                 treasurer and bookkeeper only (spec/gift-aid/01)
     BOOKING_ADMIN_OAUTH_CLIENT_ID         from the OAuth client
     PUBLIC_BOOKING_SQUARE_ENVIRONMENT     production
     PUBLIC_BOOKING_SQUARE_APPLICATION_ID  Square production application id

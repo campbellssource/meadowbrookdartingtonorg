@@ -2,24 +2,27 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { signSession, ADMIN_COOKIE } from '../src/lib/booking/admin-auth.ts';
+import { signSession, ADMIN_COOKIE, isAllowed, canSignIn, adminHome } from '../src/lib/booking/admin-auth.ts';
 import { POST } from '../src/pages/api/admin/gift-aid.ts';
 
 // /admin/gift-aid holds donors' home addresses. It must be a real sign-in, not an
 // unlisted URL: the API refuses before reading anything, the page redirects before
 // touching the database, and nothing public links to it.
 
-let prevSecret: string | undefined; let prevList: string | undefined;
+let prevSecret: string | undefined; let prevList: string | undefined; let prevGiftAidList: string | undefined;
 before(() => {
   prevSecret = process.env.BOOKING_MAGIC_LINK_SECRET;
   prevList = process.env.BOOKING_ADMIN_EMAILS;
+  prevGiftAidList = process.env.GIFT_AID_ADMIN_EMAILS;
   process.env.BOOKING_MAGIC_LINK_SECRET = 'gift-aid-test-secret-at-least-32-bytes!';
-  process.env.BOOKING_ADMIN_EMAILS = 'treasurer@meadowbrookdartington.org';
+  process.env.BOOKING_ADMIN_EMAILS = 'bookings.admin@meadowbrookdartington.org';
+  process.env.GIFT_AID_ADMIN_EMAILS = 'treasurer@meadowbrookdartington.org';
 });
 after(() => {
   const restore = (k: string, v: string | undefined) => { if (v === undefined) delete process.env[k]; else process.env[k] = v; };
   restore('BOOKING_MAGIC_LINK_SECRET', prevSecret);
   restore('BOOKING_ADMIN_EMAILS', prevList);
+  restore('GIFT_AID_ADMIN_EMAILS', prevGiftAidList);
 });
 
 function call(cookie: string | undefined, body: unknown) {
@@ -60,9 +63,31 @@ describe('the Gift Aid admin API', () => {
 
   test('removed from the allowlist: locked out on the next request', async () => {
     const s = signSession('treasurer@meadowbrookdartington.org');
-    process.env.BOOKING_ADMIN_EMAILS = 'someone.else@meadowbrookdartington.org';
+    process.env.GIFT_AID_ADMIN_EMAILS = 'someone.else@meadowbrookdartington.org';
     assert.equal((await call(s, { action: 'lookup' }).response).status, 401);
-    process.env.BOOKING_ADMIN_EMAILS = 'treasurer@meadowbrookdartington.org';
+    process.env.GIFT_AID_ADMIN_EMAILS = 'treasurer@meadowbrookdartington.org';
+  });
+
+  test('a bookings admin who is not on the Gift Aid list is refused', async () => {
+    const c = call(signSession('bookings.admin@meadowbrookdartington.org'), { action: 'lookup' });
+    assert.equal((await c.response).status, 401);
+    assert.equal(c.wasBodyRead(), false);
+  });
+
+  test('either list may sign in, and each lands where it is allowed', () => {
+    assert.ok(canSignIn('treasurer@meadowbrookdartington.org'));
+    assert.ok(canSignIn('bookings.admin@meadowbrookdartington.org'));
+    assert.equal(canSignIn('stranger@meadowbrookdartington.org'), false);
+    assert.equal(isAllowed('treasurer@meadowbrookdartington.org'), false, 'Gift Aid access does not open the bookings admin');
+    assert.equal(adminHome('treasurer@meadowbrookdartington.org'), '/admin/gift-aid');
+    assert.equal(adminHome('bookings.admin@meadowbrookdartington.org'), '/admin/bookings');
+  });
+
+  test('with the list unset, nobody gets in', async () => {
+    const s = signSession('treasurer@meadowbrookdartington.org');
+    delete process.env.GIFT_AID_ADMIN_EMAILS;
+    assert.equal((await call(s, { action: 'lookup' }).response).status, 401);
+    process.env.GIFT_AID_ADMIN_EMAILS = 'treasurer@meadowbrookdartington.org';
   });
 
   test('a valid session gets past the door (and is then validated as normal)', async () => {
@@ -85,10 +110,10 @@ describe('the Gift Aid admin page', () => {
   const page = readFileSync('src/pages/admin/gift-aid.astro', 'utf8');
 
   test('checks the session and redirects before reading any data', () => {
-    const check = page.indexOf('verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value)');
+    const check = page.indexOf('verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value, undefined, isGiftAidAdmin)');
     const redirect = page.indexOf("return Astro.redirect('/admin/signin', 302)");
     const firstRead = page.indexOf('firestoreStore.');
-    assert.ok(check > 0, 'the page must verify the mb_admin session');
+    assert.ok(check > 0, 'the page must verify the mb_admin session against the Gift Aid list');
     assert.ok(redirect > check, 'and redirect when it fails');
     assert.ok(firstRead > redirect, 'no database read may happen before the redirect');
   });

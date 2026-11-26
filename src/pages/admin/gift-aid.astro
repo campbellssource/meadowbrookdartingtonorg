@@ -1,8 +1,8 @@
 ---
 // /admin/gift-aid — the committee's Gift Aid capture page (spec/gift-aid/01).
 //
-// Behind the same Google sign-in and allowlist as /admin/bookings, checked before
-// anything else on the page runs, and never linked from a public page. It holds
+// Behind the same Google sign-in as /admin/bookings but its own, narrower allowlist
+// (GIFT_AID_ADMIN_EMAILS: treasurer, bookkeeper), checked before anything else runs, and never linked from a public page. It holds
 // donors' home addresses, so it is noindex, no-store and no-referrer like the rest
 // of /admin.
 //
@@ -11,7 +11,7 @@
 
 import Layout from '../../layouts/Layout.astro';
 import GiftAidFields from '../../components/GiftAidFields.astro';
-import { ADMIN_HEADERS, verifySession, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
+import { ADMIN_HEADERS, verifySession, isAllowed, isGiftAidAdmin, ADMIN_COOKIE } from '../../lib/booking/admin-auth.ts';
 import { firestoreStore } from '../../lib/gift-aid/store.ts';
 import { sheetId } from '../../lib/gift-aid/sheets.ts';
 import { londonToday, OFFLINE_METHODS, CAMPAIGNS } from '../../lib/gift-aid/validate.ts';
@@ -20,7 +20,7 @@ import type { Declaration } from '../../lib/gift-aid/types.ts';
 export const prerender = false;
 for (const [k, v] of Object.entries(ADMIN_HEADERS)) Astro.response.headers.set(k, v);
 
-const actor = verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value);
+const actor = verifySession(Astro.cookies.get(ADMIN_COOKIE)?.value, undefined, isGiftAidAdmin);
 if (!actor) return Astro.redirect('/admin/signin', 302);
 
 const MODES = [
@@ -66,7 +66,7 @@ const syncOn = Boolean(sheetId());
         </div>
         <div class="ad-who" hidden={mode === 'tablet'}>
           <span>{actor}</span>
-          <a href="/admin/bookings">Bookings</a>
+          {isAllowed(actor) && <a href="/admin/bookings">Bookings</a>}
           <button type="button" id="ad-signout">Sign out</button>
         </div>
       </div>

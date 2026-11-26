@@ -523,9 +523,6 @@ record nothing.
 
 - A **real-money test**, per `04`: a £1 donation with Gift Aid ticked on a real card, then
   a refund, checking Firestore, the sheet (rows and the Refunded status) and both emails.
-- Create `donations@meadowbrookdartington.org` in Workspace (a group or alias is enough),
-  then add it in Brevo → Senders, domains & dedicated IPs → Senders. Thank-you and verbal
-  confirmation emails fail until it is verified there.
 - Delete the sheet's EXAMPLE rows once real rows are in (Read me says so).
 - Fill in **Settings → HMRC charities reference**. The sheet notes no claim can be made
   without it.
@@ -573,19 +570,22 @@ Decided with the committee on 26 Nov 2026:
 3. **Donations without Gift Aid stay in the sheet**, with a blank Declaration ID (*No
    declaration*), so the Report's totals cover all giving and the bookkeeper can reconcile
    against Square payouts.
-4. **Sender: `donations@meadowbrookdartington.org`**, reply-to `contact@`. Needs the address
-   created in Workspace and added as a verified sender in Brevo before go-live, or Brevo
-   refuses the send (the donation is still recorded; the failure alerts `it@`).
+4. **Sender: `donations@meadowbrookdartington.org`**, reply-to `contact@`. Created as a
+   Workspace group forwarding to `contact@`, and verified as a Brevo sender (26 Nov 2026).
 5. **Overseas taxpayers: not supported online.** Rare for the DRA. Such a donor gives a paper
    declaration, and the bookkeeper types `X` as the postcode in the sheet.
 6. **Refunds are complete refunds only.** The DRA does not give partial refunds; any refund
    marks the donation Refunded (see Refunds).
 
+7. **`/admin/gift-aid` has its own list**, `GIFT_AID_ADMIN_EMAILS` (a GitHub repo variable,
+   like `BOOKING_ADMIN_EMAILS`): Michael, Dila (treasurer) and Vicki (bookkeeper). Either list
+   may sign in; each page checks its own, so a bookings admin cannot open donor addresses
+   and a Gift Aid admin cannot open bookings. Unset means nobody. A Workspace group was
+   considered and not chosen: it needs an admin role for the service account and the Cloud
+   Identity API, for a list of three.
+
 Still open:
 
-7. **Who may use `/admin/gift-aid`.** Today, everyone on `BOOKING_ADMIN_EMAILS`. Options: a
-   separate `GIFT_AID_ADMIN_EMAILS` list, or membership of a Workspace group checked through
-   the Cloud Identity Groups API.
 8. **Small donations ID in Notes.** Needed for idempotent retries, because that tab has no ID
    column. Alternative: add an ID column to the tab (input columns would then be `A:H`, and
    the Tax year formula moves to I).
