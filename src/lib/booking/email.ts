@@ -26,6 +26,8 @@ export interface Email {
   text: string;
   ics?: string;
   replyTo?: string;
+  /** Defaults to SENDER. Must be a sender verified in Brevo, or Brevo refuses the send. */
+  sender?: { name: string; email: string };
 }
 
 type Transport = 'console' | 'brevo';
@@ -74,7 +76,7 @@ export async function send(email: Email): Promise<void> {
     method: 'POST',
     headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      sender: SENDER,
+      sender: email.sender ?? SENDER,
       to: [{ email: email.to }],
       replyTo: { email: email.replyTo ?? OWNER_EMAIL },
       subject: email.subject,

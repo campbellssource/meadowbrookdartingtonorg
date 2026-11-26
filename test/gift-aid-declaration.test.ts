@@ -11,6 +11,7 @@ import {
 } from '../src/lib/gift-aid/validate.ts';
 import { retainUntil, accountingPeriodEnd, addDays } from '../src/lib/gift-aid/retention.ts';
 import { buildDeclaration, confirmationPatch, cancellationPatch, claimable } from '../src/lib/gift-aid/records.ts';
+import { thankYouEmail, verbalConfirmationEmail } from '../src/lib/gift-aid/email.ts';
 
 // The HMRC declaration. Its wording, its opt-in and the donor's address are what
 // make a claim valid, so they are pinned here rather than trusted to stay right.
@@ -330,5 +331,18 @@ describe('verbal declarations', () => {
     assert.equal(d.enteredAt.toISOString(), NOW.toISOString());
     assert.equal(d.wordingVersion, 'v1');
     assert.match(d.wordingText, /^I want to Gift Aid my donation and any donations/);
+  });
+});
+
+describe('donor emails', () => {
+  test('come from donations@, not bookings@', () => {
+    const v = validateDeclaration(good({ scope: 'Single' }), { method: 'Online', now: NOW });
+    assert.ok(v.ok);
+    const d = buildDeclaration(v.value, { enteredBy: 'website', now: NOW, amountPence: 2500 });
+    const donation = { amountPence: 2500, campaign: 'General' } as Parameters<typeof thankYouEmail>[1];
+    for (const e of [thankYouEmail('jane@example.com', donation, d, 'Jane'), verbalConfirmationEmail('jane@example.com', d)]) {
+      assert.equal(e.sender?.email, 'donations@meadowbrookdartington.org');
+      assert.equal(e.replyTo, 'contact@meadowbrookdartington.org');
+    }
   });
 });

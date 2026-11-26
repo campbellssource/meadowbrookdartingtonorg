@@ -11,6 +11,9 @@ import { CHARITY_NAME, CHARITY_NUMBER, CONTACT_EMAIL, UPDATE_NOTICE, formatPound
 import { VERBAL_CANCEL_DAYS } from './retention.ts';
 import type { Declaration, Donation } from './types.ts';
 
+/** Donors hear from donations@, not bookings@. Verified as a Brevo sender before go-live. */
+export const DONATIONS_SENDER = { name: 'Meadowbrook Dartington', email: 'donations@meadowbrookdartington.org' };
+
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -61,6 +64,7 @@ export function thankYouEmail(to: string, donation: Donation, declaration: Decla
     text: [...lines, '', `${CHARITY_NAME}, registered charity ${CHARITY_NUMBER}.`].join('\n\n'),
     html: wrap(html),
     replyTo: CONTACT_EMAIL,
+    sender: DONATIONS_SENDER,
   };
 }
 
@@ -84,5 +88,6 @@ export function verbalConfirmationEmail(to: string, d: Declaration): Email {
       p('With thanks,'), p('The Dartington Recreation Association'),
     ]),
     replyTo: CONTACT_EMAIL,
+    sender: DONATIONS_SENDER,
   };
 }

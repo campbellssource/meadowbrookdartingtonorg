@@ -183,7 +183,8 @@ Square ──payment.created/updated──► /api/donate/webhooks/square
 
 `refund.created` / `refund.updated` → re-read the refund → if `COMPLETED`, find the donation
 by `squarePaymentId` and set **status Refunded**. Idempotent: refund ids already applied are
-skipped. **A partial refund also marks the donation Refunded.** The sheet only knows
+skipped. **The DRA gives complete refunds only** (decided 26 Nov 2026); should a partial
+refund ever happen, it also marks the donation Refunded. The sheet only knows
 Received/Refunded, and over-claiming Gift Aid is the expensive mistake, so the conservative
 reading wins. The refunded amount is kept in Firestore and an alert goes to `it@`, so the
 treasurer can re-enter the net gift if they want it claimed.
@@ -200,7 +201,8 @@ that claims Gift Aid itself.
 
 ### The thank-you email
 
-Sent when the donation is recorded, through the booking system's Brevo `send()` (so dev
+Sent from `donations@meadowbrookdartington.org` (reply-to `contact@`) when the donation is
+recorded, through the booking system's Brevo `send()` (so dev
 prints to the terminal and production refuses `console`). It contains the amount and, if a
 declaration was made: the name and address as recorded, the scope, the exact wording, and how
 to cancel or update it (reply, or email `contact@meadowbrookdartington.org`). Square also
@@ -243,8 +245,8 @@ never made.
   today's date. **"Mark as posted"** records a date for a paper letter.
 - Either one sets `confirmationSentOn` and `claimableFrom = confirmationSentOn + 30 days`,
   and updates column **N** in the sheet.
-- The sheet's formula does not wait out the 30 days. The page shows `claimableFrom`. See
-  "Open questions".
+- The sheet waits out the 30 days too: Status reads *In cancellation period* until
+  `claimableFrom`, and *Void* if the donor cancels inside it (Settings row 14 holds the 30).
 
 ### Cancelling
 
@@ -521,6 +523,9 @@ record nothing.
 
 - A **real-money test**, per `04`: a £1 donation with Gift Aid ticked on a real card, then
   a refund, checking Firestore, the sheet (rows and the Refunded status) and both emails.
+- Create `donations@meadowbrookdartington.org` in Workspace (a group or alias is enough),
+  then add it in Brevo → Senders, domains & dedicated IPs → Senders. Thank-you and verbal
+  confirmation emails fail until it is verified there.
 - Delete the sheet's EXAMPLE rows once real rows are in (Read me says so).
 - Fill in **Settings → HMRC charities reference**. The sheet notes no claim can be made
   without it.
@@ -554,27 +559,36 @@ the dev login, and the Google OAuth client does not list preview URLs.
 
 ---
 
-## Open questions
+## Decisions and open questions
 
-1. **Single-scope wording.** The brief gives only the enduring sentence. v1 uses HMRC's model
-   single-donation sentence for Single. Confirm, or drop Single online.
-2. **Small donations ID in Notes.** Needed for idempotent retries, because that tab has no ID
+Decided with the committee on 26 Nov 2026:
+
+1. **Single-scope wording: approved.** v1 uses HMRC's model single-donation sentence for
+   Single, the default online.
+2. **Verbal: the 30 days are enforced in the sheet.** Settings row 14 holds the period (30).
+   The Declarations Status formula reads *In cancellation period* until confirmation date +
+   30 days has passed, and *Void* if the declaration was cancelled inside that window.
+   Donations' Check column refuses both ("Verbal: wait for 30-day cancellation period",
+   "Verbal declaration cancelled within 30 days").
+3. **Donations without Gift Aid stay in the sheet**, with a blank Declaration ID (*No
+   declaration*), so the Report's totals cover all giving and the bookkeeper can reconcile
+   against Square payouts.
+4. **Sender: `donations@meadowbrookdartington.org`**, reply-to `contact@`. Needs the address
+   created in Workspace and added as a verified sender in Brevo before go-live, or Brevo
+   refuses the send (the donation is still recorded; the failure alerts `it@`).
+5. **Overseas taxpayers: not supported online.** Rare for the DRA. Such a donor gives a paper
+   declaration, and the bookkeeper types `X` as the postcode in the sheet.
+6. **Refunds are complete refunds only.** The DRA does not give partial refunds; any refund
+   marks the donation Refunded (see Refunds).
+
+Still open:
+
+7. **Who may use `/admin/gift-aid`.** Today, everyone on `BOOKING_ADMIN_EMAILS`. Options: a
+   separate `GIFT_AID_ADMIN_EMAILS` list, or membership of a Workspace group checked through
+   the Cloud Identity Groups API.
+8. **Small donations ID in Notes.** Needed for idempotent retries, because that tab has no ID
    column. Alternative: add an ID column to the tab (input columns would then be `A:H`, and
    the Tax year formula moves to I).
-3. **Verbal: the 30 days.** The sheet's Check column treats a verbal declaration as claimable
-   as soon as column N has a date. HMRC treats it as cancelled-from-the-start if the donor
-   cancels within 30 days. Either claim only after `claimableFrom`, or add that test to the
-   sheet's Check formula.
-4. **Partial refunds** mark the whole donation Refunded (conservative). OK?
-5. **Non-Gift-Aid donations** are appended to the Donations tab too, with a blank
-   Declaration ID (the sheet shows *No declaration*). That keeps the Report tab's campaign
-   totals complete. Say if the tab should hold Gift Aid gifts only.
-6. **Who may use `/admin/gift-aid`.** Today, everyone on `BOOKING_ADMIN_EMAILS`. Donor home
-   addresses might warrant a narrower list (treasurer, bookkeeper).
-7. **Sender.** Emails go from `bookings@` (the only verified Brevo transactional sender in the
-   booking code) with reply-to `contact@`. A `donations@` sender would need verifying in Brevo.
-8. **Overseas taxpayers.** HMRC accepts `X` as the postcode for a UK taxpayer living abroad.
-   Not supported. The form asks for a UK postcode.
 
 ## Acceptance criteria
 
